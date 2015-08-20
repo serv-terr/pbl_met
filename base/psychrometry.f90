@@ -1,9 +1,9 @@
 ! Psychrometry - Fortran module, containing some useful routines related to temperature,
 !                relative humidity and related quantities.
 !
-! This Fortran module is part of the PBL_MET library, version 3, released as open-source.
+! This Fortran module is part of the pbl_met library, released as open-source under the LGPL V3.0 license.
 !
-! Written by: Mauri Favaron
+! Written by: Mauri Favaron (Servizi Territorio srl)
 !
 MODULE Psychrometry
 
