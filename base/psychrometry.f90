@@ -14,10 +14,10 @@ MODULE Psychrometry
 	! Public interface
 	PUBLIC	:: WaterSaturationPressure	! Function - Saturation vapor pressure at a given temperature
 	PUBLIC	:: WaterVaporPressure		! Function - Water vapor partial pressure
-	PUBLIC	:: RelativeHumidity			! Function - Relative humidity
+	PUBLIC	:: RelativeHumidity		! Function - Relative humidity
 	PUBLIC	:: DewPointTemperature		! Function - Approximate dew point temperature
 	PUBLIC	:: WetBulbTemperature		! Function - Wet bulb temperature estimate, given dry bulb temperature, relative humidity and pressure
-	PUBLIC	:: SonicTemperature			! Function - Estimate ultrasonic temperature given dry bulb temperature, relative humidity and pressure
+	PUBLIC	:: SonicTemperature		! Function - Estimate ultrasonic temperature given dry bulb temperature, relative humidity and pressure
 
 CONTAINS
 
@@ -26,7 +26,7 @@ CONTAINS
 	
 		! Routine arguments
 		REAL, INTENT(IN)	:: Ta	! Air temperature (K)
-		REAL				:: es	! Saturation vapor pressure (hPa)
+		REAL			:: es	! Saturation vapor pressure (hPa)
 		
 		! Locals
 		! -none-
@@ -79,7 +79,7 @@ CONTAINS
 		REAL, INTENT(IN)	:: Tw	! Wet bulb temperature (K)
 		REAL, INTENT(IN)	:: Td	! Dry bulb temperature (K)
 		REAL, INTENT(IN)	:: Pa	! Atmospheric pressure (hPa)
-		REAL				:: Ew	! Water vapor partial pressure (hPa)
+		REAL			:: Ew	! Water vapor partial pressure (hPa)
 		
 		! Locals
 		REAL	:: RelH
@@ -107,7 +107,7 @@ CONTAINS
 	!
 	! Usage note:	Rough and fine tolerances, "RoughTol" and "FineTol", are
 	! ===========	typically set to 0.1 and 0.001 respectively. In my feeling
-	!				there is no real need to change them, so I made both parameters
+	!		there is no real need to change them, so I made both parameters
 	! optional with appropriate defaults. But on occasions you may want to experiment
 	! with different values. In this case, you should ensure that
 	!
@@ -121,14 +121,14 @@ CONTAINS
 	FUNCTION WetBulbTemperature(Td, Ur, Pa, RoughTol, FineTol, MaxIter, Method) RESULT(Tw)
 	
 		! Routine arguments
-		REAL, INTENT(IN)				:: Td		! Dry bulb (that is "ordinary") temperature (K)
-		REAL, INTENT(IN)				:: Ur		! Relative humidity (%)
-		REAL, INTENT(IN)				:: Pa		! Air pressure (hPa)
-		REAL, INTENT(IN), OPTIONAL		:: RoughTol	! Maximum bracketing step error admitted on wet bulb temperature (K, default 0.1)
-		REAL, INTENT(IN), OPTIONAL		:: FineTol	! Maximum refinement step error admitted on wet bulb temperature (K, default 0.001)
+		REAL, INTENT(IN)		:: Td		! Dry bulb (that is "ordinary") temperature (K)
+		REAL, INTENT(IN)		:: Ur		! Relative humidity (%)
+		REAL, INTENT(IN)		:: Pa		! Air pressure (hPa)
+		REAL, INTENT(IN), OPTIONAL	:: RoughTol	! Maximum bracketing step error admitted on wet bulb temperature (K, default 0.1)
+		REAL, INTENT(IN), OPTIONAL	:: FineTol	! Maximum refinement step error admitted on wet bulb temperature (K, default 0.001)
 		INTEGER, INTENT(IN), OPTIONAL	:: MaxIter	! Maximum number of iterations (default: 100)
 		INTEGER, INTENT(IN), OPTIONAL	:: Method	! Method used for performing calculations (1:Standard (default), 2:Simplified - see R. Stull, "Wet bulb temperature from relative humidity and air temperature", Bulletin of the AMS, Nov 2011)
-		REAL							:: Tw		! Wet bulb temperature (K)
+		REAL				:: Tw		! Wet bulb temperature (K)
 		
 		! Locals
 		REAL	:: rRoughTol
@@ -213,14 +213,14 @@ CONTAINS
 		! Routine arguments
 		REAL, INTENT(IN)				:: Td		! Dry bulb (that is "ordinary") temperature (K)
 		REAL, INTENT(IN)				:: Ur		! Relative humidity (%)
-		REAL							:: Dp
+		REAL						:: Dp
 		
 		! Locals
 		REAL, PARAMETER	:: a =   6.112
 		REAL, PARAMETER	:: b =  17.62
 		REAL, PARAMETER	:: c = 243.12
 		REAL, PARAMETER	:: d = 234.5
-		REAL			:: T, G
+		REAL		:: T, G
 		
 		! Convert temperature to °C (all relations we use assume Celsius degrees)
 		! and then obtain dew point temperature
@@ -244,14 +244,14 @@ CONTAINS
 	FUNCTION SonicTemperature(Td, Ur, Pa, RoughTol, FineTol, MaxIter, Method) RESULT(Ts)
 	
 		! Routine arguments
-		REAL, INTENT(IN)				:: Td		! Dry bulb (that is "ordinary") temperature (K)
-		REAL, INTENT(IN)				:: Ur		! Relative humidity (%)
-		REAL, INTENT(IN)				:: Pa		! Air pressure (hPa)
-		REAL, INTENT(IN), OPTIONAL		:: RoughTol	! Maximum bracketing step error admitted on wet bulb temperature (K, default 0.1)
-		REAL, INTENT(IN), OPTIONAL		:: FineTol	! Maximum refinement step error admitted on wet bulb temperature (K, default 0.001)
+		REAL, INTENT(IN)		:: Td		! Dry bulb (that is "ordinary") temperature (K)
+		REAL, INTENT(IN)		:: Ur		! Relative humidity (%)
+		REAL, INTENT(IN)		:: Pa		! Air pressure (hPa)
+		REAL, INTENT(IN), OPTIONAL	:: RoughTol	! Maximum bracketing step error admitted on wet bulb temperature (K, default 0.1)
+		REAL, INTENT(IN), OPTIONAL	:: FineTol	! Maximum refinement step error admitted on wet bulb temperature (K, default 0.001)
 		INTEGER, INTENT(IN), OPTIONAL	:: MaxIter	! Maximum number of iterations (default: 100)
 		INTEGER, INTENT(IN), OPTIONAL	:: Method	! Method used for performing calculations (1:Standard (default), 2:Simplified - see R. Stull, "Wet bulb temperature from relative humidity and air temperature", Bulletin of the AMS, Nov 2011)
-		REAL							:: Ts		! Sonic temperature (K)
+		REAL				:: Ts		! Sonic temperature (K)
 		
 		! Locals
 		REAL	:: rRoughTol
@@ -344,7 +344,7 @@ CONTAINS
 		REAL, INTENT(IN)	:: Td	! Known dry bulb temperature (K)
 		REAL, INTENT(IN)	:: Ur	! Known relative humidity (%)
 		REAL, INTENT(IN)	:: Pa	! Known atmospheric pressure (hPa)
-		REAL				:: d	! The corresponding value of auxiliary function.
+		REAL			:: d	! The corresponding value of auxiliary function.
 		
 		! Locals
 		! -none-
@@ -429,7 +429,7 @@ CONTAINS
 		REAL, INTENT(IN)	:: Pa		! Atmospheric pressure (hPa)
 		REAL, INTENT(IN)	:: Tol		! Tolerance (K)
 		INTEGER, INTENT(IN)	:: MaxIter	! Maximum number of iterations
-		REAL				:: Tw		! Wet bulb temperature (K)
+		REAL			:: Tw		! Wet bulb temperature (K)
 		
 		! Locals
 		REAL	:: p
