@@ -73,13 +73,13 @@ CONTAINS
 	! Relative humidity, given wet and dry bulb temperatures and
 	! air pressure.
 	!
-	FUNCTION RelativeHumidity(Tw, Td, Pa) RESULT(Ew)
+	FUNCTION RelativeHumidity(Tw, Td, Pa) RESULT(RelH)
 	
 		! Routine arguments
 		REAL, INTENT(IN)	:: Tw	! Wet bulb temperature (K)
 		REAL, INTENT(IN)	:: Td	! Dry bulb temperature (K)
 		REAL, INTENT(IN)	:: Pa	! Atmospheric pressure (hPa)
-		REAL			:: Ew	! Water vapor partial pressure (hPa)
+		REAL			:: RelH	! Relative humidity (%)
 		
 		! Locals
 		REAL	:: RelH
