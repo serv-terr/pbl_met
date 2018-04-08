@@ -19,6 +19,9 @@ MODULE Psychrometry
 	
 	! Public interface
 	PUBLIC	:: WaterSaturationPressure	! Function - Saturation vapor pressure at a given temperature
+	PUBLIC	:: E_SAT_1			! Function - Saturation water vapor pressure, from old PBL_MET
+	PUBLIC	:: D_E_SAT			! Function - Derivative of saturation water vapor pressure, from old PBL_MET
+	PUBLIC	:: PrecipitableWater		! Function - Estimate the amount of precipitable water
 	PUBLIC	:: WaterVaporPressure		! Function - Water vapor partial pressure
 	PUBLIC	:: RelativeHumidity		! Function - Relative humidity
 	PUBLIC	:: AbsoluteHumidity		! Function - Absolute humidity (i.e. density of water vapor in air)
@@ -50,6 +53,77 @@ CONTAINS
 	END FUNCTION WaterSaturationPressure
 	
 	
+	! Saturation water vapor pressure given air temperature, using
+	! ASCE formula, a variant (up to constants decimals) of
+	! Clausius-Clapeyron formula. This routine is the recommended
+	! replacement of E_SAT.
+	!
+	!     Input: T = air temperature (∞C)
+	!
+	!     Output: ESAT = saturation vapor pression (hPa)
+	!
+	function E_SAT_1(T) result(rEsat)
+
+		! Routine arguments
+		real, intent(in)	:: T
+		real				:: rEsat
+
+		! Locals
+		! -none-
+
+		! Compute the data item required
+		rEsat = 6.108*EXP(17.27*T/(T+237.3))
+
+	end function E_SAT_1
+
+
+	! Precipitable water given water vapor pressure
+	!
+	!	Input:
+	!
+	!		Ea		Actual water vapor pressure (hPa)
+	!
+	!		Pa		Actual pressure at measurement altitude (i.e. not reduced to mean sea level) (hPa)
+	!
+	!	Output:
+	!
+	!		W		Precipitable water (mm)
+	!
+	function PrecipitableWater(Ea, Pa) result(W)
+
+		! Routine arguments
+		real, intent(in)	:: Ea, Pa
+		real				:: W
+
+		! Locals
+		! -none-
+
+		! Compute the data item required
+		W = 0.0014*Ea*Pa + 2.1
+
+	end function PrecipitableWater
+
+
+    ! Compute the derivative of the saturation vapor pressure multiplied
+    ! by P/0.622; the input temperature is in ∞K.
+	FUNCTION D_E_SAT(T) RESULT(DEsat)
+
+	    ! Routine arguments
+	    REAL, INTENT(IN)    :: T
+	    REAL                :: DEsat
+
+	    ! Locals
+	    REAL, PARAMETER :: E0 =   0.6112
+	    REAL, PARAMETER :: a  =  17.67
+	    REAL, PARAMETER :: T0 = 273.15
+	    REAL, PARAMETER :: Tb =  29.66
+
+	    ! Compute the saturation vapor tension
+	    DEsat = E0*a*(1./(T-Tb) + (T-T0)/(T-Tb)**2)*EXP(a*(T-T0)/(T-Tb))
+!
+	END FUNCTION D_E_SAT
+
+
 	! Water vapor partial pressure, given wet and dry bulb temperatures and
 	! air pressure.
 	!
