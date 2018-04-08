@@ -1,11 +1,17 @@
 ! Psychrometry - Fortran module, containing some useful routines related to temperature,
-!                relative humidity and related quantities.
+!                relative humidity, pressure and related quantities. The module name, 'Psychrometry',
+!		 is possibly a bit misleading.
 !
-! This Fortran module is part of the pbl_met library, released as open-source under the LGPL V3.0 license.
+! This Fortran module is part of the new PBL_MET library, released as open-source under the LGPL V3.0 license.
+!
+! Routines in this module may yield invalid values, encoded as 'NaN'. For simplicity, input to any
+! routine is not checked against sensible values: boundary controls should be enforced prior to call.
 !
 ! Written by: Mauri Favaron (Servizi Territorio srl)
 !
 MODULE Psychrometry
+
+	USE nan_support
 
 	IMPLICIT NONE
 	
@@ -16,6 +22,8 @@ MODULE Psychrometry
 	PUBLIC	:: WaterVaporPressure		! Function - Water vapor partial pressure
 	PUBLIC	:: RelativeHumidity		! Function - Relative humidity
 	PUBLIC	:: AbsoluteHumidity		! Function - Absolute humidity (i.e. density of water vapor in air)
+	PUBLIC	:: AirDensity			! Function - Density of air, given temperature and pressure
+	PUBLIC	:: RhoCp			: Function - Product of air density and constant pressure thermal capacity of air
 	PUBLIC	:: DewPointTemperature		! Function - Approximate dew point temperature
 	PUBLIC	:: WetBulbTemperature		! Function - Wet bulb temperature estimate, given dry bulb temperature, relative humidity and pressure
 	PUBLIC	:: SonicTemperature		! Function - Estimate ultrasonic temperature given dry bulb temperature, relative humidity and pressure
@@ -65,7 +73,7 @@ CONTAINS
 			FractionalDeltaP = (0.00066/10.) * (1. + 0.00115*TwetCelsius)*ExcessTemp
 			Ew               = WaterSaturationPressure(Tw) - FractionalDeltaP * Pa
 		ELSE
-			Ew               = -9999.9
+			Ew               = NaN
 		END IF
 
 	END FUNCTION WaterVaporPressure
@@ -111,7 +119,7 @@ CONTAINS
 	
 	! Air density given dry bulb temperature and atmospheric pressure.
 	!
-	FUNCTION AbsoluteHumidity(Td, Pa) RESULT(RhoW)
+	FUNCTION AirDensity(Td, Pa) RESULT(Rho)
 	
 		! Routine arguments
 		REAL, INTENT(IN)	:: Td	! Dry bulb temperature (K)
@@ -124,8 +132,36 @@ CONTAINS
 		! Compute the information desired
 		Rho = 100.0*Pa/(287.*Td)
 		
-	END FUNCTION AbsoluteHumidity
+	END FUNCTION AirDensity
 	
+	
+	! Product of air density and the constant-pressure atmospheric thermal capacity,
+	! given dry bulb temperature and atmospheric pressure.
+	!
+	FUNCTION RhoCp(Td, Pa) RESULT(rRhoCp)
+	
+		! Routine arguments
+		REAL, INTENT(IN)		:: Td		! Dew point temperature (K)
+		REAL, INTENT(IN), OPTIONAL	:: Pa		! Air pressure (hPa)
+		REAL				:: rRhoCp	! Product of air density and 
+		
+		! Locals
+		REAL	:: Rho
+		REAL	:: Cp
+		
+		! Compute the information desired
+		IF(PRESENT(Pa)) THEN
+			! Pressure is available: use complete formula
+			Rho = AirDensity(Td, Pa)
+			Cp  = 1005.0 + (Td - 250.0)**2/3364.0	! From Garratt, 1992
+			rRhoCp = Rho * Cp
+		ELSE
+			! Pressure not available on entry: use the simplified relation
+			rRhoCp = 1305. * 273.15/Td
+		END IF
+		
+	END FUNCTION RhoCp
+
 	
 	! Estimate wet bulb temperature from dry bulb temperature, relative
 	! humidity and pressure.
