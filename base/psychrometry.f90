@@ -15,6 +15,7 @@ MODULE Psychrometry
 	PUBLIC	:: WaterSaturationPressure	! Function - Saturation vapor pressure at a given temperature
 	PUBLIC	:: WaterVaporPressure		! Function - Water vapor partial pressure
 	PUBLIC	:: RelativeHumidity		! Function - Relative humidity
+	PUBLIC	:: AbsoluteHumidity		! Function - Absolute humidity (i.e. density of water vapor in air)
 	PUBLIC	:: DewPointTemperature		! Function - Approximate dew point temperature
 	PUBLIC	:: WetBulbTemperature		! Function - Wet bulb temperature estimate, given dry bulb temperature, relative humidity and pressure
 	PUBLIC	:: SonicTemperature		! Function - Estimate ultrasonic temperature given dry bulb temperature, relative humidity and pressure
@@ -50,7 +51,7 @@ CONTAINS
 		REAL, INTENT(IN)	:: Tw	! Wet bulb temperature (K)
 		REAL, INTENT(IN)	:: Td	! Dry bulb temperature (K)
 		REAL, INTENT(IN)	:: Pa	! Atmospheric pressure (hPa)
-		REAL				:: Ew	! Water vapor partial pressure (hPa)
+		REAL			:: Ew	! Water vapor partial pressure (hPa)
 		
 		! Locals
 		REAL	:: TwetCelsius
@@ -88,6 +89,42 @@ CONTAINS
 		RelH = 100. * WaterVaporPressure(Tw, Td, Pa) / WaterSaturationPressure(Td)
 
 	END FUNCTION RelativeHumidity
+	
+	
+	! Absolute humidity given dry bulb temperature and water vapor pressure.
+	!
+	FUNCTION AbsoluteHumidity(Td, E) RESULT(RhoW)
+	
+		! Routine arguments
+		REAL, INTENT(IN)	:: Td	! Dry bulb temperature (K)
+		REAL, INTENT(IN)	:: E	! Water vapor pressure (hPa)
+		REAL			:: RhoW	! Absolute humidity (kg/m3)
+		
+		! Locals
+		! --none--
+		
+		! Compute the information desired
+		RhoW = 100.0*E/(461.5*Td)
+		
+	END FUNCTION AbsoluteHumidity
+	
+	
+	! Air density given dry bulb temperature and atmospheric pressure.
+	!
+	FUNCTION AbsoluteHumidity(Td, Pa) RESULT(RhoW)
+	
+		! Routine arguments
+		REAL, INTENT(IN)	:: Td	! Dry bulb temperature (K)
+		REAL, INTENT(IN)	:: Pa	! Atmospheric pressure (hPa)
+		REAL			:: Rho	! Air density (kg/m3)
+		
+		! Locals
+		! --none--
+		
+		! Compute the information desired
+		Rho = 100.0*Pa/(287.*Td)
+		
+	END FUNCTION AbsoluteHumidity
 	
 	
 	! Estimate wet bulb temperature from dry bulb temperature, relative
