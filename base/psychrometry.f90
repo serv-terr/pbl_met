@@ -66,7 +66,7 @@ CONTAINS
 
 		! Routine arguments
 		real, intent(in)	:: T
-		real				:: rEsat
+		real			:: rEsat
 
 		! Locals
 		! -none-
@@ -175,18 +175,18 @@ CONTAINS
 	
 	! Absolute humidity given dry bulb temperature and water vapor pressure.
 	!
-	FUNCTION AbsoluteHumidity(Td, E) RESULT(RhoW)
+	FUNCTION AbsoluteHumidity(Td, Ea) RESULT(RhoW)
 	
 		! Routine arguments
 		REAL, INTENT(IN)	:: Td	! Dry bulb temperature (K)
-		REAL, INTENT(IN)	:: E	! Water vapor pressure (hPa)
+		REAL, INTENT(IN)	:: Ea	! Water vapor pressure (hPa)
 		REAL			:: RhoW	! Absolute humidity (kg/m3)
 		
 		! Locals
 		! --none--
 		
 		! Compute the information desired
-		RhoW = 100.0*E/(461.5*Td)
+		RhoW = 100.0*Ea/(461.5*Td)
 		
 	END FUNCTION AbsoluteHumidity
 	
@@ -217,7 +217,9 @@ CONTAINS
 		! Routine arguments
 		REAL, INTENT(IN)		:: Td		! Dew point temperature (K)
 		REAL, INTENT(IN), OPTIONAL	:: Pa		! Air pressure (hPa)
-		REAL				:: rRhoCp	! Product of air density and 
+		REAL				:: rRhoCp	! Product of air density and
+								! constant-pressure thermal
+								! capacity
 		
 		! Locals
 		REAL	:: Rho
