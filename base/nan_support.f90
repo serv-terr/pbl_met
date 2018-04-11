@@ -1,4 +1,4 @@
-! NaN_support.f90 - Fortran module supporting IEEE NaN. The reason-of-being
+! nan_support.f90 - Fortran module supporting IEEE NaN. The reason-of-being
 !                   of this module is to replace treatment of invalid values
 ! based on -9999.9 (or any other normal floating point number) with non-signaling NaNs.
 !
@@ -7,7 +7,7 @@
 !
 ! This module is part of the new PBL_MET library.
 !
-module NaN_support
+module nan_support
 
 	implicit none
 	
@@ -19,4 +19,4 @@ module NaN_support
 	! A ready-to-use non-signalling NaN value:
     real, parameter	:: NaN      = Z'7FC00000'
     
-end module NaN_support
+end module nan_support
