@@ -1,5 +1,8 @@
-! Radiometry - Fortran module, supporting calculations related to global and net
-!              radiation.
+! pbl_base - Fortran module, containing computations related to
+!            Planetary Boundary Layer (PBL) quantities, encompassing
+! the lower atmosphere thermodynamics, energy balance, psychrometry,
+! and some astronomical formulae dealing with sunset/sunrise and apparent
+! solar position.
 !
 ! All former relationships dealing with net and global radiation
 ! are a legacy from the original PBL_MET. The ones following here are
@@ -15,7 +18,9 @@
 !
 ! Written by: Mauri Favaron
 !
-module Radiometry
+! Routines in former PBL_MET have been written by Roberto Sozzi and Daniele Fraternali
+!
+module pbl_base
 
 	use nan_support
 	use psychrometry
@@ -708,4 +713,4 @@ contains
 
 	end function SolarDeclination
 
-end module Radiometry
+end module pbl_base
