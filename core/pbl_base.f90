@@ -34,10 +34,10 @@ module pbl_base
 	public	:: JulianDay					! Integer-valued Julian day
 	public	:: UnpackDate					! Inverse of integer-valued Julian day
 	public	:: DoW							! Day-of-week
-	public	:: DoY							! Day-of-year, as in old PBL_MET "J_Day" routine
+	public	:: DoY							! Day-of-year, as in old PBL_MET "J_DAY" routine
 	public	:: Leap							! Check a year is leap or not
 	public	:: PackTime						! Date and time to epoch
-	public	:: UnackTime					! Epoch to date and time
+	public	:: UnpackTime					! Epoch to date and time
 	! 2. Basic astronomical computations
 	public	:: calcJD						! Fractional Julian day, defined according to NOAA conventions
 	public	:: calcTimeJulianCent			! Fractional Julian century, defined according to NOAA conventions
@@ -53,7 +53,7 @@ module pbl_base
 	PUBLIC	:: RelativeHumidity				! Relative humidity
 	PUBLIC	:: AbsoluteHumidity				! Absolute humidity (i.e. density of water vapor in air)
 	PUBLIC	:: AirDensity					! Density of air, given temperature and pressure
-	PUBLIC	:: RhoCp						: Product of air density and constant pressure thermal capacity of air
+	PUBLIC	:: RhoCp						! Product of air density and constant pressure thermal capacity of air
 	PUBLIC	:: DewPointTemperature			! Approximate dew point temperature
 	PUBLIC	:: WetBulbTemperature			! Wet bulb temperature estimate, given dry bulb temperature, relative humidity and pressure
 	PUBLIC	:: SonicTemperature				! Estimate ultrasonic temperature given dry bulb temperature, relative humidity and pressure
@@ -65,7 +65,10 @@ module pbl_base
 	public	:: Cloudiness					! Estimate cloudiness factor (see ASCE report for definitions)
 	
 	! Constants
-    real, parameter	:: NaN      = Z'7FC00000'	! Special case of non-signalling NaN
+    real, parameter		:: NaN				= Z'7FC00000'	! Special case of non-signalling NaN
+	real, parameter		:: YEAR_DURATION	= 365.25
+	real, parameter		:: MONTH_DURATION	= 30.6001
+	integer, parameter	:: BASE_DAY			= 2440588		! 01. 01. 1970
 
 contains
 
@@ -217,13 +220,13 @@ contains
 
 
 	! Day of year
-	function DoY(ia,im,ig) result(doy)
+	function DoY(ia,im,id) result(iDayOfYear)
 
 		! Routine arguments
-		integer, intent(in)	:: ia	! Year (with century)
-		integer, intent(in)	:: im	! Month
-		integer, intent(in)	:: id	! Day
-		integer				:: doy	! Day in year
+		integer, intent(in)	:: ia			! Year (with century)
+		integer, intent(in)	:: im			! Month
+		integer, intent(in)	:: id			! Day
+		integer				:: iDayOfYear	! Day in year
 		
 		! Locals
 		! --none--
@@ -235,10 +238,10 @@ contains
 
 		if(Leap(ia)) then
 			! Leap year
-			doy = ig+ngm(im,1)
+			iDayOfYear = id+ngm(im,1)
 		else
 			! Even year
-			doy = ig+ngm(im,2)
+			iDayOfYear = id+ngm(im,2)
 		end if
 
 	end function DoY
@@ -466,7 +469,7 @@ contains
 		real	:: Kb, Kd, Ra
 		real	:: beta, sinBeta, W
 		real	:: e, es, Ta
-		integer	:: ss, mm, hh, yy, mo, dy, doy
+		integer	:: ss, mm, hh, yy, mo, dy, iDayOfYear
 		real	:: dr
 		real	:: omega, omega1, omega2, omegaS
 		real	:: timenow, JD, t, Sc, b, t1
@@ -490,17 +493,17 @@ contains
 			Rso = NaN
 			return
 		end if
-		doy = J_DAY(yy,mo,dy)
+		iDayOfYear = DoY(yy,mo,dy)
 
 		! Compute solar declination
-		solarDeclination = 0.409*SIN(2*PI/365*doy - 1.39)
+		solarDeclination = 0.409*SIN(2*PI/365*iDayOfYear - 1.39)
 
 		! Compute Julian day
 		timenow = hh + mm/60.0 + ss/3600.0 - zone
 		JD = calcJD(yy, mo, dy)
 
 		! Inverse squared relative distance factor for Sun-Earth
-		dr = 1.0 + 0.033*COS(2*PI*doy/365.0)
+		dr = 1.0 + 0.033*COS(2*PI*iDayOfYear/365.0)
 
 		! Calculate geographical positioning parameters (with a "-" sign for longitudes, according to ASCE conventions)
 		centralMeridianLongitude = -zone*15.0
@@ -517,7 +520,7 @@ contains
 		t = timenow + zone + 0.5*t1
 
 		! Calculate seasonal correction for solar time
-		b  = 2.*PI*(doy-81)/364.0
+		b  = 2.*PI*(iDayOfYear-81)/364.0
 		Sc = 0.1645*SIN(2.0*b) - 0.1255*COS(b) - 0.025*SIN(b)
 
 		! Solar time angle at midpoint of averaging time
@@ -616,7 +619,7 @@ contains
 
 		! Locals
 		integer	:: iErrCode
-		integer	:: ss, mm, hh, yy, mo, dy, doy
+		integer	:: ss, mm, hh, yy, mo, dy, iDayOfYear
 		real	:: dr
 		real	:: omega, omega1, omega2, omegaS
 		real	:: timenow, JD, t, Sc, b, t1
@@ -632,17 +635,17 @@ contains
 			Ra = NaN
 			return
 		end if
-		doy = J_DAY(yy,mo,dy)
+		iDayOfYear = DoY(yy,mo,dy)
 
 		! Compute solar declination
-		solarDeclination = 0.409*SIN(2*PI/365*doy - 1.39)
+		solarDeclination = 0.409*SIN(2*PI/365*iDayOfYear - 1.39)
 
 		! Compute Julian day
 		timenow = hh + mm/60.0 + ss/3600.0 - zone
 		JD = calcJD(yy, mo, dy)
 
 		! Inverse squared relative distance factor for Sun-Earth
-		dr = 1.0 + 0.033*COS(2*PI*doy/365.0)
+		dr = 1.0 + 0.033*COS(2*PI*iDayOfYear/365.0)
 
 		! Calculate geographical positioning parameters (with a "-" sign for longitudes, according to ASCE conventions)
 		centralMeridianLongitude = -zone*15.0
@@ -659,7 +662,7 @@ contains
 		t = timenow + zone + 0.5*t1
 
 		! Calculate seasonal correction for solar time
-		b  = 2.*PI*(doy-81)/364.0
+		b  = 2.*PI*(iDayOfYear-81)/364.0
 		Sc = 0.1645*SIN(2.0*b) - 0.1255*COS(b) - 0.025*SIN(b)
 
 		! Solar time angle at midpoint of averaging time
@@ -840,7 +843,7 @@ contains
 		real, dimension(2)	:: sunRiseSet
 
 		! Locals
-		integer	:: doy
+		integer	:: iDayOfYear
 		real	:: solarDeclination
 		real	:: t, b, Sc
 		real	:: centralMeridianLongitude
@@ -851,8 +854,8 @@ contains
 		real, parameter	:: PI = 3.1415927
 
 		! Compute solar declination
-		doy = J_DAY(yy,mo,dy)
-		solarDeclination = 0.409*SIN(2*PI/365*doy - 1.39)
+		iDayOfYear = DoY(yy,mo,dy)
+		solarDeclination = 0.409*SIN(2*PI/365*iDayOfYear - 1.39)
 
 		! Calculate geographical positioning parameters (with a "-" sign for longitudes, according to ASCE conventions)
 		centralMeridianLongitude = -zone*15.0
@@ -865,7 +868,7 @@ contains
 		end if
 
 		! Calculate seasonal correction for solar time
-		b  = 2.*PI*(doy-81)/364.0
+		b  = 2.*PI*(iDayOfYear-81)/364.0
 		Sc = 0.1645*SIN(2.0*b) - 0.1255*COS(b) - 0.025*SIN(b)
 
 		! Sunrise and sunset angles
@@ -892,7 +895,7 @@ contains
 		real				:: sinBeta
 
 		! Locals
-		integer	:: doy
+		integer	:: iDayOfYear
 		real	:: solarDeclination
 		real	:: t, b, Sc
 		real	:: centralMeridianLongitude
@@ -903,8 +906,8 @@ contains
 		real, parameter	:: PI = 3.1415927
 
 		! Compute solar declination
-		doy = J_DAY(yy,mo,dy)
-		solarDeclination = 0.409*SIN(2*PI/365*doy - 1.39)
+		iDayOfYear = DoY(yy,mo,dy)
+		solarDeclination = 0.409*SIN(2*PI/365*iDayOfYear - 1.39)
 
 		! Compute current hour at mid of averaging period
 		t = hh + mm/60.0 + ss/3600.0 + 0.5 * averagingPeriod / 3600.0
@@ -920,7 +923,7 @@ contains
 		end if
 
 		! Calculate seasonal correction for solar time
-		b  = 2.*PI*(doy-81)/364.0
+		b  = 2.*PI*(iDayOfYear-81)/364.0
 		Sc = 0.1645*SIN(2.0*b) - 0.1255*COS(b) - 0.025*SIN(b)
 
 		! Solar time angle at midpoint of averaging time
@@ -941,14 +944,14 @@ contains
 		real				:: sunDecl
 
 		! Locals
-		integer	:: doy
+		integer	:: iDayOfYear
 
 		! Parameters
 		real, parameter	:: PI = 3.1415927
 
 		! Compute solar declination
-		doy = J_DAY(yy,mo,dy)
-		sunDecl = 0.409*SIN(2.*PI/365.*doy - 1.39)
+		iDayOfYear = DoY(yy,mo,dy)
+		sunDecl = 0.409*SIN(2.*PI/365.*iDayOfYear - 1.39)
 
 	end function SolarDeclination
 
@@ -1085,7 +1088,7 @@ contains
 		REAL			:: RelH	! Relative humidity (%)
 		
 		! Locals
-		REAL	:: RelH
+		! --none--
 		
 		! Compute the information desired
 		RelH = 100. * WaterVaporPressure(Tw, Td, Pa) / WaterSaturationPressure(Td)
