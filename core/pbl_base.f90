@@ -31,8 +31,13 @@ module pbl_base
 	! 0. Useful constants and symbols
 	public	:: NaN							! Non-signalling NaN (generates other NaNs when combined with other values)
 	! 1. Date and time management
-	public	:: Leap							! Check a year is leap or not
+	public	:: JulianDay					! Integer-valued Julian day
+	public	:: UnpackDate					! Inverse of integer-valued Julian day
+	public	:: DoW							! Day-of-week
 	public	:: DoY							! Day-of-year, as in old PBL_MET "J_Day" routine
+	public	:: Leap							! Check a year is leap or not
+	public	:: PackTime						! Date and time to epoch
+	public	:: UnackTime					! Epoch to date and time
 	! 2. Basic astronomical computations
 	public	:: calcJD						! Fractional Julian day, defined according to NOAA conventions
 	public	:: calcTimeJulianCent			! Fractional Julian century, defined according to NOAA conventions
@@ -64,6 +69,108 @@ module pbl_base
 
 contains
 
+	function JulianDay(iYear, iMonth, iDay) result(iJulianDay)
+
+		! Routine arguments
+        integer, intent(in) :: iYear
+        integer, intent(in) :: iMonth
+        integer, intent(in) :: iDay
+        integer             :: iJulianDay
+
+        ! Locals
+        integer     		:: iAuxYear
+        integer     		:: iAuxMonth
+        integer     		:: iCentury
+        integer     		:: iTryJulianDay
+        integer     		:: iNumDays
+        integer, parameter  :: DATE_REFORM_DAY = 588829 ! 15 October 1582, with 31-days months
+        integer, parameter  :: BASE_DAYS       = 1720995
+
+        ! Check year against invalid values. Only positive
+        ! years are supported in this version. Year "0" does
+        ! not exist.
+        if(iYear <= 0) then
+            iJulianDay = -9999
+            return
+        end if
+
+        ! Check month and day to look valid (a rough, non-month-aware
+        ! test is intentionally adopted in sake of simplicity)
+        if((.not.(1<=iMonth .and. iMonth<=12)) .or. (.not.(1<=iDay .and. iDay<=31))) then
+            iJulianDay = -9999
+            return
+        end if
+
+        ! Preliminary estimate the Julian day, based on
+        ! the average duration of year and month in days.
+        if(iMonth > 2) then
+            iAuxYear  = iYear
+            iAuxMonth = iMonth + 1
+        else
+            iAuxYear  = iYear - 1
+            iAuxMonth = iMonth + 13
+        end if
+        iTryJulianDay = floor(YEAR_DURATION * iAuxYear) + &
+                        floor(MONTH_DURATION * iAuxMonth) + &
+                        iDay + BASE_DAYS
+
+        ! Correct estimate if later than the date reform day
+        iNumDays = iDay + 31*iMonth + 372*iYear
+        if(iNumDays >= DATE_REFORM_DAY) then
+            iCentury = 0.01*iAuxYear
+            iJulianDay = iTryJulianDay - iCentury + iCentury/4 + 2
+        else
+            iJulianDay = iTryJulianDay
+        end if
+
+	end function JulianDay
+
+
+    subroutine UnpackDate(iJulianDay, iYear, iMonth, iDay)
+
+        ! Routine arguments
+        integer, intent(in)     :: iJulianDay
+        integer, intent(out)    :: iYear
+        integer, intent(out)    :: iMonth
+        integer, intent(out)    :: iDay
+
+        ! Locals
+        integer :: iDeviation
+        integer :: iPreJulianDay
+        integer :: iPostJulianDay
+        integer :: iYearIndex
+        integer :: iMonthIndex
+        integer :: iDayIndex
+        integer, parameter  :: LIMIT_JULIAN_DAY = 2299161
+        integer, parameter  :: CORRECTION_DAYS  = 1524
+
+        ! Unwind Pope Gregorius' day correction
+        if(iJulianDay >= LIMIT_JULIAN_DAY) then
+            iDeviation = floor(((iJulianDay-1867216)-0.25)/36524.25)
+            iPreJulianDay = iJulianDay + iDeviation - iDeviation/4 + 1
+        else
+            iPreJulianDay = iJulianDay
+        end if
+        iPostJulianDay = iPreJulianDay + CORRECTION_DAYS
+
+        ! Compute time indices
+        iYearIndex  = floor(6680+((iPostJulianDay-2439870)-122.1)/YEAR_DURATION)
+        iDayIndex   = 365*iYearIndex + iYearIndex/4
+        iMonthIndex = floor((iPostJulianDay - iDayIndex)/MONTH_DURATION)
+
+        ! Deduce preliminary date from time indices
+        iDay = iPostJulianDay - floor(MONTH_DURATION*iMonthIndex) - iDayIndex
+        if(iMonthIndex > 13) then
+            iMonth = iMonthIndex - 13
+        else
+            iMonth = iMonthIndex - 1
+        end if
+        iYear = iYearIndex - 4715
+        if(iMonth > 2) iYear = iYear - 1
+
+    end subroutine UnpackDate
+
+
 	! Definition of even-leap year
 	function Leap(ia) result(isLeap)
 	
@@ -94,6 +201,21 @@ contains
 	end function Leap
 	
 	
+    function DoW(iJulianDay) result(iDayOfWeek)
+
+        ! Routine arguments
+        integer, intent(in) :: iJulianDay
+        integer         	:: iDayOfWeek
+
+        ! Locals
+        ! -none-
+
+        ! Compute the desired quantity
+        iDayOfWeek = mod(iJulianDay, 7)
+
+    end function DoW
+
+
 	! Day of year
 	function DoY(ia,im,ig) result(doy)
 
@@ -120,6 +242,107 @@ contains
 		end if
 
 	end function DoY
+
+
+    subroutine PackTime(iTime, iYear, iMonth, iDay, iInHour, iInMinute, iInSecond)
+
+        ! Routine arguments
+        integer, intent(out)            :: iTime
+        integer, intent(in)             :: iYear
+        integer, intent(in)             :: iMonth
+        integer, intent(in)             :: iDay
+        integer, intent(in), optional   :: iInHour
+        integer, intent(in), optional   :: iInMinute
+        integer, intent(in), optional   :: iInSecond
+
+        ! Locals
+        integer :: iHour
+        integer :: iMinute
+        integer :: iSecond
+        integer :: iJulianDay
+        integer :: iJulianSecond
+
+        ! Check for optional parameters; assign defaults if necessary
+        if(present(iInHour)) then
+            iHour = iInHour
+        else
+            iHour = 0
+        end if
+        if(present(iInMinute)) then
+            iMinute = iInMinute
+        else
+            iMinute = 0
+        end if
+        if(present(iInSecond)) then
+            iSecond = iInSecond
+        else
+            iSecond = 0
+        end if
+        
+        ! Check input parameters for validity
+        if( &
+            iYear   <= 0 .OR. &
+            iMonth  < 1 .OR. iMonth  > 12 .OR. &
+            iDay    < 1 .OR. iDay    > 31 .OR. &
+            iHour   < 0 .OR. iHour   > 23 .OR. &
+            iMinute < 0 .OR. iMinute > 59 .OR. &
+            iSecond < 0 .OR. iSecond > 59 &
+        ) then
+            iTime = -1
+            return
+        end if
+
+        ! Compute based Julian day
+        iJulianDay = JulianDay(iYear, iMonth, iDay) - BASE_DAY
+
+        ! Convert based Julian day to second, and add seconds from time,
+        ! regardless of hour type.
+        iJulianSecond = iJulianDay * 24 * 3600
+        iTime = iJulianSecond + iSecond + 60*(iMinute + 60*iHour)
+
+    end subroutine PackTime
+
+
+    subroutine UnpackTime(iTime, iYear, iMonth, iDay, iHour, iMinute, iSecond)
+
+        ! Routine arguments
+        integer, intent(in)     :: iTime
+        integer, intent(out)    :: iYear
+        integer, intent(out)    :: iMonth
+        integer, intent(out)    :: iDay
+        integer, intent(out)    :: iHour
+        integer, intent(out)    :: iMinute
+        integer, intent(out)    :: iSecond
+
+        ! Locals
+        integer :: iJulianDay
+        integer :: iTimeSeconds
+
+        ! Check parameter
+        if(iTime < 0) then
+            iYear   = 1970
+            iMonth  = 1
+            iDay    = 1
+            iHour   = 0
+            iMinute = 0
+            iSecond = 0
+            return
+        end if
+
+        ! Isolate the date and time parts
+        iJulianDay = iTime/(24*3600) + BASE_DAY
+        iTimeSeconds = mod(iTime, 24*3600)
+
+        ! Process the date part
+        call UnpackDate(iJulianDay, iYear, iMonth, iDay)
+
+        ! Extract time from the time part
+        iSecond = mod(iTimeSeconds,60)
+        iTimeSeconds = iTimeSeconds/60
+        iMinute = mod(iTimeSeconds,60)
+        iHour   = iTimeSeconds/60
+
+    end subroutine UnpackTime
 
 
 	! Fractional Julian day, according to NOAA conventions
