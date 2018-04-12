@@ -4,23 +4,6 @@
 ! and some astronomical formulae dealing with sunset/sunrise and apparent
 ! solar position.
 !
-! Main references:
-!
-!	R.G. Allen et al, "The ASCE Standardized Reference Evapotranspiration Equation",
-!	American Society of Civil Engineers, 2005
-!
-!	R. Sozzi, T. Georgiadis, M. Valentini, "Introduzione alla turbolenza atmosferica:
-!	Concetti, stime, misure", Pitagora Editrice, 2002
-!
-! This new approach (respect to old PBL_MET way) does basically replace cloud cover by water vapor pressure (which
-! can easily obtained from a thermo-hygrometer) and the "cloudiness function", a
-! dimensionless value obtainable from measurement of global radiation or, these missing,
-! by statistical means.
-!
-! Written by: Mauri Favaron
-!
-! Routines in former PBL_MET have been written by Roberto Sozzi and Daniele Fraternali
-!
 module pbl_base
 
 	implicit none
