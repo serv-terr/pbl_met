@@ -64,6 +64,8 @@ module pbl_base
 	PUBLIC	:: LatentVaporizationHeat		! Latent vaporization heat at given temperature
 	PUBLIC	:: DewPointTemperature			! Approximate dew point temperature
 	PUBLIC	:: WetBulbTemperature			! Wet bulb temperature estimate, given dry bulb temperature, relative humidity and pressure
+	PUBLIC	:: AirPressure					! Estimate atmospheric pressure from height and temperature
+	PUBLIC	:: VirtualTemperature			! Virtual temperature given water vapor pressure and air pressure
 	PUBLIC	:: SonicTemperature				! Estimate ultrasonic temperature given dry bulb temperature, relative humidity and pressure
 	! 4. Energy balance at ground-atmosphere contact
  	public	:: ClearSkyRg_Simple			! Simple estimate of global solar radiation under clear sky conditions
@@ -1319,6 +1321,80 @@ contains
 	! the range will depend on pressure being close to reference value.
 	
 	
+	function AirPressure(rZ, rvTemp, rZr, iCalculationType) result(rPk)
+
+		implicit none
+
+		! Routine arguments
+		real, intent(in)				:: rZ		! Reference height at which pressure is desired (m)
+		real, dimension(:), intent(in)	:: rvTemp	! Air temperature (°C)
+		real, intent(in)				:: rZr		! Height at which temperature measurements are taken (m)
+		integer, intent(in)				:: iCalculationType	! ASCE_STANDARDATMOSPHERE, ASCE_STANDARDEQ, ASCE_MEANTEMPERATURE
+		real							:: rPk		! Estimated pressure (hPa)
+
+		! Locals
+		real	:: rTK0	! Reference temperature (K)
+		integer	:: i
+		integer	:: iNumValid
+
+		! Constants
+		real, parameter	:: P0 = 1013.		! Pressure at reference height (hPa)
+		real, parameter	:: g  = 9.807		! Gravitation acceleration (m/s2)
+		real, parameter	:: z0 = 0.			! Reference altitude for expressing pressure (m above msl)
+		real, parameter	:: R  = 287.0		! Specific gas constant (J/kg/K)
+		real, parameter	:: Alpha1 = 0.0065	! Constant lapse rate of moist air (K/m)
+
+		! Reference temperature
+		select case(iCalculationType)
+		case(ASCE_STANDARDATMOSPHERE)
+			rTK0 = 288.0
+		case(ASCE_STANDARDEQ)
+			rTK0 = 293.0
+		case(ASCE_MEANTEMPERATURE)
+			rTK0 = 0.
+			iNumValid = 0
+			do i = 1, SIZE(rvTemp)
+				if(.not.ISNAN(rvTemp(i))) then
+					iNumValid = iNumValid + 1
+					rTK0      = rTK0 + rvTemp(i)
+				end if
+			end do
+			if(iNumValid > 0) then
+				rTK0 = rTK0 / iNumValid + 273.15
+			else
+				rPk = NaN
+				return
+			end if
+		case default
+			rPk = NaN
+			return
+		end select
+
+		! Compute pressure
+		rPk = P0*((rTK0 - Alpha1*(rZ - z0))/rTK0)**(g/(Alpha1*R))
+
+	end function AirPressure
+
+
+	function VirtualTemperature(Temp, ea, P) result(Tv)
+
+		implicit none
+
+		! Routine arguments
+		real, intent(in)	:: Temp		! (°C)
+		real, intent(in)	:: ea		! (hPa)
+		real, intent(in)	:: P		! (hPa)
+		real				:: Tv		! (K)
+
+		! Locals
+		! -none-
+
+		! Compute the information desired
+		Tv = (Temp + 273.16)/(1.0 - 0.378*ea/P)
+
+	end function VirtualTemperature
+
+
 	! Estimate dew point temperature using Magnus formula enhanced using Arden Buck equation
 	FUNCTION DewPointTemperature(Td, Ur) RESULT(Dp)
 	
