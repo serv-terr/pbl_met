@@ -30,6 +30,13 @@ module pbl_base
 	! Public interface
 	! 0. Useful constants and symbols
 	public	:: NaN							! Non-signalling NaN (generates other NaNs when combined with other values)
+	public	:: LAI_GRASS
+	public	:: LAI_ALFALFA
+	public	:: ASCE_STANDARDATMOSPHERE
+	public	:: ASCE_STANDARDEQ
+	public	:: ASCE_MEANTEMPERATURE
+	public	:: ASCE_GRASS
+	public	:: ASCE_ALFALFA
 	! 1. Date and time management
 	public	:: JulianDay					! Integer-valued Julian day
 	public	:: UnpackDate					! Inverse of integer-valued Julian day
@@ -54,6 +61,7 @@ module pbl_base
 	PUBLIC	:: AbsoluteHumidity				! Absolute humidity (i.e. density of water vapor in air)
 	PUBLIC	:: AirDensity					! Density of air, given temperature and pressure
 	PUBLIC	:: RhoCp						! Product of air density and constant pressure thermal capacity of air
+	PUBLIC	:: LatentVaporizationHeat		! Latent vaporization heat at given temperature
 	PUBLIC	:: DewPointTemperature			! Approximate dew point temperature
 	PUBLIC	:: WetBulbTemperature			! Wet bulb temperature estimate, given dry bulb temperature, relative humidity and pressure
 	PUBLIC	:: SonicTemperature				! Estimate ultrasonic temperature given dry bulb temperature, relative humidity and pressure
@@ -65,10 +73,17 @@ module pbl_base
 	public	:: Cloudiness					! Estimate cloudiness factor (see ASCE report for definitions)
 	
 	! Constants
-    real, parameter		:: NaN				= Z'7FC00000'	! Special case of non-signalling NaN
-	real, parameter		:: YEAR_DURATION	= 365.25
-	real, parameter		:: MONTH_DURATION	= 30.6001
-	integer, parameter	:: BASE_DAY			= 2440588		! 01. 01. 1970
+    real, parameter		:: NaN				       = Z'7FC00000'	! Special case of non-signalling NaN
+	real, parameter		:: YEAR_DURATION	       = 365.25
+	real, parameter		:: MONTH_DURATION	       = 30.6001
+	integer, parameter	:: BASE_DAY			       = 2440588		! 01. 01. 1970
+	integer, parameter	:: LAI_GRASS               = 0
+	integer, parameter	:: LAI_ALFALFA             = 1
+	integer, parameter	:: ASCE_STANDARDATMOSPHERE = 0
+	integer, parameter	:: ASCE_STANDARDEQ         = 1
+	integer, parameter	:: ASCE_MEANTEMPERATURE    = 2
+	integer, parameter	:: ASCE_GRASS              = 1
+	integer, parameter	:: ASCE_ALFALFA            = 2
 
 contains
 
@@ -1160,6 +1175,31 @@ contains
 		END IF
 		
 	END FUNCTION RhoCp
+	
+	
+	! Latent vaporization heat given temperature,
+	! computed according the ASCE Report.
+	function LatentVaporizationHeat(rTemp, iCalculationType) result(rLambda)
+
+		! Routine arguments
+		real, intent(in)	:: rTemp			! (°C)
+		integer, intent(in)	:: iCalculationType	! ASCE_STANDARDEQ, ASCE_MEANTEMPERATURE
+		real				:: rLambda			! (W/m2)
+
+		! Locals
+		! -none-
+
+		! Compute the information desired
+		select case(iCalculationType)
+		case(ASCE_STANDARDEQ)
+			rLambda = 2.45 * 1.e6 / 3600.0
+		case(ASCE_MEANTEMPERATURE)
+			rLambda = (2.501 - 2.361e-3 * rTemp) * 1.e6 / 3600.0
+		case default
+			rLambda = NaN
+		end select
+
+	end function LatentVaporizationHeat
 
 	
 	! Estimate wet bulb temperature from dry bulb temperature, relative
