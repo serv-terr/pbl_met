@@ -1597,7 +1597,7 @@ contains
 		z0    = 0.123 * h
 		Vel2  = Vel * LOG((2.0 - d)/z0) / LOG((Zr - d) / z0)
 		ET = (&
-			(0.408*Delta*ASCE_MJm2h(Rn-G) + gamma*cn/(Temp + 273.0)*Vel2*0.1*(es-ea)) / &
+			(0.408*Delta*(Rn-G)*3600.0/1.e6 + gamma*cn/(Temp + 273.0)*Vel2*0.1*(es-ea)) / &
 			(Delta + gamma*(1.0 - cd*Vel2)) &
 		)
 
