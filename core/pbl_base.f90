@@ -69,6 +69,13 @@ module pbl_base
 	integer, parameter	:: ASCE_MEANTEMPERATURE    = 2
 	integer, parameter	:: ASCE_GRASS              = 1
 	integer, parameter	:: ASCE_ALFALFA            = 2
+	
+	! Polymorphic (Fortran-90-art) routines
+	
+	interface AirPressure
+		module procedure AirPressure1
+		module procedure AirPressure2
+	end interface AirPressure
 
 contains
 
@@ -1304,24 +1311,51 @@ contains
 	! the range will depend on pressure being close to reference value.
 	
 	
-	function AirPressure(rZ, rvTemp, rZr, iCalculationType) result(rPk)
+	! Estimate atmospheric pressure given height
+	function AirPressure1(rZ) result(rPk)
 
 		implicit none
 
 		! Routine arguments
-		real, intent(in)				:: rZ		! Reference height at which pressure is desired (m)
-		real, dimension(:), intent(in)	:: rvTemp	! Air temperature (°C)
-		real, intent(in)				:: rZr		! Height at which temperature measurements are taken (m)
-		integer, intent(in)				:: iCalculationType	! ASCE_STANDARDATMOSPHERE, ASCE_STANDARDEQ, ASCE_MEANTEMPERATURE
-		real							:: rPk		! Estimated pressure (hPa)
+		real, intent(in)	:: rZ				! Altitude at which pressure is desired (m above msl)
+		real				:: rPk				! Estimated pressure (hPa)
 
 		! Locals
-		real	:: rTK0	! Reference temperature (K)
-		integer	:: i
-		integer	:: iNumValid
+		real		:: rTK0		! Reference temperature (K)
 
 		! Constants
-		real, parameter	:: P0 = 1013.		! Pressure at reference height (hPa)
+		real, parameter	:: P0 = 1013.		! Pressure at reference altitude (hPa)
+		real, parameter	:: g  = 9.807		! Gravitation acceleration (m/s2)
+		real, parameter	:: z0 = 0.			! Reference altitude for expressing pressure (m above msl)
+		real, parameter	:: R  = 287.0		! Specific gas constant (J/kg/K)
+		real, parameter	:: Alpha1 = 0.0065	! Constant lapse rate of moist air (K/m)
+
+		! Reference temperature
+		rTK0 = 293.15
+
+		! Compute pressure
+		rPk = P0*((rTK0 - Alpha1*(rZ - z0))/rTK0)**(g/(Alpha1*R))
+
+	end function AirPressure1
+
+
+	! Estimate atmospheric pressure given height and temperature
+	function AirPressure2(rZ, rTemp, rZr, iCalculationType) result(rPk)
+
+		implicit none
+
+		! Routine arguments
+		real, intent(in)	:: rZ				! Altitude at which pressure is desired (m above msl)
+		real, intent(in)	:: rTemp			! Air temperature (°C)
+		real, intent(in)	:: rZr				! Height at which temperature measurements are taken (m)
+		integer, intent(in)	:: iCalculationType	! ASCE_STANDARDATMOSPHERE, ASCE_STANDARDEQ, ASCE_MEANTEMPERATURE
+		real				:: rPk				! Estimated pressure (hPa)
+
+		! Locals
+		real		:: rTK0		! Reference temperature (K)
+
+		! Constants
+		real, parameter	:: P0 = 1013.		! Pressure at reference altitude (hPa)
 		real, parameter	:: g  = 9.807		! Gravitation acceleration (m/s2)
 		real, parameter	:: z0 = 0.			! Reference altitude for expressing pressure (m above msl)
 		real, parameter	:: R  = 287.0		! Specific gas constant (J/kg/K)
@@ -1334,20 +1368,7 @@ contains
 		case(ASCE_STANDARDEQ)
 			rTK0 = 293.0
 		case(ASCE_MEANTEMPERATURE)
-			rTK0 = 0.
-			iNumValid = 0
-			do i = 1, SIZE(rvTemp)
-				if(.not.ISNAN(rvTemp(i))) then
-					iNumValid = iNumValid + 1
-					rTK0      = rTK0 + rvTemp(i)
-				end if
-			end do
-			if(iNumValid > 0) then
-				rTK0 = rTK0 / iNumValid + 273.15
-			else
-				rPk = NaN
-				return
-			end if
+			rTK0 = rTemp + 273.15
 		case default
 			rPk = NaN
 			return
@@ -1356,7 +1377,7 @@ contains
 		! Compute pressure
 		rPk = P0*((rTK0 - Alpha1*(rZ - z0))/rTK0)**(g/(Alpha1*R))
 
-	end function AirPressure
+	end function AirPressure2
 
 
 	function VirtualTemperature(Temp, ea, P) result(Tv)
@@ -1367,13 +1388,13 @@ contains
 		real, intent(in)	:: Temp		! (°C)
 		real, intent(in)	:: ea		! (hPa)
 		real, intent(in)	:: P		! (hPa)
-		real				:: Tv		! (K)
+		real				:: Tv		! (°C)
 
 		! Locals
 		! -none-
 
 		! Compute the information desired
-		Tv = (Temp + 273.16)/(1.0 - 0.378*ea/P)
+		Tv = (Temp + 273.15)/(1.0 - 0.378*ea/P) - 273.15
 
 	end function VirtualTemperature
 
