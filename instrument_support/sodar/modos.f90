@@ -54,7 +54,7 @@ MODULE MODOS
         INTEGER                                             :: iHour
         INTEGER                                             :: iMinute
         INTEGER                                             :: iSecond
-        ! Operations data
+        ! Configuration data
         INTEGER                                             :: iAverage
         REAL                                                :: rMinHeight
         REAL                                                :: rMaxHeight
@@ -73,7 +73,7 @@ MODULE MODOS
         REAL, DIMENSION(MAX_BEAMS-1)                        :: rvZenith
         REAL                                                :: rRefTemperature
         REAL                                                :: rCrosstalk
-        ! Heights (m) - Mandatory
+        ! Heights (m)
         INTEGER                                             :: iNumHeights
         REAL, DIMENSION(MAX_VERTICAL_STEPS)                 :: rvHeight
         REAL                                                :: rLowerNoiseHeight
