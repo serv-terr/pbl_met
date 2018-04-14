@@ -1,17 +1,17 @@
 !------------------------------------------------------------------
 !
 !   MODOS.f90 - Fortran 90 module, supporting the basic read-and-decode
-!               of MODOS-formatted data files.
-!
-!   Warning to the reader: this code utilizes Fortran 95 syntax features.
+!               of MODOS-formatted data files, produced by SODAR and
+!               SODAR/RASS of types MODOS and PCS-2000, manufactured
+!               by Metek GmbH.
 !
 !   The main data type (ModosRecordType) is implemented as an
-!   abstract data type. The user can not access its components
-!   directly; rather, (s)he should use the procedures provided.
+!   abstract data type.
 !
 !   This will not in general affect the *usage* of the module.
 !
-!   Copyright (C) 2004 by Servizi Territorio srl
+!   Copyright (C) 2018 by Servizi Territorio srl
+!   This is open source software, covered by the license lGPL V3,0
 !
 !   Written by: Mauri Favaron
 !   e-mail:     mafavaron@mac.com
