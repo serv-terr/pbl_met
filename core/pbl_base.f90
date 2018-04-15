@@ -4,6 +4,12 @@
 ! and some astronomical formulae dealing with sunset/sunrise and apparent
 ! solar position.
 !
+! This module is part of the pbl_met library.
+!
+! Copyright 2018 by Servizi Territorio srl
+!
+! This is open-source code, covered by the lGPL 3.0 license.
+!
 module pbl_base
 
 	implicit none
