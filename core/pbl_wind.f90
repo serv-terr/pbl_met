@@ -20,16 +20,23 @@ module pbl_wind
 	public	:: WCONV_SAME
 	public	:: WCONV_PROVENANCE_TO_FLOW
 	public	:: WCONV_FLOW_TO_PROVENANCE
+	public	:: WDCLASS_ZERO_CENTERED
+	public	:: WDCLASS_ZERO_BASED
 	! 1. Conventions
 	public	:: PolarToCartesian2
 	public	:: PolarToCartesian3
 	public	:: CartesianToPolar2
 	public	:: CartesianToPolar3
+	! 2. Classification
+	public	:: ClassVel
+	public	:: ClassDir
 	
 	! Public constants
 	integer, parameter	:: WCONV_SAME               = 0
 	integer, parameter	:: WCONV_PROVENANCE_TO_FLOW = 1
 	integer, parameter	:: WCONV_FLOW_TO_PROVENANCE = 2
+	integer, parameter	:: WDCLASS_ZERO_CENTERED    = 0
+	integer, parameter	:: WDCLASS_ZERO_BASED       = 1
 	
 	! Internal constants
 	real, parameter		:: Pi = 3.1415927
@@ -37,6 +44,16 @@ module pbl_wind
 	real, parameter		:: ToDeg = 180./Pi
 	
 	! Polymorphic interfaces
+	
+	interface ClassVel
+		module procedure ClassVelScalar
+		module procedure ClassVelVector
+	end interface ClassVel
+	
+	interface ClassDir
+		module procedure ClassDirScalar
+		module procedure ClassDirVector
+	end interface ClassDir
 	
 contains
 
@@ -174,6 +191,153 @@ contains
 		end if
 		
 	end function CartesianToPolar3
+	
+	
+	function ClassVelScalar(vel, rvVel) result(iClass)
+		
+		! Routine arguments
+		real, intent(in)				:: vel			! Wind speed to classify
+		real, dimension(:), intent(in)	:: rvVel		! Vector, containing upper class limits in increasing order
+		integer							:: iClass		! Speed class to which the wind belongs (-9999 if not assignable)
+		
+		! Locals
+		integer		:: n
+		integer		:: i
+		
+		! Check something is to be made: leave, if not
+		if(isnan(vel)) then
+			iClass = -9999
+			return
+		end if
+		
+		! Perform a simple table lookup
+		n = size(rvVel) + 1
+		do i = 1, n-1
+			if(vel <= rvVel(i)) then
+				iClass = i
+				return
+			end if
+		end do
+		
+		! Execution reaches this point if no match is found, so
+		iClass = n
+
+	end function ClassVelScalar
+
+
+	function ClassVelVector(vel, rvVel) result(ivClass)
+		
+		! Routine arguments
+		real, dimension(:), intent(in)	:: vel			! Wind speed to classify
+		real, dimension(:), intent(in)	:: rvVel		! Vector, containing upper class limits in increasing order
+		integer, dimension(size(vel))	:: ivClass		! Speed class to which the wind belongs (-9999 if not assignable)
+		
+		! Locals
+		integer		:: n
+		integer		:: i, j
+		
+		! Main loop: iterate over speed values
+		do j = 1, size(vel)
+		
+			! Check class can be assigned
+			if(isnan(vel(j))) then
+				ivClass(j) = -9999
+			else
+			
+				! Perform a simple table lookup
+				n = size(rvVel)
+				ivClass(j) = n + 1
+				do i = 1, n
+					if(vel(j) <= rvVel(i)) then
+						ivClass(j) = i
+						exit
+					end if
+				end do
+			
+			end if
+			
+		end do
+
+	end function ClassVelVector
+
+
+	function ClassDirScalar(dir, iNumClasses, iClassType) result(iClass)
+	
+		! Routine arguments
+		real, intent(in)	:: dir				! Wind direction to classify (°)
+		integer, intent(in)	:: iNumClasses		! Number of desired classes
+		integer, intent(in)	:: iClassType		! Class type (0: first class is zero-centered; 1: first class starts at zero)
+		integer				:: iClass			! Direction class to which the wind belongs (-9999 if no class is assignable)
+		
+		! Locals
+		real	:: classWidth
+		real	:: d
+		
+		! Check something is to be made: leave, if not
+		if(isnan(dir)) then
+			iClass = -9999
+			return
+		end if
+		
+		! Compute the fixed-size class width, and in case of zero-centere classes use it to adjust direction
+		if(iNumClasses <= 0) then
+			iClass = -9999
+			return
+		end if
+		classWidth = 360. / iNumClasses
+		d = dir
+		if(iClassType == WDCLASS_ZERO_CENTERED) d = d + classWidth / 2.
+		
+		! Adjust wind direction to the range 0-360
+		d = mod(d, 360.)
+		if(d < 0.) d = d + 360.
+		
+		! Assign class by division
+		iClass = floor(d / classWidth) + 1
+		
+	end function ClassDirScalar
+	
+
+	function ClassDirVector(dir, iNumClasses, iClassType) result(ivClass)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: dir				! Wind direction to classify (°)
+		integer, intent(in)				:: iNumClasses		! Number of desired classes
+		integer, intent(in)				:: iClassType		! Class type (0: first class is zero-centered; 1: first class starts at zero)
+		integer, dimension(size(dir))	:: ivClass			! Direction class to which the wind belongs (-9999 if no class is assignable)
+		
+		! Locals
+		real						:: classWidth
+		real, dimension(size(dir))	:: d
+		
+		! Check something is to be made: leave, if not
+		if(iNumClasses <= 0) then
+			ivClass = -9999
+			return
+		end if
+		
+		! Compute the fixed-size class width, and in case of zero-centere classes use it to adjust direction
+		classWidth = 360. / iNumClasses
+		d = dir
+		if(iClassType == WDCLASS_ZERO_CENTERED) d = d + classWidth / 2.
+		where(isnan(d))
+		
+			ivClass = -9999
+			
+		elsewhere
+		
+			! Adjust wind direction to the range 0-360
+			d = mod(d, 360.)
+			where(d < 0.)
+				d = d + 360.
+			endwhere
+		
+			! Assign class by division
+			ivClass = floor(d / classWidth) + 1
+			
+		end where
+		
+	end function ClassDirVector
 	
 	! *********************
 	! * Internal routines *
