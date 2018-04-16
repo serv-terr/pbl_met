@@ -21,10 +21,10 @@ module pbl_wind
 	public	:: WCONV_PROVENANCE_TO_FLOW
 	public	:: WCONV_FLOW_TO_PROVENANCE
 	! 1. Conventions
-	public	:: polarToCartesian2
-	public	:: polarToCartesian3
-	public	:: cartesianToPolar2
-	public	:: cartesianToPolar3
+	public	:: PolarToCartesian2
+	public	:: PolarToCartesian3
+	public	:: CartesianToPolar2
+	public	:: CartesianToPolar3
 	
 	! Public constants
 	integer, parameter	:: WCONV_SAME               = 0
@@ -40,7 +40,7 @@ module pbl_wind
 	
 contains
 
-	function polarToCartesian2(polar, interpretation) result(cartesian)
+	function PolarToCartesian2(polar, interpretation) result(cartesian)
 	
 		! Routine arguments
 		real, dimension(2), intent(in)	:: polar				! Wind in polar form (vel=polar(1), dir=polar(2))
@@ -71,10 +71,10 @@ contains
 			cartesian = [NaN, NaN]
 		end if
 		
-	end function polarToCartesian2
+	end function PolarToCartesian2
 	
 
-	function polarToCartesian3(polar, interpretation) result(cartesian)
+	function PolarToCartesian3(polar, interpretation) result(cartesian)
 	
 		! Routine arguments
 		real, dimension(3), intent(in)	:: polar				! Wind in polar form (vel=polar(1), dir=polar(2))
@@ -105,10 +105,10 @@ contains
 			cartesian = [NaN, NaN, polar(3)]
 		end if
 		
-	end function polarToCartesian3
+	end function PolarToCartesian3
 	
 
-	function cartesianToPolar2(cartesian, interpretation) result(polar)
+	function CartesianToPolar2(cartesian, interpretation) result(polar)
 	
 		! Routine arguments
 		real, dimension(2), intent(in)	:: cartesian			! Wind in cartesian form (u=cartesian(1), v=cartesian(2), w=cartesian(3))
@@ -139,10 +139,10 @@ contains
 			polar = [NaN, NaN]
 		end if
 		
-	end function cartesianToPolar2
+	end function CartesianToPolar2
 	
 	
-	function cartesianToPolar3(cartesian, interpretation) result(polar)
+	function CartesianToPolar3(cartesian, interpretation) result(polar)
 	
 		! Routine arguments
 		real, dimension(3), intent(in)	:: cartesian			! Wind in cartesian form (u=cartesian(1), v=cartesian(2), w=cartesian(3))
@@ -173,7 +173,7 @@ contains
 			polar = [NaN, NaN, cartesian(3)]
 		end if
 		
-	end function cartesianToPolar3
+	end function CartesianToPolar3
 	
 	! *********************
 	! * Internal routines *
