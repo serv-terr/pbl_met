@@ -32,6 +32,7 @@ module pbl_wind
 	public	:: ClassDir
 	! 3. Descriptive statistics
 	public	:: VectorDirVel
+	public	:: ScalarVel
 	
 	! Public constants
 	integer, parameter	:: WCONV_SAME               = 0
@@ -379,6 +380,27 @@ contains
 		if(polar(2) < 0) polar(2) = polar(2) + 360.0
 		
 	end function VectorDirVel
+	
+	
+	function ScalarVel(rvVel) result(vel)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvVel
+		real, dimension(2)				:: vel
+		
+		! Locals
+		integer	:: n
+		
+		! Compute the wind scalar speed
+		n = count(.not.isnan(rvU))
+		if(n > 0) then
+			! At least one element: compute the scalar mean
+			vel = sum(rvVel, mask=.not.isnan(rvVel)) / n
+		else
+			vel = NaN
+		end if
+		
+	end function ScalarVel
 	
 	! *********************
 	! * Internal routines *
