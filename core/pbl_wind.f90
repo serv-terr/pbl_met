@@ -33,6 +33,7 @@ module pbl_wind
 	! 3. Descriptive statistics
 	public	:: VectorDirVel
 	public	:: ScalarVel
+	public	:: UnitDir
 	
 	! Public constants
 	integer, parameter	:: WCONV_SAME               = 0
@@ -401,6 +402,43 @@ contains
 		end if
 		
 	end function ScalarVel
+	
+
+	function UnitDirVel(rvDir) result(dir)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvDir
+		real, dimension(2)				:: dir
+		
+		! Locals
+		real, dimension(size(rvVel))	:: rvU
+		real, dimension(size(rvVel))	:: rvV
+		integer							:: n
+		real							:: rU
+		real							:: rV
+		
+		! Transform horizontal wind from polar to Cartesian form. In this case
+		! it is irrelevant whether the wind directio interpretation is of
+		! flow or provenance convention: the transformed vectors will be
+		! back-transformed by the same interpretation.
+		rvU = sin(rvDir * ToRad)
+		rvV = cos(rvDir * ToRad)
+		
+		! Compute the Cartesian average of wind vectors
+		n = count(.not.isnan(rvU))
+		if(n > 0) then
+			! At least one element: compute the vector mean
+			rU = sum(rvU, mask=.not.isnan(rvU)) / n
+			rV = sum(rvV, mask=.not.isnan(rvU)) / n
+		else
+			rU = NaN
+			rV = NaN
+		end if
+		
+		! Convert the Cartesian average to mean wind in polar form
+		dir = atan2(rU,rV)*ToDeg
+		
+	end function UnitDir
 	
 	! *********************
 	! * Internal routines *
