@@ -34,6 +34,7 @@ module pbl_wind
 	public	:: VectorDirVel
 	public	:: ScalarVel
 	public	:: UnitDir
+	public	:: WindRose
 	
 	! Public constants
 	integer, parameter	:: WCONV_SAME               = 0
@@ -393,7 +394,7 @@ contains
 		integer	:: n
 		
 		! Compute the wind scalar speed
-		n = count(.not.isnan(rvU))
+		n = count(.not.isnan(rvVel))
 		if(n > 0) then
 			! At least one element: compute the scalar mean
 			vel = sum(rvVel, mask=.not.isnan(rvVel)) / n
@@ -404,15 +405,15 @@ contains
 	end function ScalarVel
 	
 
-	function UnitDirVel(rvDir) result(dir)
+	function UnitDir(rvDir) result(dir)
 	
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvDir
 		real, dimension(2)				:: dir
 		
 		! Locals
-		real, dimension(size(rvVel))	:: rvU
-		real, dimension(size(rvVel))	:: rvV
+		real, dimension(size(rvDir))	:: rvU
+		real, dimension(size(rvDir))	:: rvV
 		integer							:: n
 		real							:: rU
 		real							:: rV
@@ -439,6 +440,47 @@ contains
 		dir = atan2(rU,rV)*ToDeg
 		
 	end function UnitDir
+	
+	
+	function WindRose(vel, dir, rvVel, iNumClasses, iClassType) result(rmWindRose)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)				:: vel			! Wind speed observations (m/s)
+		real, dimension(:), intent(in)				:: dir			! Wind direction observations (°)
+		real, dimension(:), intent(in)				:: rvVel		! Wind speed class limits as in ClassVel (m/s)
+		integer, intent(in)							:: iNumClasses	! Number f direction classes as in ClassDir
+		integer, intent(in)							:: iClassType	! Type of direction classes as in ClassDir
+		real, dimension(size(rvVel)+1,iNumClasses)	:: rmWindRose	! Joint frequency table of wind speed and direction, aka "wind rose" (in tabular form) 
+		
+		! Locals
+		integer, dimension(size(vel))	:: ivVelClass
+		integer, dimension(size(dir))	:: ivDirClass
+		integer							:: i
+		integer							:: m
+		integer							:: n
+		real							:: rTotal
+		
+		! Clean up, and check the call makes sense
+		rmWindRose = 0.
+		if(size(dir) /= size(vel)) return
+		
+		! Classify wind speed and direction
+		ivVelClass = ClassVelVector(vel, rvVel)
+		ivDirClass = ClassDirVector(dir, iNumClasses, iClassType)
+		
+		! Count occurrences in any class
+		m = size(rvVel) + 1
+		n = iNumClasses
+		do i = 1, size(vel)
+			if(ivVelClass(i) > 0 .and. ivDirClass(i) > 0) &
+				rmWindRose(ivVelClass(i),ivDirClass(i)) = rmWindRose(ivVelClass(i),ivDirClass(i)) + 1.
+		end do
+		
+		! Convert counts to frequency
+		rTotal = sum(rmWindRose)	! That is, number of valid data
+		if(rTotal > 0.) rmWindRose = rmWindRose / rTotal
+		
+	end function WindRose
 	
 	! *********************
 	! * Internal routines *
