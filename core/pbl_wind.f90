@@ -37,6 +37,7 @@ module pbl_wind
 	public	:: WindRose
 	public	:: VelDirMean
 	public	:: VelMean
+	public	:: DirMean
 	
 	! Public constants
 	integer, parameter	:: WCONV_SAME               = 0
@@ -512,7 +513,7 @@ contains
 		integer											:: i
 		
 		! Clean up, and check the call makes sense
-		rmMean = 0.
+		rmMean = NaN
 		imNumValues = 0
 		if(size(dir) /= size(vel) .or. size(scalar) /= size(vel)) return
 		
@@ -521,6 +522,7 @@ contains
 		ivDirClass = ClassDirVector(dir, iNumClasses, iClassType)
 		
 		! Count occurrences in any class
+		rmMean = 0.
 		do i = 1, size(vel)
 			if(ivVelClass(i) > 0 .and. ivDirClass(i) > 0 .and. (.not.isnan(scalar(i)))) then
 				rmMean(ivVelClass(i),ivDirClass(i)) = rmMean(ivVelClass(i),ivDirClass(i)) + scalar(i)
@@ -552,7 +554,7 @@ contains
 		integer								:: i
 		
 		! Clean up, and check the call makes sense
-		rvMean = 0.
+		rvMean = NaN
 		ivNumValues = 0
 		if(size(scalar) /= size(vel)) return
 		
@@ -560,6 +562,7 @@ contains
 		ivVelClass = ClassVelVector(vel, rvVel)
 		
 		! Count occurrences in any class
+		rvMean = 0.
 		do i = 1, size(vel)
 			if(ivVelClass(i) > 0 .and. (.not.isnan(scalar(i)))) then
 				rvMean(ivVelClass(i)) = rvMean(ivVelClass(i)) + scalar(i)
@@ -575,6 +578,47 @@ contains
 		end where
 		
 	end function VelMean
+
+
+	function DirMean(dir, scalar, iNumClasses, iClassType) result(rvMean)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: dir			! Wind direction observations (°)
+		real, dimension(:), intent(in)	:: scalar		! Any scalar quantity (any unit; invalid values as NaN)
+		integer, intent(in)				:: iNumClasses	! Number f direction classes as in ClassDir
+		integer, intent(in)				:: iClassType	! Type of direction classes as in ClassDir
+		real, dimension(iNumClasses)	:: rvMean		! Mean of scalar according to wind speed and direction classes 
+		
+		! Locals
+		integer, dimension(size(dir))		:: ivDirClass
+		integer, dimension(iNumClasses)		:: ivNumValues
+		integer								:: i
+		
+		! Clean up, and check the call makes sense
+		rvMean = NaN
+		ivNumValues = 0
+		if(size(scalar) /= size(dir)) return
+		
+		! Classify wind speed and direction
+		ivDirClass = ClassDirVector(dir, iNumClasses, iClassType)
+		
+		! Count occurrences in any class
+		rvMean = 0.
+		do i = 1, size(dir)
+			if(ivDirClass(i) > 0 .and. (.not.isnan(scalar(i)))) then
+				rvMean(ivDirClass(i)) = rvMean(ivDirClass(i)) + scalar(i)
+				ivNumValues(ivDirClass(i)) = ivNumValues(ivDirClass(i)) + 1
+			end if
+		end do
+		
+		! Convert counts to means
+		where(ivNumValues > 0)
+			rvMean = rvMean / ivNumValues
+		elsewhere
+			rvMean = NaN
+		end where
+		
+	end function DirMean
 
 	! *********************
 	! * Internal routines *
