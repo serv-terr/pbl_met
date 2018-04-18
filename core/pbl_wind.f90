@@ -442,6 +442,15 @@ contains
 	end function UnitDir
 	
 	
+	! Compute the joint frequency function of wind speed and direction, that is, the
+	! "wind rose" as it is commonly named.
+	!
+	! In principle, in place of wind speed any other scalar may be used - for example
+	! a pollutant concentration: in this case a, say, concentration rose is obtained.
+	!
+	! The graphical rendering of the wind (concentration , ...) rose is not among
+	! the scopes of pbl_met, but nevertheless you may find excellent routines and
+	! packages to accomplish this task in the open source.
 	function WindRose(vel, dir, rvVel, iNumClasses, iClassType) result(rmWindRose)
 	
 		! Routine arguments
