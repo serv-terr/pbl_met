@@ -35,6 +35,7 @@ module pbl_wind
 	public	:: ScalarVel
 	public	:: UnitDir
 	public	:: WindRose
+	public	:: VelDirMean
 	
 	! Public constants
 	integer, parameter	:: WCONV_SAME               = 0
@@ -491,6 +492,55 @@ contains
 		
 	end function WindRose
 	
+	! Compute the mean of a scalar across wind speed and direction classes. The resulting
+	! table helps finding answers to questions like "is this scalar dependent on wind?"
+	function VelDirMean(vel, dir, scalar, rvVel, iNumClasses, iClassType) result(rmMean)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)				:: vel			! Wind speed observations (m/s)
+		real, dimension(:), intent(in)				:: dir			! Wind direction observations (°)
+		real, dimension(:), intent(in)				:: scalar		! Any scalar quantity (any unit; invalid values as NaN)
+		real, dimension(:), intent(in)				:: rvVel		! Wind speed class limits as in ClassVel (m/s)
+		integer, intent(in)							:: iNumClasses	! Number f direction classes as in ClassDir
+		integer, intent(in)							:: iClassType	! Type of direction classes as in ClassDir
+		real, dimension(size(rvVel)+1,iNumClasses)	:: rmMean		! Mean of scalar according to wind speed and direction classes 
+		
+		! Locals
+		integer, dimension(size(vel))					:: ivVelClass
+		integer, dimension(size(dir))					:: ivDirClass
+		integer, dimension(size(rvVel)+1,iNumClasses)	:: imNumValues
+		integer											:: i
+		integer											:: m
+		integer											:: n
+		
+		! Clean up, and check the call makes sense
+		rmMean = 0.
+		imNumValues = 0
+		if(size(dir) /= size(vel) .or. size(scalar) /= size(vel)) return
+		
+		! Classify wind speed and direction
+		ivVelClass = ClassVelVector(vel, rvVel)
+		ivDirClass = ClassDirVector(dir, iNumClasses, iClassType)
+		
+		! Count occurrences in any class
+		m = size(rvVel) + 1
+		n = iNumClasses
+		do i = 1, size(vel)
+			if(ivVelClass(i) > 0 .and. ivDirClass(i) > 0 .and. (.not.isnan(scalar(i)))) then
+				rmMean(ivVelClass(i),ivDirClass(i)) = rmMean(ivVelClass(i),ivDirClass(i)) + scalar(i)
+				imNumValues(ivVelClass(i),ivDirClass(i)) = imNumValues(ivVelClass(i),ivDirClass(i)) + 1
+			end if
+		end do
+		
+		! Convert counts to means
+		where(imNumValues > 0)
+			rmMean = rmMean / imNumValues
+		elsewhere
+			rmMean = NaN
+		end where
+		
+	end function VelDirMean
+
 	! *********************
 	! * Internal routines *
 	! *********************
