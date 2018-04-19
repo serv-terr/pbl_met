@@ -1,8 +1,9 @@
-! pbl_stat  : Fortran module, providing elementary support to statistical
+! pbl_stat  : Fortran module, providing support to elementary statistical
 !             functions.
 !
-! Nothing really original here, just routines used in support of
-! eddy covariance and other statistically-grounded calculations.
+! This module is part of the pbl_met library.
+!
+! This is open-source code, covered by the lGPL 3.0 license.
 !
 module pbl_stat
 
@@ -13,9 +14,117 @@ module pbl_stat
     private
     
     ! Public interface
+    ! 1. Off-range and invalid data management
+    public	:: RangeInvalidate
+    public	:: PairInvalidate
+    public	:: RangeClip
+    public	:: GetValidOnly
+    ! 2. Basic statistics
     public  :: Cov
+    ! 3. Autocovariance, autocorrelation and related
+    public	:: AutoCov
+    ! 4. Crosscovariance, crosscorrelation and related
     
 contains
+
+	! Make data outside a specified range invalid, by replacing their value with NaN
+	subroutine RangeInvalidate(rvX, rMin, rMax)
+	
+		! Routine arguments
+		real, dimension(:), intent(inout)	:: rvX
+		real, intent(in)					:: rMin
+		real, intent(in)					:: rMax
+		
+		! Locals
+		integer	:: i
+		
+		! Validate by range
+		do i = 1, size(rvX)
+			if(rvX(i) < rMin) then
+				rvX(i) = NaN
+			elseif(rvX(i) > rMax) then
+				rvX(i) = NaN
+			end if
+		end do
+		
+	end subroutine RangeInvalidate
+	
+
+	! Make invalid data in a vector invalid if those of another also are, and viceversa.
+	! After 
+	subroutine PairInvalidate(rvX, rvY)
+	
+		! Routine arguments
+		real, dimension(:), intent(inout)	:: rvX
+		real, dimension(:), intent(inout)	:: rvY
+		
+		! Locals
+		integer	:: i
+		
+		! Validate by range
+		do i = 1, size(rvX)
+			if(isnan(rvX(i))) then
+				rvY(i) = NaN
+			elseif(isnan(rvY(i))) then
+				rvX(i) = NaN
+			end if
+		end do
+		
+	end subroutine PairInvalidate
+	
+
+	! Force data to be within a specified range invalid, clipping to extremal values
+	subroutine RangeClip(rvX, rMin, rMax)
+	
+		! Routine arguments
+		real, dimension(:), intent(inout)	:: rvX
+		real, intent(in)					:: rMin
+		real, intent(in)					:: rMax
+		
+		! Locals
+		integer	:: i
+		
+		! Validate by range
+		do i = 1, size(rvX)
+			if(rvX(i) < rMin) then
+				rvX(i) = rMin
+			elseif(rvX(i) > rMax) then
+				rvX(i) = rMax
+			end if
+		end do
+		
+	end subroutine RangeClip
+	
+	
+	! Pack a vector to another vector containing only valid (i.e. non-NaN) data
+	function GetValidOnly(rvX) result(rvValidX)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvX
+		real, dimension(:), allocatable	:: rvValidX
+		
+		! Locals
+		integer	:: iNumValid
+		integer	:: i, j
+		
+		! Count valid data, and check something is to be made
+		iNumValid = count(.not.isnan(rvX))
+		if(allocated(rvValidX)) deallocate(rvValidX)
+		if(size(rvX) <= 0 .or. iNumValid <= 0) return
+		
+		! Loop over data, copying valids only to the new vector
+		if(allocated(rvValidX)) deallocate(rvValidX)
+		allocate(rvValidX(iNumValid))
+		j = 0
+		do i = 1, size(rvX)
+			if(.not.isnan(rvX(i))) then
+				j = j + 1
+				rvValidX(j) = rvX(i)
+			end if
+		end do
+		
+	end function GetValidOnly
+	
 
     ! Compute covariance between two signal samples; these samples should
     ! be the same size, and "error-paired", that is, whenever rvX(i) == NaN,
@@ -29,8 +138,8 @@ contains
 		
 		! Locals
         integer :: n
-		real	:: rAvgX
-		real	:: rAvgY
+		real(8)	:: rAvgX
+		real(8)	:: rAvgY
         
         ! Check it makes sense to proceed
         n = count(.not.isnan(rvX))  ! Valid also for 'rvY' since the error-pairing assumption
@@ -44,8 +153,173 @@ contains
 		rAvgY = sum(rvY, mask=.not.isnan(rvY))/n
 		
 		! Compute the covariance (using a very simpli definition):
-		rCov = dot_product(rvX-rAvgX, rvY-rAvgY, mask=.not.isnan(rvX))/n
+		rCov = sum((rvX-rAvgX)*(rvY-rAvgY), mask=.not.isnan(rvX))/n
 		
 	end function Cov
+	
+	
+	function AutoCov(rvX, rvACov) RESULT(iRetCode)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvX
+		real, dimension(:), intent(out)	:: rvACov
+		integer							:: iRetCode
+		
+		! Locals
+		integer	:: iLag
+		integer	:: i
+		integer	:: n
+		real	:: rAvgA
+		real	:: rAvgB
+		integer	:: iNum
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(size(rvX) <= 0 .OR. size(rvACov) <= 0 .OR. size(rvACov) > size(rvX)/2) then
+			iRetCode = 1
+			return
+		end IF
+		n = size(rvX)
+		
+		! Compute autocovariance for each lag
+		do iLag = 0, size(rvACov)-1
+			rAvgA = 0.
+			rAvgB = 0.
+			iNum = 0
+			do i = 1, n - iLag
+				if(.not.isnan(rvX(i)) .and. .not.isnan(rvX(i+iLag))) then
+					iNum = iNum + 1
+					rAvgA = rAvgA + rvX(i)
+					rAvgB = rAvgB + rvX(i+iLag)
+				end if
+			end do
+			if(iNum > 0) then
+				rAvgA = rAvgA / iNum
+				rAvgB = rAvgB / iNum
+				rvACov(iLag+1) = 0.
+				do i = 1, n - iLag
+					if(.not.isnan(rvX(i)) .and. .not.isnan(rvX(i+iLag))) then
+						rvACov(iLag+1) = rvACov(iLag+1) + (rvX(i) - rAvgA)*(rvX(i+iLag) - rAvgB)
+					end if
+				end do
+				rvACov(iLag+1) = rvACov(iLag+1)/iNum			
+			else
+				rvACov(iLag+1) = NaN
+			end if
+		end do
+		
+	end function AutoCov
+	
+	
+	function EulerianTime(rFcv, rvX, iMaxLag) RESULT(rEul)
+	
+		! Routine arguments
+		real, intent(in)				:: rFcv
+		real, dimension(:), intent(in)	:: rvX
+		integer, intent(in)				:: iMaxLag
+		real							:: rEul
+		
+		! Locals
+		real, dimension(0:iMaxLag)	:: rvC
+		real, dimension(0:iMaxLag)	:: rvK
+		integer						:: iErrCode
+		integer						:: i
+		real						:: rDelta
+		real						:: rNum
+		real						:: rDen
+		integer						:: iNumPoints
+		
+		! Auxiliary constants
+		real, parameter		:: TOL = 1.e-4
+		integer, parameter	:: MAX_ITER = 16
+		
+		! Compute autocovariances and scale them to autocorrelations
+		iErrCode = AutoCov(rvX, rvC)
+		rvC = rvC/rvC(0)
+		
+		! Initialize the auxiliary vector
+		rvK = (/ (float(i),i=0,iMaxLag) /)
+		
+		! Compute the linear regression estimate of the Eulerian time
+		rDelta = 1. / rFcv
+		iNumPoints = 0
+		rNum = 0.
+		rDen = 0.
+		do i = 0, iMaxLag
+			if(rvC(i) > 0.) then
+				iNumPoints = iNumPoints + 1
+				rNum = rNum + rvK(i)**2
+				rDen = rDen - rvK(i)*LOG(rvC(i))
+			end IF
+		end do
+		if(iNumPoints > 2) then
+			rEul = rDelta * rNum / rDen
+		ELSE
+			rEul = -9999.9
+		end IF
+		
+	end function EulerianTime
+	
+	
+	function PolyEval(rvP, rX, rDy) RESULT(rY)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvP
+		real, intent(in)				:: rX
+		real, intent(out)				:: rDy
+		real							:: rY
+		
+		! Locals
+		integer	:: i
+		integer	:: n
+		real	:: rTemp
+		
+		! Evaluate the polynomial, using Ruffini-Horner scheme
+		n = size(rvP)-1
+		rY = rvP(n)
+		rDy = 0.0
+		do i = n-1, 0, -1
+			rDy = rDy*rX + rY
+			rY  = rvP(i) + rX*rY
+		end do
+		
+	end function PolyEval
+	
+	
+	SUBROUTINE Detrend(rvX, rvY, rMultiplier, rOffset)
+	
+		! Routine argument
+		real, dimension(:), intent(in)		:: rvX
+		real, dimension(:), INTENT(INOUT)	:: rvY
+		real, intent(out)					:: rMultiplier
+		real, intent(out)					:: rOffset
+		
+		! Locals
+		integer	:: N
+		real	:: rSx
+		real	:: rSy
+		real	:: rSxx
+		real	:: rSxy
+		real	:: rDelta
+		
+		! Compute counts and sums
+		N    = size(rvX)
+		rSx  = SUM(rvX)
+		rSy  = SUM(rvY)
+		rSxx = doT_PRODUCT(rvX,rvX)
+		rSxy = doT_PRODUCT(rvX,rvY)
+		
+		! Compute multiplier and offset
+		rDelta      = N*rSxx - rSx**2
+		rOffset     = (rSxx*rSy - rSx*rSxy)/rDelta
+		rMultiplier = (N*rSxy - rSx*rSy)/rDelta
+		
+		! Subtract the linear trend
+		rvY = rvY - rMultiplier*(rvX - rSx/N)
+	
+	end SUBROUTINE Detrend
+	
 	
 end module pbl_stat
