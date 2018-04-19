@@ -23,6 +23,7 @@ module pbl_stat
     public  :: Cov
     ! 3. Autocovariance, autocorrelation and related
     public	:: AutoCov
+    public	:: AutoCorr
     ! 4. Crosscovariance, crosscorrelation and related
     
 contains
@@ -213,6 +214,75 @@ contains
 		end do
 		
 	end function AutoCov
+	
+	
+	! Compute the autocorrelation of a signal up the specified number of lags,
+	! by using the direct summation method.
+	function AutoCorr(rvX, rvACorr) result(iRetCode)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvX			! Signal (may contain NaN values)
+		real, dimension(:), intent(out)	:: rvACorr		! Vector containing the desired values (rvACorr(1) refers to lag 0, rvACorr(2) to lag 1, ...)
+		integer							:: iRetCode		! Flag indicating success (value = 0) or failure.
+		
+		! Locals
+		integer	:: iLag
+		integer	:: i
+		integer	:: n
+		real	:: rAvgA
+		real	:: rAvgB
+		real	:: rSum2A
+		real	:: rSum2B
+		real	:: rStdA
+		real	:: rStdB
+		integer	:: iNum
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(size(rvX) <= 0 .OR. size(rvACorr) <= 0 .OR. size(rvACorr) > size(rvX)/2) then
+			iRetCode = 1
+			return
+		end IF
+		n = size(rvX)
+		
+		! Compute autocovariance for each lag
+		do iLag = 0, size(rvACorr)-1
+			rAvgA = 0.
+			rAvgB = 0.
+			rSum2A = 0.
+			rSum2B = 0.
+			iNum = 0
+			do i = 1, n - iLag
+				if(.not.isnan(rvX(i)) .and. .not.isnan(rvX(i+iLag))) then
+					iNum = iNum + 1
+					rAvgA = rAvgA + rvX(i)
+					rAvgB = rAvgB + rvX(i+iLag)
+					rSum2A = rSum2A + rvX(i)**2
+					rSum2B = rSum2B + rvX(i+iLag)**2
+				end if
+			end do
+			if(iNum > 0) then
+				rAvgA = rAvgA / iNum
+				rAvgB = rAvgB / iNum
+				rSum2A = rSum2A / iNum
+				rSum2B = rSum2B / iNum
+				rStdA  = sqrt(rSum2A - rAvgA**2)
+				rStdB  = sqrt(rSum2B - rAvgB**2)
+				rvACorr(iLag+1) = 0.
+				do i = 1, n - iLag
+					if(.not.isnan(rvX(i)) .and. .not.isnan(rvX(i+iLag))) then
+						rvACorr(iLag+1) = rvACorr(iLag+1) + (rvX(i) - rAvgA)*(rvX(i+iLag) - rAvgB)
+					end if
+				end do
+				rvACorr(iLag+1) = (rvACorr(iLag+1)/iNum) / (rStdA * rStdB)
+			else
+				rvACorr(iLag+1) = NaN
+			end if
+		end do
+		
+	end function AutoCorr
 	
 	
 	function EulerianTime(rFcv, rvX, iMaxLag) RESULT(rEul)
