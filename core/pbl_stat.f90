@@ -161,6 +161,13 @@ contains
 	
 	! Compute the autocovariance of a signal up the specified number of lags,
 	! by using the direct summation method.
+	!
+	! Warning: On call to this routine, a vector rvACov having dimension
+	! ======== 0:n can be used without any restraint. Inside AutoCov, this
+	!          vector will be indexed 1:n+1, but the convention adopted
+	!          (i.e. index 1 to mean lag 0, index 2 lag 1, ...) ensures
+	!          full consistency
+	!
 	function AutoCov(rvX, rvACov) result(iRetCode)
 	
 		! Routine arguments
