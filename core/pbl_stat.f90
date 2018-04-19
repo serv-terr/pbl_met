@@ -24,7 +24,10 @@ module pbl_stat
     ! 3. Autocovariance, autocorrelation and related
     public	:: AutoCov
     public	:: AutoCorr
-    ! 4. Crosscovariance, crosscorrelation and related
+    public	:: EulerianTime
+    ! 4. Cross-covariance, cross-correlation and related
+    ! 5. Utilities
+    public	:: RemoveLinearTrend
     
 contains
 
@@ -292,16 +295,20 @@ contains
 	end function AutoCorr
 	
 	
-	function EulerianTime(rFcv, rvX, iMaxLag) RESULT(rEul)
+	! Estimate the Euleriam decorrelation time of a signal
+	!
+	! Routine originally developed by Roberto Sozzi
+	!
+	function EulerianTime(rFcv, rvX, iMaxLag) result(rEul)
 	
 		! Routine arguments
-		real, intent(in)				:: rFcv
-		real, dimension(:), intent(in)	:: rvX
-		integer, intent(in)				:: iMaxLag
-		real							:: rEul
+		real, intent(in)				:: rFcv		! Data acquisition rate (Hz)
+		real, dimension(:), intent(in)	:: rvX		! Signal (any unit)
+		integer, intent(in)				:: iMaxLag	! Maximum lag to consider
+		real							:: rEul		! Estimate of Eulerian decorrelation time (s)
 		
 		! Locals
-		real, dimension(0:iMaxLag)	:: rvC
+		real, dimension(0:iMaxLag)	:: rvC		! On exchange with AutoCov indices run 1 to iMaxLag+1
 		real, dimension(0:iMaxLag)	:: rvK
 		integer						:: iErrCode
 		integer						:: i
@@ -314,9 +321,8 @@ contains
 		real, parameter		:: TOL = 1.e-4
 		integer, parameter	:: MAX_ITER = 16
 		
-		! Compute autocovariances and scale them to autocorrelations
-		iErrCode = AutoCov(rvX, rvC)
-		rvC = rvC/rvC(0)
+		! Compute autocorrelations
+		iErrCode = AutoCorr(rvX, rvC)
 		
 		! Initialize the auxiliary vector
 		rvK = (/ (float(i),i=0,iMaxLag) /)
@@ -327,56 +333,34 @@ contains
 		rNum = 0.
 		rDen = 0.
 		do i = 0, iMaxLag
-			if(rvC(i) > 0.) then
+			if(.not.isnan(rvC(i)) .and. rvC(i) > 0.) then
 				iNumPoints = iNumPoints + 1
 				rNum = rNum + rvK(i)**2
-				rDen = rDen - rvK(i)*LOG(rvC(i))
-			end IF
+				rDen = rDen - rvK(i)*log(rvC(i))
+			end if
 		end do
 		if(iNumPoints > 2) then
 			rEul = rDelta * rNum / rDen
-		ELSE
-			rEul = -9999.9
-		end IF
+		else
+			rEul = NaN
+		end if
 		
 	end function EulerianTime
 	
 	
-	function PolyEval(rvP, rX, rDy) RESULT(rY)
-	
-		! Routine arguments
-		real, dimension(:), intent(in)	:: rvP
-		real, intent(in)				:: rX
-		real, intent(out)				:: rDy
-		real							:: rY
-		
-		! Locals
-		integer	:: i
-		integer	:: n
-		real	:: rTemp
-		
-		! Evaluate the polynomial, using Ruffini-Horner scheme
-		n = size(rvP)-1
-		rY = rvP(n)
-		rDy = 0.0
-		do i = n-1, 0, -1
-			rDy = rDy*rX + rY
-			rY  = rvP(i) + rX*rY
-		end do
-		
-	end function PolyEval
-	
-	
-	SUBROUTINE Detrend(rvX, rvY, rMultiplier, rOffset)
+	! Remove linear trend, if any, from a signal.
+	!
+	! The signal is 
+	subroutine RemoveLinearTrend(rvX, rvY, rMultiplier, rOffset)
 	
 		! Routine argument
-		real, dimension(:), intent(in)		:: rvX
-		real, dimension(:), INTENT(INOUT)	:: rvY
-		real, intent(out)					:: rMultiplier
-		real, intent(out)					:: rOffset
+		real, dimension(:), intent(in)		:: rvX			! Index signal (typically time, in floating point form)
+		real, dimension(:), intent(inout)	:: rvY			! Signal to remove the trend from
+		real, intent(out)					:: rMultiplier	! Multiplier of trend line
+		real, intent(out)					:: rOffset		! Offset of trend line
 		
 		! Locals
-		integer	:: N
+		integer	:: n
 		real	:: rSx
 		real	:: rSy
 		real	:: rSxx
@@ -384,21 +368,20 @@ contains
 		real	:: rDelta
 		
 		! Compute counts and sums
-		N    = size(rvX)
-		rSx  = SUM(rvX)
-		rSy  = SUM(rvY)
-		rSxx = doT_PRODUCT(rvX,rvX)
-		rSxy = doT_PRODUCT(rvX,rvY)
+		n    = size(rvX)
+		rSx  = sum(rvX, mask=.not.isnan(rvX))
+		rSy  = SUM(rvY, mask=.not.isnan(rvy))
+		rSxx = doT_product(rvX,rvX)
+		rSxy = doT_product(rvX,rvY)
 		
 		! Compute multiplier and offset
-		rDelta      = N*rSxx - rSx**2
+		rDelta      = n*rSxx - rSx**2
 		rOffset     = (rSxx*rSy - rSx*rSxy)/rDelta
-		rMultiplier = (N*rSxy - rSx*rSy)/rDelta
+		rMultiplier = (n*rSxy - rSx*rSy)/rDelta
 		
 		! Subtract the linear trend
-		rvY = rvY - rMultiplier*(rvX - rSx/N)
+		rvY = rvY - rMultiplier*(rvX - rSx/n)
 	
-	end SUBROUTINE Detrend
-	
+	end subroutine RemoveLinearTrend
 	
 end module pbl_stat
