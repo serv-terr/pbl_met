@@ -158,12 +158,14 @@ contains
 	end function Cov
 	
 	
-	function AutoCov(rvX, rvACov) RESULT(iRetCode)
+	! Compute the autocovariance of a signal up the specified number of lags,
+	! by using the direct summation method.
+	function AutoCov(rvX, rvACov) result(iRetCode)
 	
 		! Routine arguments
-		real, dimension(:), intent(in)	:: rvX
-		real, dimension(:), intent(out)	:: rvACov
-		integer							:: iRetCode
+		real, dimension(:), intent(in)	:: rvX			! Signal (may contain NaN values)
+		real, dimension(:), intent(out)	:: rvACov		! Vector containing the desired values (rvACov(1) refers to lag 0, rvACov(2) to lag 1, ...)
+		integer							:: iRetCode		! Flag indicating success (value = 0) or failure.
 		
 		! Locals
 		integer	:: iLag
