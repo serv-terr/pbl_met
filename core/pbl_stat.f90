@@ -24,8 +24,11 @@ module pbl_stat
     ! 3. Autocovariance, autocorrelation and related
     public	:: AutoCov
     public	:: AutoCorr
+    public	:: PartialAutoCorr
     public	:: EulerianTime
     ! 4. Cross-covariance, cross-correlation and related
+    public	:: CrossCov
+    public	:: CrossCorr
     ! 5. Utilities
     public	:: RemoveLinearTrend
     
@@ -293,6 +296,193 @@ contains
 		end do
 		
 	end function AutoCorr
+	
+	
+	! Compute the autocovariance of a signal up the specified number of lags,
+	! by using the direct summation method.
+	!
+	! Warning: On call to this routine, a vector rvACov having dimension
+	! ======== 0:n can be used without any restraint. Inside AutoCov, this
+	!          vector will be indexed 1:n+1, but the convention adopted
+	!          (i.e. index 1 to mean lag 0, index 2 lag 1, ...) ensures
+	!          full consistency
+	!
+	function CrossCov(rvX, rvY, rvCCov) result(iRetCode)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvX			! First signal (may contain NaN values)
+		real, dimension(:), intent(in)	:: rvY			! Second signal (may contain NaN values)
+		real, dimension(:), intent(out)	:: rvCCov		! Vector containing the desired values (rvCCov(1) refers to lag 0, rvCCov(2) to lag 1, ...)
+		integer							:: iRetCode		! Flag indicating success (value = 0) or failure.
+		
+		! Locals
+		integer	:: iLag
+		integer	:: i
+		integer	:: n
+		real	:: rAvgA
+		real	:: rAvgB
+		integer	:: iNum
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(size(rvX) <= 0 .OR. size(rvY) <= 0 .OR. size(rvCCov) <= 0 .OR. size(rvCCov) > size(rvX)/2) then
+			iRetCode = 1
+			return
+		end IF
+		n = size(rvX)
+		
+		! Compute autocovariance for each lag
+		do iLag = 0, size(rvCCov)-1
+			rAvgA = 0.
+			rAvgB = 0.
+			iNum = 0
+			do i = 1, n - iLag
+				if(.not.isnan(rvX(i)) .and. .not.isnan(rvY(i+iLag))) then
+					iNum = iNum + 1
+					rAvgA = rAvgA + rvX(i)
+					rAvgB = rAvgB + rvY(i+iLag)
+				end if
+			end do
+			if(iNum > 0) then
+				rAvgA = rAvgA / iNum
+				rAvgB = rAvgB / iNum
+				rvCCov(iLag+1) = 0.
+				do i = 1, n - iLag
+					if(.not.isnan(rvX(i)) .and. .not.isnan(rvY(i+iLag))) then
+						rvCCov(iLag+1) = rvCCov(iLag+1) + (rvX(i) - rAvgA)*(rvY(i+iLag) - rAvgB)
+					end if
+				end do
+				rvCCov(iLag+1) = rvCCov(iLag+1)/iNum			
+			else
+				rvCCov(iLag+1) = NaN
+			end if
+		end do
+		
+	end function CrossCov
+	
+	
+	! Compute the autocorrelation of a signal up the specified number of lags,
+	! by using the direct summation method.
+	function CrossCorr(rvX, rvY, rvCCorr) result(iRetCode)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvX			! First signal (may contain NaN values)
+		real, dimension(:), intent(in)	:: rvY			! Second signal (may contain NaN values)
+		real, dimension(:), intent(out)	:: rvCCorr		! Vector containing the desired values (rvCCorr(1) refers to lag 0, rvCCorr(2) to lag 1, ...)
+		integer							:: iRetCode		! Flag indicating success (value = 0) or failure.
+		
+		! Locals
+		integer	:: iLag
+		integer	:: i
+		integer	:: n
+		real	:: rAvgA
+		real	:: rAvgB
+		real	:: rSum2A
+		real	:: rSum2B
+		real	:: rStdA
+		real	:: rStdB
+		integer	:: iNum
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(size(rvX) <= 0 .OR. size(rvY) <= 0 .OR. size(rvCCorr) <= 0 .OR. size(rvCCorr) > size(rvX)/2) then
+			iRetCode = 1
+			return
+		end IF
+		n = size(rvX)
+		
+		! Compute autocovariance for each lag
+		do iLag = 0, size(rvCCorr)-1
+			rAvgA = 0.
+			rAvgB = 0.
+			rSum2A = 0.
+			rSum2B = 0.
+			iNum = 0
+			do i = 1, n - iLag
+				if(.not.isnan(rvX(i)) .and. .not.isnan(rvY(i+iLag))) then
+					iNum = iNum + 1
+					rAvgA = rAvgA + rvX(i)
+					rAvgB = rAvgB + rvY(i+iLag)
+					rSum2A = rSum2A + rvX(i)**2
+					rSum2B = rSum2B + rvY(i+iLag)**2
+				end if
+			end do
+			if(iNum > 0) then
+				rAvgA = rAvgA / iNum
+				rAvgB = rAvgB / iNum
+				rSum2A = rSum2A / iNum
+				rSum2B = rSum2B / iNum
+				rStdA  = sqrt(rSum2A - rAvgA**2)
+				rStdB  = sqrt(rSum2B - rAvgB**2)
+				rvCCorr(iLag+1) = 0.
+				do i = 1, n - iLag
+					if(.not.isnan(rvX(i)) .and. .not.isnan(rvY(i+iLag))) then
+						rvCCorr(iLag+1) = rvCCorr(iLag+1) + (rvX(i) - rAvgA)*(rvY(i+iLag) - rAvgB)
+					end if
+				end do
+				rvCCorr(iLag+1) = (rvCCorr(iLag+1)/iNum) / (rStdA * rStdB)
+			else
+				rvCCorr(iLag+1) = NaN
+			end if
+		end do
+		
+	end function CrossCorr
+	
+	
+	! Partial autocorrelation values, from autocorrelation. Useful, to determine
+	! the order of an autoregressive process.
+	function PartialAutoCorr(rvACorr) result(rvPACorr)
+		
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvACorr		! Autocorrelation values (rvACorr(1) refers to lag 0, rvACorr(2) to lag 1, ...)
+		real, dimension(size(rvACorr))	:: rvPACorr		! Partial autocorrelation, same indexing convention as above
+		
+		! Locals
+		real, dimension(size(rvACorr) - 1)	:: p, a
+		integer								:: l
+		integer								:: i
+		integer								:: j
+		integer								:: k
+		integer								:: lp
+		real								:: q
+		real								:: u
+		real								:: v
+		real								:: hold
+		
+		! Compute partial autocorrelation coefficients
+		p = rvACorr(2:)
+		lp = size(p)
+		do i = 1, lp
+			if(i < 2) then
+				q = p(i)
+				v = 1.0 - q*q
+			else
+				q = u/v
+				v = v*(1.0 - q*q)
+				l = (i-1)/2
+				if(l /= 0) then
+					do j = 1, l
+						hold = a(j)
+						k = i-j
+						a(j) = a(j) - q*a(k)
+						a(k) = a(k) - q*hold
+					end do
+				end if
+				if(2*l < i-1) a(l+i) = a(l+i)*(1.0 - q)
+			end if
+			a(i) = -q
+			u = p(i+1)
+			do j = 1, i
+				u = u + a(j) * p(i-j+1)
+			end do
+			rvPACorr(i) = q
+		end do
+		
+	end function PartialAutoCorr
 	
 	
 	! Estimate the Euleriam decorrelation time of a signal
