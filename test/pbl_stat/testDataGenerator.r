@@ -176,12 +176,12 @@ prepare.test.material <- function() {
   png("withgaps_acf_x.png", width=800, height=600)
   f <- acf(d$x, lag.max=15000, main="", xlab="Lag", ylab="acf", na.action = na.pass)
   dev.off()
-  write.csv(f$acf, file="gapless_acf_x.csv", row.names=FALSE)
+  write.csv(f$acf, file="withgaps_acf_x.csv", row.names=FALSE)
   
   png("withgaps_acf_y.png", width=800, height=600)
   f <- acf(d$y, lag.max=15000, main="", xlab="Lag", ylab="acf", na.action = na.pass)
   dev.off()
-  write.csv(f$acf, file="gapless_acf_y.csv", row.names=FALSE)
+  write.csv(f$acf, file="withgaps_acf_y.csv", row.names=FALSE)
   
   png("withgaps_ccf_xy.png", width=800, height=600)
   f <- ccf(d$x, d$y, lag.max=15000, main="", xlab="Lag", ylab="ccf", na.action = na.pass)
