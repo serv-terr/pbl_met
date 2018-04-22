@@ -1,19 +1,102 @@
-# _pbl_met_, a meteorological data processing library.
+# Short description of _pbl_met_
 
-The _pbl_met_ is a library of related functions aimed at making the life of people willing to construct meteorological processors and other met data processing software lighter, by collecting together various common-use methods and formulae, and providing access to them in a simple way.
 
-## Why Fortran?
+## What is it?
 
-The _pbl_met_ library is written in modern Fortran. Choosing a programming language is never a simple task, and to some extent tends to have irreversible consequence. We could have opted for some other popular data processing language like Python, or R. But this would have been of limited usefulness to our reference community. Practically all meteorological models, wind fields, pollutant dispersion models, eddy covariance sytems, and other codes dealing with the atmosphere are written in Fortran. A Fortran library would have then been interesting, and immediately useable in the context of meteorology.
+_pbl_met_ is a library composed by various Fortran modules, test programs and accompanying data. The purpose of _pbl_met_ is to alleviate the chore of writing meteorological processors and data processing systems, by providing routines computing or estimating the quantities commonly required by atmospheric dispersion models and other computing codes.
 
-In addition to this (essential) consideration, modern Fortran has some distinct advantages.
 
-* It is an efficient language, allowing to build high performance executable - a must, in a field where often the processing operates on a gargantuan mass of data, or immense computing grids.
+## Why open source?
 
-* It is conceptually simple. Since the inception of the Fortran 95 standard the language contains syntactical provisions for dealing with arrays, matrices and vectors. Fortran 2003 introduced full featured object-orientation and some welcome standard modules. Fortran 2008 made a huge effort to introduce various form of explicit parallelism. Nevertheless, all these changes did not change the essential nature of the Fortran language as a syntactically easy to learn and remember. A Fortran program written thinking to people will be easy to understand. Even though very powerful and expressive, the Fortran language contains practically no constructs which, used the wrong way, may wreak havoc in the form of subtle bugs or idiosynchrasies.
+By its very nature, the _pbl_met_ plays a foundational role in open source and commercial applications (for example the SODAR-aware meteorological processor and atmospheric dispersion input preparation code _ST-Me_ by Servizi Territorio srl).
 
-Because of all that, modern Fortran is quite ideal as a language for coding a physically inclined library as the _pbl_met_ is, in a way which promotes code self-documentation.
+Because of this foundational role, it is important its structure and implementation details are accessible to everyone for inspection, correction and extension. This can happen if the _pbl_met_ code is open source, and people actually access and peruse it.
+
+
+## Library organization
+
+_pbl_met_ is delivered as a set of Fortran modules, each dedicated to a specific theme in met processing (e.g. psychrometry, radiation, PBL, ...).
+
+Individual modules are interdependent, and then it is advisable to always download the whole library.
+
+In this Wiki individual modules are also shortly described: check index to discover all about them. Also please consider _pbl_met_ has been intentionally designed for source readability: sources themselves are the eventual documentation. _pbl_met_ is open source, so please consider exploiting this nice opportunity.
+
+
+## Fortran version and reference compilers
+
+Modules are written in Fortran 2003 with a minor use of 2008 extensions. Most _pbl_met_ modules however comply with the simpler Fortran 95.
+
+_pbl_met_ has been designed to be compiled using the GNU Fortran Compiler, [`gfortran`](https://gcc.gnu.org/fortran/). Compilation has been tested from `gfortran` version 4.4 and following. If you use an older version we recommend you upgrade your compiler.
+
+Also notice the authors and maintainers of _pbl_met_ will make no specific effort to held code compatible with verson 4.4 of `gfortran` - nor to make specific effortsto breach it intentonally, to the extent possible. That said, we would like to reassure you about the fact _pbl_met_ has a relatively simple structure, being mostly composed by neat functions with ew defined inputs and, in most case, a unique output.
+
+
+## Support of compilers other than `gfortran`
+
+In addition to the GNU Fortran, we support use of the Intel Fortran Compiler. The community edition of it has been used in Linux for this open-source project.
+
+Some of the authors have successfully built _pbl_met_ with compilers from other developers/vendors. Our current impression is _pbl_met_ is quite compiler independent, but our tight time frame did not allow for a systematic test. By the way, this is an interesting volunteering area.
+
+
+## License
+
+_pbl_met_ is released under LGPL v3.0.
+
+As such, it may be freely incorporated in both open and closed source codes without a need for explicit endorsement by Servizi Territorio srl. If you have not already done, we advise you to check carefully at [GNU Foundation](http://www.gnu.org/licenses/lgpl-3.0.html) site to discover any restriction which applies.
+
+We'll be glad to get from you, in case you employ _pbl_met_, to let us know. We'd also appreciate your citation, in case you have used _pbl_met_ to process data for a document to be published somewhere (including of course papers on peer-reviewed journals).
+
+
+## Intended use of modules
+
+We, the authors, include _pbl_met_ modules directly in our projects, whenever we need them, directly in source form.
+
+Unlike in the old PBL_MET, we have intentionally and positively decided to _not_ package _pbl_met_ as anobject library.
+
+We feel using sources directly, rather than linking to a pre-canned object library, encourages curiosity: meteorological processing is quite an art more than science, and a critical mind set is essential to produce intellectually honest and professionally sound results. This is an easy catch given _pbl_met_ structural simplicity - really, building a library seemed us overkill.
+
+Of course you are free to package together _pbl_met_ modules as an object library if you like. We too have made from time to time. Using sources directly instead of compiled object code is quite the norm in communities like Ada language users, as a way to encourage code understanding - something of great value in safety-critical applications. The same is maybe not yet so common among Fortran programmers, but we would like you too give this way a try.
+
 
 ## Coding style
 
+We've choosen to privilege readability and understandability over extreme code optimization. After all, what we consider "processing a huge mass of meteorological data" means dealing with thousands, or tens of thousands, maybe a million data records: an almost-nothing by today computing standards. The meaning of "efficiency" is really not the same it was some years ago.
+
+On the other side, some of the meteorological data processing or estimation is quite intricate, and not always consensus has set over one method or the other. So, being able to understand what is going on behind the hood may be welcome.
+
+By reading the sources, you may get an impression of a "high-oxytocin-low-steroid" place. That is. Maybe, gathering something orderly and useful from a mess of data is a task more eliciting the _yin_ rather than the _yang_ side.
+
+Nevertheless, the fact this task occurs most often invisibly to final users does not means it is extremely fascinating on one side, but also in the meanwhile, extraordinarily dangerous if done haphazardly and without placing love and responsibility in the process.
+
+More specifically, we have done our best to clarify our intentions about routine argument use, formulae, and so on. We intentionally have used long, meaningful names (unless some internationally known symbol is in wide use to mean the same thing). We've employed extensively the syntax features allowed by Fortran 95 and following to produce clear code, with some (sparingly) use of newer Fortran 2003 and 2008 constructs, where useful.
+
+From time to time we had to use some "applied-math stuff" like solving equations iteratively, or finding solutions to ordinary differential equations, and so on: whenever possible we included the due code directly in the modules using them, as internal routines,so you may easily figure out what is happening.
+
+We understand Fortran modules, used carelessly, may make their users life miserable (either by a horrible mess of overlapping names, or the even worse prefixing used to avoid them. To prevent thistrouble source we defined the default visibility of module symbols `PRIVATE`, thus exporting the very few important as `PUBLIC`. This will help you with name overlaps.
+
+A systematic use of `IMPLICIT NONE` statement has also been used. By so doing we actually constrict ourselves to declare all variables, a very healthy habit some old-style-high-steroid FORTRAN programmer might not completely appreciate. We apologise to them all - but acknowledge the priority is in delivering code which is correct, or (better even) may be proven to be.
+
+Arrays are of `ALLOCATABLE` type, unless in the occasions they must have a fixed well defined length.
+
+We made our best to write code you can understand (possibly, with a bit of study and application - the subject is intrinsically quite advanced physics - say, not the type you find in high school). But we can't ensure having made all things "ideally". Sorry so sloppy. If in case, anyway, please do not hesitate to contact us - our e-mail-office-door is tendentially open (if we do not respond within a bunch of nanosecond, please consider the possibility we're wandering around the little pearly Schwartzsee snorkeling around the seaside, or going take our cubs at school, or any other human type of activity: just be patient, we'll come; and if you are really interested in getting the solution worked at, please document as throughly as possibly your discovery or necessity, and file an "issue" on the Github repository - easy task).
+
+
+## History
+
+The actual _pb_met_ has originally been developed by [Servizi Territorio srl](http://www.serviziterritorio.it) under the name PBL_MET, and used there internally until currently in their consultancy activities.
+
+The first version of PBL_MET has also been presented at the [2nd Workshop on Harmonisation within Atmospheric Dispersion Modelling for Regulatory Purposes](http://www.harmo.org/Conferences/Proceedings/complist.asp#2nd), held in Manno (Switzerland) in 1993.
+
+For a time, PBL_MET has been also sold as a software product by Servizi Territorio srl.
+
+The original contributors were Daniele Fraternali and Roberto Sozzi. Their version is still retained, for completeness and historical fidelity. Besides, our gratitude to them and their work - and to the various nameless people who from time to time contribute to the "old" code.
+
+For user convenience we have also placed the old PBL_MET in directory "PBL_MET_old" on GitHub source repository: that was our starting point, and to some extent it may still be useful. But please, consider its interest today is mainly historical. With time, more and more of it will be replaced by more up-to-date routines, placed in other repository directories.
+
+Old PBL_MET users will discover the scope of the new _pbl_met_ has expanded somewhat. In addition to Planetary Boundary Layer related routines, now a directory dealing with "instrumentation" has appeared. This was an inevitable consequence of the technical evolution in the field, no less quick than in any other.
+
+
+## And now...
+
+Since then the library has been expanded, revised and tested to the extent possible. In 2015, a task has been undercome by Servizi Territorio srl to place the current version of PBL_MET, now named _pbl_met_, in the open-source universe, as a mean of sharing knowledge and, yes, as a capability demonstrator ([Servizi Territorio srl](http://www.serviziterritorio.it) wins part of her bread by running atmospheric dispersion models, an activity demanding massive meteorological data quality assurance and processing).
 
