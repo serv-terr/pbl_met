@@ -15,6 +15,7 @@ program test_pbl_stat
 	! Perform actual tests
 	
 	call testRangeInvalidate()
+	call testPairInvalidate()
 	
 contains
 
@@ -62,6 +63,87 @@ contains
 		print *, "Found:    ", rvX
 		print *
 		
+		! Leave
+		deallocate(rvX)
+		
 	end subroutine testRangeInvalidate
+	
+	
+	subroutine testPairInvalidate()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvX
+		real, dimension(:), allocatable	:: rvY
+		
+		! Normal case
+		allocate(rvX(5))
+		allocate(rvY(5))
+		rvX = [1., 2., 3., 4., 5.]
+		rvY = [5., 4., 3., 2., 1.]
+		print *, "PairInvalidate - Test 1"
+		print *, "rvX = ", rvX
+		print *, "rvY = ", rvY
+		call PairInvalidate(rvX, rvY)
+		print *, "Expected rvX = ",[1.,2.,3.,4.,5.]
+		print *, "Expected rvY = ",[5.,4.,3.,2.,1.]
+		print *, "Found rvX    = ",rvX
+		print *, "Found rvY    = ",rvY
+		print *
+		
+		! Normal case
+		rvX = [1., NaN, 3., 4., 5.]
+		rvY = [5., 4., 3., NaN, 1.]
+		print *, "PairInvalidate - Test 2"
+		print *, "rvX = ", rvX
+		print *, "rvY = ", rvY
+		call PairInvalidate(rvX, rvY)
+		print *, "Expected rvX = ",[1.,NaN,3.,NaN,5.]
+		print *, "Expected rvY = ",[5.,NaN,3.,NaN,1.]
+		print *, "Found rvX    = ",rvX
+		print *, "Found rvY    = ",rvY
+		print *
+		
+		! Boundary case
+		deallocate(rvX)
+		deallocate(rvY)
+		allocate(rvX(5))
+		allocate(rvY(4))
+		rvX = [1., NaN, 3., 4., 5.]
+		rvY = [5., 4., 3., NaN]
+		print *, "PairInvalidate - Test 3"
+		print *, "rvX = ", rvX
+		print *, "rvY = ", rvY
+		call PairInvalidate(rvX, rvY)
+		print *, "Expected rvX = ",[1.,NaN,3.,NaN,5.]
+		print *, "Expected rvY = ",[5.,NaN,3.,NaN]
+		print *, "Found rvX    = ",rvX
+		print *, "Found rvY    = ",rvY
+		print *
+		
+		! Boundary case
+		deallocate(rvX)
+		deallocate(rvY)
+		allocate(rvX(4))
+		allocate(rvY(5))
+		rvX = [1., NaN, 3., 4.]
+		rvY = [5., 4., 3., NaN, 1.]
+		print *, "PairInvalidate - Test 4"
+		print *, "rvX = ", rvX
+		print *, "rvY = ", rvY
+		call PairInvalidate(rvX, rvY)
+		print *, "Expected rvX = ",[1.,NaN,3.,NaN]
+		print *, "Expected rvY = ",[5.,NaN,3.,NaN, 1.]
+		print *, "Found rvX    = ",rvX
+		print *, "Found rvY    = ",rvY
+		print *
+		
+		! Leave
+		deallocate(rvX)
+		deallocate(rvY)
+		
+	end subroutine testPairInvalidate
 	
 end program test_pbl_stat
