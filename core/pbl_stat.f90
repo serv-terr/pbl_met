@@ -20,6 +20,8 @@ module pbl_stat
     public	:: RangeClip
     public	:: GetValidOnly
     ! 2. Basic statistics
+    public	:: Mean
+    public	:: StdDev
     public  :: Cov
     ! 3. Autocovariance, autocorrelation and related
     public	:: AutoCov
@@ -131,6 +133,85 @@ contains
 		end do
 		
 	end function GetValidOnly
+	
+
+	! Compute the mean of a signal
+	function Mean(rvX, rValidFraction) result(rMean)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvX				! Signal, whose mean is needed
+		real, intent(out), optional		:: rValidFraction	! Fraction of valid to total signal data (optional)
+		real							:: rMean			! Mean (NaN if not possible to evaluate)
+		
+		! Locals
+		integer	:: n
+		
+		! Check something is to be made
+		if(size(rvX) <= 0) then
+			rMean = NaN
+			return
+		end if
+		
+		! Compute the arithmetic mean
+		n = count(.not.isnan(rvX))
+		if(n > 0) then
+			rMean = sum(rvX, mask=.not.isnan(rvX)) / n
+		else
+			rMean = NaN
+		end if
+		
+		! Compute diagnostic quantities, if present
+		if(present(rValidFraction)) then
+			rValidFraction = float(n) / size(rvX)
+		end if
+		
+	end function Mean
+	
+
+	! Compute the mean of a signal
+	function StdDev(rvX, rMeanIn, rValidFraction) result(rStdDev)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvX				! Signal, whose standard deviation is needed
+		real, intent(in), optional		:: rMeanIn			! Mean value, as computed by "Mean" function (optional, recomputed if missing)
+		real, intent(out), optional		:: rValidFraction	! Fraction of valid to total signal data (optional)
+		real							:: rStdDev
+		
+		! Locals
+		integer	:: n
+		real	:: rMean
+		
+		! Check something is to be made
+		if(size(rvX) <= 0) then
+			rMean = NaN
+			return
+		end if
+		
+		! Compute the arithmetic mean, if missing; or, get its value
+		n = count(.not.isnan(rvX))
+		if(present(rMeanIn)) then
+			rMean = rMeanIn
+		else
+			if(n > 0) then
+				rMean = sum(rvX, mask=.not.isnan(rvX)) / n
+			else
+				rMean = NaN
+			end if
+		end if
+		
+		! Compute the standard deviation
+		if(n > 0) then
+			rStdDev = sqrt(sum((rvX - rMean)**2, mask=.not.isnan(rvX)) / n)
+		else
+			rStdDev = NaN
+		end if
+		
+		! Compute diagnostic quantities, if present
+		if(present(rValidFraction)) then
+			rValidFraction = float(n) / size(rvX)
+		end if
+		
+	end function StdDev
 	
 
     ! Compute covariance between two signal samples; these samples should
