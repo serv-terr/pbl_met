@@ -14,8 +14,6 @@ endif
 
 pbl_met.a : pbl_met.o pbl_base.o pbl_stat.o pbl_time.o pbl_thermo.o pbl_evtrn.o pbl_wind.o pbl_simil.o pbl_depth.o
 	$(AR) $(ARFLAGS) pbl_met.a pbl_met.o pbl_base.o pbl_stat.o pbl_time.o pbl_thermo.o pbl_evtrn.o pbl_wind.o pbl_simil.o pbl_depth.o $(ARPOST)
-	cp pbl_met.a ./test
-	cp pbl_met.mod ./test
 
 pbl_met.o pbl_met.mod : pbl_met.f90 pbl_base.mod pbl_stat.mod pbl_time.mod pbl_thermo.mod pbl_evtrn.mod pbl_wind.mod
 	$(F90) $(FFLAGS) pbl_met.f90
