@@ -12,8 +12,10 @@ ARFLAGC=cr
 ARPOST=
 endif
 
-pbl_met.a : pbl_met.o pbl_base.o pbl_stat.o pbl_time.o pbl_thermo.o pbl_evtrn.o pbl_wind.o
-	$(AR) $(ARFLAGS) pbl_met.a pbl_met.o pbl_base.o pbl_stat.o pbl_time.o pbl_thermo.o pbl_evtrn.o pbl_wind.o $(ARPOST)
+pbl_met.a : pbl_met.o pbl_base.o pbl_stat.o pbl_time.o pbl_thermo.o pbl_evtrn.o pbl_wind.o pbl_simil.o pbl_depth.o
+	$(AR) $(ARFLAGS) pbl_met.a pbl_met.o pbl_base.o pbl_stat.o pbl_time.o pbl_thermo.o pbl_evtrn.o pbl_wind.o pbl_simil.o pbl_depth.o $(ARPOST)
+	cp pbl_met.a ./test
+	cp pbl_met.mod ./test
 
 pbl_met.o pbl_met.mod : pbl_met.f90 pbl_base.mod pbl_stat.mod pbl_time.mod pbl_thermo.mod pbl_evtrn.mod pbl_wind.mod
 	$(F90) $(FFLAGS) pbl_met.f90
@@ -29,6 +31,12 @@ pbl_time.o pbl_time.mod : pbl_time.f90
 	
 pbl_thermo.o pbl_thermo.mod : pbl_thermo.f90 pbl_base.mod pbl_time.mod
 	$(F90) $(FFLAGS) pbl_thermo.f90
+	
+pbl_simil.o pbl_simil.mod : pbl_simil.f90 pbl_base.mod pbl_thermo.mod pbl_wind.mod
+	$(F90) $(FFLAGS) pbl_simil.f90
+	
+pbl_depth.o pbl_depth.mod : pbl_depth.f90 pbl_base.mod pbl_thermo.mod pbl_wind.mod pbl_simil.mod
+	$(F90) $(FFLAGS) pbl_depth.f90
 	
 pbl_evtrn.o pbl_evtrn.mod : pbl_evtrn.f90 pbl_base.mod pbl_time.mod pbl_thermo.mod
 	$(F90) $(FFLAGS) pbl_evtrn.f90
