@@ -176,3 +176,74 @@ But we know by experience that sooner or later the case presents when understand
 
 Because of this, in all function descriptions, be them just lists or reference material, we will consistently sort anything by the sub-library they can be found in.
 
+## Library contents, by secondary modules
+
+### `pbl_base`: Useful constants and symbols
+
+This module contains various important constants, in part used by some of the functions in other secondary modules (and described in their reference sections).
+
+One of these constants is of very special interest, and ubiquitous use in `pbl_met`: the symbol `NaN`, used to denote missing or invalid values.
+
+The value of `NaN` is a special case of a _non-signalling not-a-number_. Not-a-number values are an invention of IEEE 754 floating-point arithmetics, to date supported by practically any commercial hardware, and originally used to denote things as the real `sqrt(-1.)` and other "invalid" function results. Indeed two kind of not-a-number values are defined, signalling and non-signalling. The former, once encountered during program execution, usually results in an exception: the offending program hangs, and a (possibly cryptic) error message is printed. The latter is way more interesting: it combines with oher floating point values, at hardware speed, yielding other non-signalling not-a-number values, propagating the invalid state until results are written somewhere.
+
+Testing whether a floating point value is a not-a-number is performed in Fortran by using the very common language extension intrinsic `isnan(flt)`.  This function is sometimes not supported by some compilers, but in case you may provide a version of it by using the curious property of not-a-number values of being not equal to themselves:
+
+```
+function isnan(x) result(isThisNaN)
+
+	! Routine arguments
+	real, intent(in)	:: x
+	logical				:: isThisNan
+	
+	! Locals
+	! -none-
+	
+	! Check the value is different from itself
+	isThisNaN = (x /= x)
+	
+end function isnan
+```
+
+To use a function like the above version of `isnan` you should presumably disable some optimizations of your compiler, maybe using some command-line flags: please consult your compiler's documentation.
+
+Of course, if your compiler does support `isnan` directly, we recommend you stick to that version and do not reinvent the wheel - as we said most Fortran compilers have an `isnan` intrinsic to date.
+
+###`pbl_stat`: Statistics
+
+
+
+### `pbl_time`: Dates, times and astronomy
+
+
+
+### `pbl_thermo`: Thermodynamics, psychrometry, thermal comfort and related things
+
+
+
+### `pbl_evtrn`: Evapotranspiration
+
+
+
+
+
+### `pbl_wind`: Wind, and its statistics
+
+
+
+
+
+### `pbl_turb`: Turbulence indicators from measured data and elements of eddy covariance
+
+To date this module is a placeholder, still to be filled.
+
+
+
+### `pbl_simil`: Surface layer (Monin-Obukhov) similarity
+
+To date this module is a placeholder, still to be filled.
+
+
+
+### `pbl_depth`: PBL depth estimates and related quantities
+
+To date this module is a placeholder, still to be filled.
