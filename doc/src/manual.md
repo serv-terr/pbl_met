@@ -76,14 +76,12 @@ We understand Fortran modules, used carelessly, may make their users life misera
 
 A systematic use of `IMPLICIT NONE` statement has also been used. By so doing we actually constrict ourselves to declare all variables, a very healthy habit some old-style-high-steroid FORTRAN programmer might not completely appreciate. We apologise to them all - but acknowledge the priority is in delivering code which is correct, or (better even) may be proven to be.
 
-Arrays are of `ALLOCATABLE` type, unless in the occasions they must have a fixed well defined length.
-
 We made our best to write code you can understand (possibly, with a bit of study and application - the subject is intrinsically quite advanced physics - say, not the type you find in high school). But we can't ensure having made all things "ideally". Sorry so sloppy. If in case, anyway, please do not hesitate to contact us - our e-mail-office-door is tendentially open (if we do not respond within a bunch of nanosecond, please consider the possibility we're wandering around the little pearly Schwartzsee snorkeling around the seaside, or going take our cubs at school, or any other human type of activity: just be patient, we'll come; and if you are really interested in getting the solution worked at, please document as throughly as possibly your discovery or necessity, and file an "issue" on the Github repository - easy task).
 
 
 ## History
 
-The actual _pb_met_ has originally been developed by [Servizi Territorio srl](http://www.serviziterritorio.it) under the name PBL_MET, and used there internally until currently in their consultancy activities.
+The actual _pb_met_ has originally been developed by [Servizi Territorio srl](http://www.serviziterritorio.it) under the name PBL_MET by the pioneering effort of Roberto Sozzi and Daniele Fraternali, and used there internally until currently in their consultancy activities.
 
 The first version of PBL_MET has also been presented at the [2nd Workshop on Harmonisation within Atmospheric Dispersion Modelling for Regulatory Purposes](http://www.harmo.org/Conferences/Proceedings/complist.asp#2nd), held in Manno (Switzerland) in 1993.
 
@@ -99,4 +97,82 @@ Old PBL_MET users will discover the scope of the new _pbl_met_ has expanded some
 ## And now...
 
 Since then the library has been expanded, revised and tested to the extent possible. In 2015, a task has been undercome by Servizi Territorio srl to place the current version of PBL_MET, now named _pbl_met_, in the open-source universe, as a mean of sharing knowledge and, yes, as a capability demonstrator ([Servizi Territorio srl](http://www.serviziterritorio.it) wins part of her bread by running atmospheric dispersion models, an activity demanding massive meteorological data quality assurance and processing).
+
+
+
+# Using _pbl_met_
+
+## Installation
+
+To install _pbl_met_ you may just copy all the sources in `core` directory to a location of your choice, then open a terminal session and give the command
+
+```
+make
+```
+
+within of it.
+
+To check the installation was successful, you should verify the existence of `pbl_met.mod`and `pbl_met.a` in your local directory; the latter file is the static library containing the _pbl_met_ functions and symbols.
+
+Once you have  `pbl_met.mod`and `pbl_met.a` available, you may copy them to directories where Fortran module includes and libraries reside on your system, or to the directory where you're developing your application sources.
+
+Fortran compilers provide command line options allowing to specify non-standard locations for library files and module includes: we have _not_ made use of them, in sake of simplicity.
+
+## Optimizing for your platform
+
+The `makefile` provided with _pbl_met_ is minimal, and contains no optimizations, nor platform-specific enhancements.
+
+This is intentional, as addressing all possible platforms would be at least quite difficult.
+
+Nonetheless, you might desire to optimize the _pbl_met_ library for your platform (and compiler). In case, you may want to change the `makefile` by adding the approprite compiler options.
+
+## Using library functions
+
+To use functions and symbols in _pbl_met_ you should first of all make sure to `use`the _pbl_met_ module in your source, like this:
+
+```
+program YourProgram
+
+	use pbl_met
+	
+	implicit none
+	
+	... your code ...
+	
+end program YourProgram
+```
+
+You may then compile your code for example using the command line as
+
+```
+gfortran -o yrprg YourProgram.f90 pbl_met.a
+```
+
+You may want to add command line options to specify where library and module files are found. Refer to the documentation of your compiler to know which they are.
+
+# Library contents
+
+## Overall library organization
+
+The _pbl_met_ library is a set of functions and symbols (constants, data types, …), all callable by users once a ` use pbl_met`declaration has added to your source.
+
+For users and developers convenience all these elements have been stored in separate "secondary" modules, whose public interfaces are then made accessible by the catch-all `pbl_met` main module.
+
+The secondary modules are:
+
+* `pbl_base` - Useful constants and symbols
+* `pbl_stat` - General-purpose statistical routines for elementary statistics, auto/cross-covariance and correlation, and more
+* `pbl_time` - Functions dealing with dates and times, and various interesting astronomical quantities like solar declination, sunset/sunrise, and more
+* `pbl_thermo` - Functions dealing with thermodynamics, psychrometry, thermal comfort and related things
+* `pbl_evtrn` - Functions dealing with plant evapotranspiration
+* `pbl_wind` - Functions dealing with mean wind; also containing some statistical functions specific to wind (made necessary by the nature of horizontal wind as a complex number)
+* `pbl_turb` - Functions dealing with turbulent fluctuations in measured data, along with elementary eddy covariance and related stuff
+* `pbl_simil` - Functions dealing with surface layer (Monin-Obukhov) similarity, including estimation of turbulent indicators
+* `pbl_depth` - Functions dealing with Planetary Boundary Layer depth under stable, neutral and convective conditions
+
+In principle, library users with little time or need/motivation to explore how individual functions are made do not need to know about this partitioning into sub-libraries. All they need is knowing how to compile and link the library to their program, a reference, and a good amount of optimistic  faith in canned packages and computer hardware.
+
+But we know by experience that sooner or later the case presents when understanding something specific becomes of paramount importance, and then the desire comes to look behind the hood. Maybe, even, to improve something, or get it more up-to-date. To those brave users, and developers by and large, we committed a library organization which is as ordered and as understandable as possible. We ourselves make a good use of it, and declare that in some cases a healthy amount of "information un-hiding" is welcome: especially among scientific library users, people willing to understand what are they doing is welcome - as well as deciding to remain forever an _end-user_, although possible and legitimate, is committing themselves to be a danger to their (aware or implicit) clients.
+
+Because of this, in all function descriptions, be them just lists or reference material, we will consistently sort anything by the sub-library they can be found in.
 
