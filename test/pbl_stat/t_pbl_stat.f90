@@ -16,6 +16,7 @@ program test_pbl_stat
 	
 	call testRangeInvalidate()
 	call testPairInvalidate()
+	call testRangeClip()
 	
 contains
 
@@ -67,6 +68,46 @@ contains
 		deallocate(rvX)
 		
 	end subroutine testRangeInvalidate
+	
+	
+	subroutine testRangeClip()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvX
+		
+		! Normal case
+		allocate(rvX(5))
+		rvX = [-70., -40., 0., 60., 180.]
+		call RangeClip(rvX, -40., 60.)
+		print *, "RangeClip - Test 1"
+		print *, "Expected: ", [-40., -40., 0., 60., 60.]
+		print *, "Found:    ", rvX
+		print *
+		
+		! Normal case
+		rvX = [-70., -40., NaN, 60., 180.]
+		call RangeClip(rvX, -40., 60.)
+		print *, "RangeClip - Test 2"
+		print *, "Expected: ", [-40., -40., NaN, 60., 60.]
+		print *, "Found:    ", rvX
+		print *
+		
+		! Boundary case: zero-length signal
+		deallocate(rvX)
+		allocate(rvX(0))
+		call RangeClip(rvX, -40., 60.)
+		print *, "RangeClip - Test 3"
+		print *, "Expected: "
+		print *, "Found:    ", rvX
+		print *
+		
+		! Leave
+		deallocate(rvX)
+		
+	end subroutine testRangeClip
 	
 	
 	subroutine testPairInvalidate()
