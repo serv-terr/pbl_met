@@ -5,7 +5,25 @@
 
 ## What is it?
 
-_pbl_met_ is a library composed by various Fortran modules, test programs and accompanying data. The purpose of _pbl_met_ is to alleviate the chore of writing meteorological processors and data processing systems, by providing routines computing or estimating the quantities commonly required by atmospheric dispersion models and other computing codes.
+_pbl_met_ is a library composed by various Fortran modules, test programs and accompanying data. The purpose of _pbl_met_ is to alleviate the chore of writing data processing systems in the field of planetary boundary layer (PBL) meteorology, by providing routines computing or estimating the quantities commonly required by atmospheric dispersion models and other computing codes.
+
+## What is the PBL, and why the logo?
+
+Tha Planetary Boundary Layer (or just PBL for friends) is the this layer of troposphere connecting the Earth surface with the upper free atmosphere.
+
+The PBL, whose thickness may change around the day from some tens to some hundreds of meters, is where most of us (in the sense of the sub-aerial biosphere) spend their entire life. The PBL is where the Earth surface exchanges energy and chemicals with air, plants evapotranspirate to, seeds and spores propagate, birds and insects fly, anthropogenic pollutants disperse and dilute, and more.
+
+Quite literally, it is our home.
+
+Henceforth, processes and phenomena occurring there, although often of _local_ span, and sometimes quite microscopic size, play a central role in our life. To say of one, it is the intense mixing naturally occurring within the PBL which removes that extremely toxic by-product of photosynthesis, oxygen, from the leaves of plants (where it would quickly cause the reversion from photosynthesis to the deadly photorespiration would it not be removed) to the lungs and tracheas and other interfacing structures of us oxygen-respirating living beings: just because of this, without PBL processes, life as we know it would not occur in sub-aerial environments. There are million others key interconnections among comparts of the Earth system, and the PBL plays a role in many of them, like a sort of _airlike blood_ of Gaia. There are many other "bloods" the planet uses of course, yet the PBL is one.
+
+Small scale (hundreds of meters at most, as we've seen), short time span (in the order of one hour and less): an interesting combination, demanding special observation techniques and instruments. Examples are three-dimensional ultrasonic anemometers (and thermometers), multi-channel radiometers, fast-sampling gas analysers, and more - less and less costly, and more and more diffused. Instruments mean data, and data demand data processing, when they are. When they are needed, but no apt instrument is there, then demand turns towards estimation.
+
+Processing and estimating, in turn, make things like _pbl_met_ quite useful.
+
+A software library, like the _pbl_met_ after all is, is often something quite arid, at best a bit boring. So it needs a great logo!
+
+Ours is, we hope, evocative: the _pbl_met_ stays at the middle of ground (water) and sky, just as the PBL itself does. You may bet on this, it is a bit "interdisciplinary".
 
 
 ## Why open source?
