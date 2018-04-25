@@ -17,6 +17,7 @@ program test_pbl_stat
 	call testRangeInvalidate()
 	call testPairInvalidate()
 	call testRangeClip()
+	call testGetValidOnly()
 	
 contains
 
@@ -186,5 +187,46 @@ contains
 		deallocate(rvY)
 		
 	end subroutine testPairInvalidate
+	
+	
+	subroutine testGetValidOnly()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvX
+		real, dimension(:), allocatable	:: rvY
+		
+		! Normal case
+		allocate(rvX(5))
+		rvX = [-70., -40., NaN, 60., 180.]
+		rvY = GetValidOnly(rvX)
+		print *, "GetValidOnly - Test 1"
+		print *, "Expected: ", [-70., -40., 60., 180.]
+		print *, "Found:    ", rvY
+		print *
+		
+		! Boundary case
+		rvX = [NaN, NaN, NaN, NaN, NaN]
+		rvY = GetValidOnly(rvX)
+		print *, "GetValidOnly - Test 2"
+		print *, "Expected: "
+		print *, "Found:    ", rvY
+		print *
+		
+		! Boundary case
+		if(allocated(rvY)) deallocate(rvY)		! To show a good practice prior of calling
+		rvX = [1.,2.,3.,4.,5.]
+		rvY = GetValidOnly(rvX)
+		print *, "GetValidOnly - Test 3"
+		print *, "Expected: ", [1.,2.,3.,4.,5.]
+		print *, "Found:    ", rvY
+		print *
+		
+		! Leave
+		deallocate(rvX)
+		
+	end subroutine testGetValidOnly
 	
 end program test_pbl_stat
