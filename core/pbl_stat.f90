@@ -40,9 +40,9 @@ contains
 	subroutine RangeInvalidate(rvX, rMin, rMax)
 	
 		! Routine arguments
-		real, dimension(:), intent(inout)	:: rvX
-		real, intent(in)					:: rMin
-		real, intent(in)					:: rMax
+		real, dimension(:), intent(inout)	:: rvX		! Vector of data to range-invalidate
+		real, intent(in)					:: rMin		! Minimum allowed value
+		real, intent(in)					:: rMax		! Maximum allowed value
 		
 		! Locals
 		integer	:: i
@@ -64,8 +64,8 @@ contains
 	subroutine PairInvalidate(rvX, rvY)
 	
 		! Routine arguments
-		real, dimension(:), intent(inout)	:: rvX
-		real, dimension(:), intent(inout)	:: rvY
+		real, dimension(:), intent(inout)	:: rvX		! Vector to pair-invalidate
+		real, dimension(:), intent(inout)	:: rvY		! Vector to pair-invalidate
 		
 		! Locals
 		integer	:: i
@@ -86,9 +86,9 @@ contains
 	subroutine RangeClip(rvX, rMin, rMax)
 	
 		! Routine arguments
-		real, dimension(:), intent(inout)	:: rvX
-		real, intent(in)					:: rMin
-		real, intent(in)					:: rMax
+		real, dimension(:), intent(inout)	:: rvX		! Vector of data to range-clip
+		real, intent(in)					:: rMin		! Minimum allowed value
+		real, intent(in)					:: rMax		! Maximum allowed value
 		
 		! Locals
 		integer	:: i
@@ -109,8 +109,8 @@ contains
 	function GetValidOnly(rvX) result(rvValidX)
 	
 		! Routine arguments
-		real, dimension(:), intent(in)	:: rvX
-		real, dimension(:), allocatable	:: rvValidX
+		real, dimension(:), intent(in)	:: rvX			! Vector of data containing zero or more NaN
+		real, dimension(:), allocatable	:: rvValidX		! The same vector, with all NaN values stripped
 		
 		! Locals
 		integer	:: iNumValid
@@ -119,10 +119,12 @@ contains
 		! Count valid data, and check something is to be made
 		iNumValid = count(.not.isnan(rvX))
 		if(allocated(rvValidX)) deallocate(rvValidX)
-		if(size(rvX) <= 0 .or. iNumValid <= 0) return
+		if(size(rvX) <= 0 .or. iNumValid <= 0) then
+			allocate(rvValidX(0))
+			return
+		end if
 		
 		! Loop over data, copying valids only to the new vector
-		if(allocated(rvValidX)) deallocate(rvValidX)
 		allocate(rvValidX(iNumValid))
 		j = 0
 		do i = 1, size(rvX)
@@ -134,7 +136,7 @@ contains
 		
 	end function GetValidOnly
 	
-
+	
 	! Compute the mean of a signal
 	function Mean(rvX, rValidFraction) result(rMean)
 	
