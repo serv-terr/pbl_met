@@ -1,6 +1,6 @@
 ![pbl_met_logo](./pbl_met_Logo.png)
 
-# Short description of _pbl_met_
+# A short description of _pbl_met_
 
 
 ## What is it?
@@ -212,7 +212,44 @@ Of course, if your compiler does support `isnan` directly, we recommend you stic
 
 ### `pbl_stat`: Statistics
 
+#### Data types
 
+#### Procedures
+
+##### Off-range and invalid data management
+###### Subroutine `RangeInvalidate`
+###### Subroutine `PairInvalidate`
+
+###### Subroutine `RangeClip`
+
+###### Subroutine `GetValidOnly`
+
+##### Basic statistics
+###### Function `Mean`
+
+###### Function `StdDev`
+
+###### Function `Cov`
+
+###### Why not a `Min`and `Max`?
+
+##### Autocovariance, autocorrelation and related
+###### Function `AutoCov`
+
+###### Function `AutoCorr`
+
+###### Function `PartialAutoCorr`
+
+###### Function `EulerianTime`
+
+##### Cross-covariance, cross-correlation and related
+###### Function `CrossCov`
+
+###### Function `CrossCorr`
+
+###### Function `Utilities`
+
+###### Subroutine `RemoveLinearTrend`
 
 ### `pbl_time`: Dates, times and astronomy
 
