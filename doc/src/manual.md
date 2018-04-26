@@ -226,6 +226,14 @@ if((.valid.P) .or. (.invalid.Q)) then ...
 
 But it can be also be used with vectors and multi-dimensional arrays, the underlying functions being declared `pure` and `elemental`, a Fortran 95 syntax specifying a function has no side effects and may be applied to an array, acting in case element-wise.
 
+Use of operators on vectors combine with existing modern Fortran syntax, allowing to use expressive statements like
+
+```
+if(all(.valid.rvData)) then ...
+```
+
+This is another advantage of operator form.
+
 Using `.valid.` and `.invalid.` in your end-user code instead of checking a value is NaN or not, makes your intentions clearer to your code readers.
 
 #### An alternative to `.valid.` and `.invalid.` 
