@@ -25,6 +25,8 @@ module pbl_base
 	public	:: YEAR_DURATION
 	public	:: MONTH_DURATION
 	public	:: BASE_DAY
+	public	:: operator(.valid.)
+	public	:: operator(.invalid.)
 	
 	! Constants
     real, parameter		:: NaN				       = Z'7FC00000'	! Special case of non-signalling NaN
@@ -38,5 +40,48 @@ module pbl_base
 	integer, parameter	:: ASCE_MEANTEMPERATURE    = 2
 	integer, parameter	:: ASCE_GRASS              = 1
 	integer, parameter	:: ASCE_ALFALFA            = 2
+	
+	! Operators
+	
+	interface operator(.valid.)
+		module procedure isValid
+	end interface operator(.valid.)
+	
+	interface operator(.invalid.)
+		module procedure isInvalid
+	end interface operator(.invalid.)
+	
+contains
+
+	! Check a value is valid, that is, not a NaN.
+	pure elemental function isValid(value) result(valid)
+	
+		! Routine arguments
+		real, intent(in)	:: value	! Value to check
+		logical				:: valid	! Check result
+		
+		! Locals
+		! -none-
+		
+		! Check validity
+		valid = .not.isnan(value)
+		
+	end function isValid
+	
+
+	! Check a value is invalid, that is, a NaN.
+	pure elemental function isInvalid(value) result(invalid)
+	
+		! Routine arguments
+		real, intent(in)	:: value	! Value to check
+		logical				:: invalid	! Check result
+		
+		! Locals
+		! -none-
+		
+		! Check validity
+		invalid = isnan(value)
+		
+	end function isInvalid
 	
 end module pbl_base
