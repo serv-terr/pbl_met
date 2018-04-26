@@ -168,7 +168,13 @@ You may then compile your code for example using the command line as
 gfortran -o yrprg YourProgram.f90 pbl_met.a
 ```
 
-You may want to add command line options to specify where library and module files are found. Refer to the documentation of your compiler to know which they are.
+You may want to add command line options to specify where library and module files are found. In general, refer to the documentation of your compiler to know which they are. For `gfortran`you would add something like
+
+```
+gfortran -J <pbl_met.mod path> -o yrprg YourProgram.f90 <pbl_met.a>
+```
+
+where `<pbl_met.mod path>` is he pathname of a directory where you can find `pbl_met.mod`, and `<pbl_met.a>`is the full pathname of `pbl_met.mod`.
 
 # Library contents
 
@@ -200,13 +206,31 @@ Because of this, in all function descriptions, be them just lists or reference m
 
 ### `pbl_base`: Useful constants and symbols
 
+#### Constants
+
 This module contains various important constants, in part used by some of the functions in other secondary modules (and described in their reference sections).
 
 One of these constants is of very special interest, and ubiquitous use in `pbl_met`: the symbol `NaN`, used to denote missing or invalid values.
 
 The value of `NaN` is a special case of a _non-signalling not-a-number_. Not-a-number values are an invention of IEEE 754 floating-point arithmetics, to date supported by practically any commercial hardware, and originally used to denote things as the real `sqrt(-1.)` and other "invalid" function results. Indeed two kind of not-a-number values are defined, signalling and non-signalling. The former, once encountered during program execution, usually results in an exception: the offending program hangs, and a (possibly cryptic) error message is printed. The latter is way more interesting: it combines with oher floating point values, at hardware speed, yielding other non-signalling not-a-number values, propagating the invalid state until results are written somewhere.
 
-Testing whether a floating point value is a not-a-number is performed in Fortran by using the very common language extension intrinsic `isnan(flt)`.  This function is sometimes not supported by some compilers, but in case you may provide a version of it by using the curious property of not-a-number values of being not equal to themselves:
+#### Other symbols
+
+The `pbl_base` module defines two new operators, `.valid.` and `.invalid.`, testing respectively if a floating point value is valid (i.e. not NaN) and invalid (that is, a NaN).
+
+The operators can be used on scalars, as in
+
+```
+if((.valid.P) .or. (.invalid.Q)) then ...
+```
+
+But it can be also be used with vectors and multi-dimensional arrays, the underlying functions being declared `pure` and `elemental`, a Fortran 95 syntax specifying a function has no side effects and may be applied to an array, acting in case element-wise.
+
+Using `.valid.` and `.invalid.` in your end-user code instead of checking a value is NaN or not, makes your intentions clearer to your code readers.
+
+#### An alternative to `.valid.` and `.invalid.` 
+
+Testing whether a floating point value is a not-a-number may also be performed in Fortran by using the very common language extension intrinsic `isnan(flt)`.  This function is sometimes not supported by some compilers, but in case you may provide a version of it by using the curious property of not-a-number values of being not equal to themselves:
 
 ```
 function isnan(x) result(isThisNaN)
@@ -227,6 +251,8 @@ end function isnan
 To use a function like the above version of `isnan` you should presumably disable some optimizations of your compiler, maybe using some command-line flags: please consult your compiler's documentation.
 
 Of course, if your compiler does support `isnan` directly, we recommend you stick to that version and do not reinvent the wheel - as we said most Fortran compilers have an `isnan` intrinsic to date.
+
+As mentioned in the previous section, `.valid.` and `.invalid.` operators are also available in _pbl_met_ to perform an equivalent task. In general, it is preferable (although not mandatory) to use the operators instead of ` isnan`, as the resulting code is clearer to readers: the operators convey a semantic meaning ` isnan` has not. In library code, however, both forms are used.
 
 ### `pbl_stat`: Statistics
 
