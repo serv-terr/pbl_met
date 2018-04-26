@@ -44,6 +44,8 @@ contains
 		print *, "RangeInvalidate - Test 2"
 		print *, "Expected: ", [NaN, -40., NaN, 60., NaN]
 		print *, "Found:    ", rvX
+		print *, "Valid:    ", .valid. rvX
+		print *, "Invalid:  ", .invalid. rvX
 		print *
 		
 		! Boundary case: signal is not allocated
