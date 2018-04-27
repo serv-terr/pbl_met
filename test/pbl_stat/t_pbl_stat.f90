@@ -20,6 +20,7 @@ program test_pbl_stat
 	call testGetValidOnly()
 	call testMean()
 	call testStdDev()
+	call testCov()
 	
 contains
 
@@ -345,7 +346,7 @@ contains
 		print *, "Warning: comparison values known to 3 decimals"
 		do i = -5, 5
 			rSd = StdDev(rvX, rMeanIn=float(i))
-			print *, i, rSd, rvStd(i)
+			print "(i2,2(1x,f7.3))", i, rSd, rvStd(i)
 		end do
 		print *
 		
@@ -365,5 +366,61 @@ contains
 		deallocate(rvX)
 		
 	end subroutine testStdDev
+	
+	
+	subroutine testCov()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvX
+		real, dimension(:), allocatable	:: rvY
+		real							:: rCov
+		
+		! Normal case
+		allocate(rvX(5))
+		allocate(rvY(5))
+		rvX = [1., 2., 1., 2., 1.]
+		rvY = [2., 1., 2., 1., 2.]
+		rCov = Cov(rvX, rvY)
+		print *, "Cov - Test 1"
+		print *, "Expected: ", -0.3
+		print *, "Found:    ", rCov
+		print *
+		
+		! Normal case
+		rvX = [1., 2., NaN, 2., 1.]
+		rCov = Cov(rvX, rvY)
+		print *, "Cov - Test 2"
+		print *, "Expected: ", -0.3333333
+		print *, "Found:    ", rCov
+		print *
+		
+		! Boundary case
+		rvX = [NaN, 2., NaN, 2., 1.]
+		rvY = [2., NaN, NaN, 1., NaN]
+		rCov = Cov(rvX, rvY)
+		print *, "Cov - Test 3"
+		print *, "Expected: ", NaN
+		print *, "Found:    ", rCov
+		print *
+		
+		! Normal case
+		deallocate(rvX)
+		allocate(rvX(6))
+		rvX = [1., 2., 1., 2., 1., 7.]
+		rvY = [2., 1., 2., 1., 2.]
+		rCov = Cov(rvX, rvY)
+		print *, "Cov - Test 4"
+		print *, "Expected: ", NaN
+		print *, "Found:    ", rCov
+		print *
+		
+		! Leave
+		deallocate(rvY)
+		deallocate(rvX)
+		
+	end subroutine testCov
 	
 end program test_pbl_stat
