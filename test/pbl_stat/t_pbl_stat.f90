@@ -18,6 +18,7 @@ program test_pbl_stat
 	call testPairInvalidate()
 	call testRangeClip()
 	call testGetValidOnly()
+	call testMean()
 	
 contains
 
@@ -230,5 +231,57 @@ contains
 		deallocate(rvX)
 		
 	end subroutine testGetValidOnly
+	
+	
+	subroutine testMean()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvX
+		real							:: rMean, rValid
+		integer							:: i
+		
+		! Normal case
+		allocate(rvX(5))
+		rvX = [-180., -60., NaN, 60., 180.]
+		rMean = Mean(rvX)
+		print *, "Mean - Test 1"
+		print *, "Expected: ", 0.
+		print *, "Found:    ", rMean
+		print *
+		
+		! Normal case
+		rMean = Mean(rvX, rValid)
+		print *, "Mean - Test 2"
+		print *, "Expected: ", 0., 0.8
+		print *, "Found:    ", rMean, rValid
+		print *
+		
+		! Boundary case
+		rvX = NaN
+		rMean = Mean(rvX, rValid)
+		print *, "Mean - Test 3"
+		print *, "Expected: ", NaN, 0.
+		print *, "Found:    ", rMean, rValid
+		print *
+		
+		! Mass-test
+		print *, "Mean - Test 4"
+		do i = 1, 15
+			deallocate(rvX)
+			allocate(rvX(2**(i+1)))
+			call random_number(rvX)
+			call RangeInvalidate(rvX, 0., 0.5)
+			rMean = Mean(rvX, rValid)
+			print *, i, rMean, rValid
+		end do
+		print *
+		
+		! Leave
+		deallocate(rvX)
+		
+	end subroutine testMean
 	
 end program test_pbl_stat
