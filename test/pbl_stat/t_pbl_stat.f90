@@ -19,6 +19,7 @@ program test_pbl_stat
 	call testRangeClip()
 	call testGetValidOnly()
 	call testMean()
+	call testStdDev()
 	
 contains
 
@@ -283,5 +284,86 @@ contains
 		deallocate(rvX)
 		
 	end subroutine testMean
+	
+	
+	subroutine testStdDev()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvX
+		real							:: rSd, rMean, rValid
+		integer							:: i
+		real, dimension(-5:5), parameter	:: rvStd = [ &
+			134.257, 134.224, 134.198, 134.179, 134.168, &
+			134.164, &
+			134.168, 134.179, 134.198, 134.224, 134.257 &
+		]
+		
+		! Normal case
+		allocate(rvX(5))
+		rvX = [-180., -60., NaN, 60., 180.]
+		rSd = StdDev(rvX)
+		print *, "StdDev - Test 1"
+		print *, "Expected: ", 120.*sqrt(5.)
+		print *, "Found:    ", rSd
+		print *
+		
+		! Normal case
+		rSd = StdDev(rvX, rValidFraction=rValid)
+		print *, "StdDev - Test 2"
+		print *, "Expected: ", 120.*sqrt(5./4.), 0.8
+		print *, "Found:    ", rSd, rValid
+		print *
+		
+		! Normal case
+		rSd = StdDev(rvX, rMeanIn=0., rValidFraction=rValid)
+		print *, "StdDev - Test 3"
+		print *, "Expected: ", 120.*sqrt(5./4.), 0.8
+		print *, "Found:    ", rSd, rValid
+		print *
+		
+		! Boundary case
+		rvX = NaN
+		rSd = StdDev(rvX, rValidFraction=rValid)
+		print *, "StdDev - Test 4"
+		print *, "Expected: ", NaN, 0.
+		print *, "Found:    ", rSd, rValid
+		print *
+		
+		! Boundary case
+		rvX = [-180., -60., NaN, 60., 180.]
+		rSd = StdDev(rvX, rMeanIn = NaN)
+		print *, "StdDev - Test 5"
+		print *, "Expected: ", NaN
+		print *, "Found:    ", rSd
+		print *
+		
+		! Mass-test
+		print *, "StdDev - Test 6"
+		print *, "Warning: comparison values known to 3 decimals"
+		do i = -5, 5
+			rSd = StdDev(rvX, rMeanIn=float(i))
+			print *, i, rSd, rvStd(i)
+		end do
+		print *
+		
+		! Mass-test
+		print *, "StdDev - Test 7"
+		do i = 1, 15
+			deallocate(rvX)
+			allocate(rvX(2**(i+1)))
+			call random_number(rvX)
+			call RangeInvalidate(rvX, 0., 0.5)
+			rSd = StdDev(rvX, rValidFraction=rValid)
+			print *, i, rSd, rValid
+		end do
+		print *
+		
+		! Leave
+		deallocate(rvX)
+		
+	end subroutine testStdDev
 	
 end program test_pbl_stat
