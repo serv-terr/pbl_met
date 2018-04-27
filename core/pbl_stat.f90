@@ -170,7 +170,7 @@ contains
 	end function Mean
 	
 
-	! Compute the mean of a signal
+	! Compute the population standard deviation of a signal
 	function StdDev(rvX, rMeanIn, rValidFraction) result(rStdDev)
 	
 		! Routine arguments
@@ -216,7 +216,7 @@ contains
 	end function StdDev
 	
 
-    ! Compute covariance between two signal samples; these samples should
+    ! Compute the sampling covariance between two signal samples; these samples should
     ! be the same size, and "error-paired", that is, whenever rvX(i) == NaN,
     ! then rvY(i) == NaN, and vice-versa.
 	function Cov(rvX, rvY) result(rCov)
@@ -228,22 +228,39 @@ contains
 		
 		! Locals
         integer :: n
-		real(8)	:: rAvgX
-		real(8)	:: rAvgY
+        integer :: i
+		real(8)	:: rSumX
+		real(8)	:: rSumY
+		real(8)	:: rSumXY
         
         ! Check it makes sense to proceed
-        n = count(.not.isnan(rvX))  ! Valid also for 'rvY' since the error-pairing assumption
-        if(n <= 0) then
+        if(size(rvX) /= size(rvY)) then
+        	rCov = NaN
+        	return
+        end if
+        n = 0
+        do i = 1, size(rvX)
+        	if((.valid.rvX(i)) .and. (.valid.rvY(i))) n = n + 1
+        end do
+        if(n <= 1) then
             rCov = NaN
             return
         end if
 		
-		! Compute averages
-		rAvgX = sum(rvX, mask=.not.isnan(rvX))/n
-		rAvgY = sum(rvY, mask=.not.isnan(rvY))/n
+		! Accumulate sums
+		rSumX  = 0.d0
+		rSumY  = 0.d0
+		rSumXY = 0.d0
+        do i = 1, size(rvX)
+        	if((.valid.rvX(i)) .and. (.valid.rvY(i))) then
+        		rSumX  = rSumX + rvX(i)
+        		rSumY  = rSumY + rvY(i)
+        		rSumXY = rSumXY + rvX(i)*rvY(i)
+        	end if
+        end do
 		
-		! Compute the covariance (using a very simpli definition):
-		rCov = sum((rvX-rAvgX)*(rvY-rAvgY), mask=.not.isnan(rvX))/n
+		! Convert counts to covariance
+		rCov = rSumXY/(n-1) - (rSumX/n)*(rSumY/n)*(float(n)/(n-1))
 		
 	end function Cov
 	
