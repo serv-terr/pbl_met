@@ -16,3 +16,13 @@ test.cov.2 <- function() {
   return(cov(x,y,use="pairwise.complete.obs"))
 }
 
+#####################################
+# Reference case for autocovariance #
+#####################################
+
+# Normal case, test 1
+test.acov <- function() {
+  x <- c(1.0, 1.9, 3.1, 3.9, 5.2)
+  a <- acf(x, lag.max=4, type="covariance")
+  return(a)
+}
