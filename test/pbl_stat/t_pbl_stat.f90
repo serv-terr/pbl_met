@@ -22,6 +22,7 @@ program test_pbl_stat
 	call testStdDev()
 	call testCov()
 	call testAutoCov()
+	call testAutoCorr()
 	
 contains
 
@@ -446,9 +447,9 @@ contains
 		rvX = [1.0, 1.9, 3.1, 3.9, 5.2]
 		rvAcovRef = [2.17360,0.83232,-0.19456,-0.84384,-0.88072]
 		iRetCode = AutoCov(rvX, rvACov)
-		print *, "Cov - Test 1: return code = ", iRetCode
+		print *, "AutoCov - Test 1: return code = ", iRetCode
 		iRetCode = AutoCov(rvX, rvACov2nd, ACV_2ND_ORDER)
-		print *, "Cov - Test 2: return code = ", iRetCode
+		print *, "AutoCov - Test 2: return code = ", iRetCode
 		print *, "Printing combined results"
 		print *, "Lag Expected Found.2nd.ord Found.general"
 		do i = 0, 4
@@ -459,11 +460,11 @@ contains
 		! Normal case
 		rvX = [1.0, 1.9, NaN, 3.9, 5.2]
 		iRetCode = AutoCov(rvX, rvACov)
-		print *, "Cov - Test 3: return code = ", iRetCode
+		print *, "AutoCov - Test 3: return code = ", iRetCode
 		iRetCode = AutoCov(rvX, rvACov2nd, ACV_2ND_ORDER)
-		print *, "Cov - Test 4: return code = ", iRetCode
+		print *, "AutoCov - Test 4: return code = ", iRetCode
 		print *, "Printing combined results"
-		print *, "Lag Expected Found.2nd.ord Found.general"
+		print *, "Lag Found.2nd.ord Found.general"
 		do i = 0, 4
 			print "(i1,2(4x,f8.5))", i, rvACov2nd(i), rvACov(i)
 		end do
@@ -472,11 +473,11 @@ contains
 		! Boundary
 		rvX = NaN
 		iRetCode = AutoCov(rvX, rvACov)
-		print *, "Cov - Test 5: return code = ", iRetCode
+		print *, "AutoCov - Test 5: return code = ", iRetCode
 		iRetCode = AutoCov(rvX, rvACov2nd, ACV_2ND_ORDER)
-		print *, "Cov - Test 6: return code = ", iRetCode
+		print *, "AutoCov - Test 6: return code = ", iRetCode
 		print *, "Printing combined results"
-		print *, "Lag Expected Found.2nd.ord Found.general"
+		print *, "Lag Found.2nd.ord Found.general"
 		do i = 0, 4
 			print "(i1,2(4x,f8.5))", i, rvACov2nd(i), rvACov(i)
 		end do
@@ -489,5 +490,77 @@ contains
 		deallocate(rvX)
 		
 	end subroutine testAutoCov
+	
+	
+	subroutine testAutoCorr()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvX
+		real, dimension(:), allocatable	:: rvAcor
+		real, dimension(:), allocatable	:: rvAcorRef
+		real, dimension(:), allocatable	:: rvAcor2nd
+		integer							:: i
+		integer							:: iRetCode
+		
+		! Normal case
+		allocate(rvX(5))
+		allocate(rvACor(0:4))
+		allocate(rvACorRef(0:4))
+		allocate(rvACor2nd(0:4))
+		rvX = [1.0, 1.9, 3.1, 3.9, 5.2]
+		rvAcorRef = [1.00000000,0.38292234,-0.08951049,-0.38822230,-0.40518955]
+		rvACor    = 0.
+		rvACor2nd = 0.
+		iRetCode = AutoCorr(rvX, rvACor)
+		print *, "AutoCorr - Test 1: return code = ", iRetCode
+		iRetCode = AutoCorr(rvX, rvACor2nd, ACV_2ND_ORDER)
+		print *, "AutoCorr - Test 2: return code = ", iRetCode
+		print *, "Printing combined results"
+		print *, "Lag Expected Found.2nd.ord Found.general"
+		do i = 0, 4
+			print "(i1,3(4x,f9.7))", i, rvAcorRef(i), rvACor2nd(i), rvACor(i)
+		end do
+		print *
+		
+		! Normal case
+		rvX = [1.0, 1.9, NaN, 3.9, 5.2]
+		rvACor    = 0.
+		rvACor2nd = 0.
+		iRetCode = AutoCorr(rvX, rvACor)
+		print *, "AutoCorr - Test 3: return code = ", iRetCode
+		iRetCode = AutoCorr(rvX, rvACor2nd, ACV_2ND_ORDER)
+		print *, "AutoCorr - Test 4: return code = ", iRetCode
+		print *, "Printing combined results"
+		print *, "Lag Found.2nd.ord Found.general"
+		do i = 0, 4
+			print "(i1,2(4x,f8.5))", i, rvACor2nd(i), rvACor(i)
+		end do
+		print *
+		
+		! Boundary
+		rvX = NaN
+		rvACor    = 0.
+		rvACor2nd = 0.
+		iRetCode = AutoCorr(rvX, rvACor)
+		print *, "AutoCorr - Test 5: return code = ", iRetCode
+		iRetCode = AutoCorr(rvX, rvACor2nd, ACV_2ND_ORDER)
+		print *, "AutoCorr - Test 6: return code = ", iRetCode
+		print *, "Printing combined results"
+		print *, "Lag Found.2nd.ord Found.general"
+		do i = 0, 4
+			print "(i1,2(4x,f8.5))", i, rvACor2nd(i), rvACor(i)
+		end do
+		print *
+		
+		! Leave
+		deallocate(rvACor2nd)
+		deallocate(rvACorRef)
+		deallocate(rvACor)
+		deallocate(rvX)
+		
+	end subroutine testAutoCorr
 	
 end program test_pbl_stat
