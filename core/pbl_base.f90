@@ -22,6 +22,8 @@ module pbl_base
 	public	:: ASCE_MEANTEMPERATURE
 	public	:: ASCE_GRASS
 	public	:: ASCE_ALFALFA
+	public	:: ACV_GENERAL
+	public	:: ACV_2ND_ORDER
 	public	:: YEAR_DURATION
 	public	:: MONTH_DURATION
 	public	:: BASE_DAY
@@ -40,6 +42,8 @@ module pbl_base
 	integer, parameter	:: ASCE_MEANTEMPERATURE    = 2
 	integer, parameter	:: ASCE_GRASS              = 1
 	integer, parameter	:: ASCE_ALFALFA            = 2
+	integer, parameter	:: ACV_GENERAL             = 0
+	integer, parameter	:: ACV_2ND_ORDER           = 1
 	
 	! Operators
 	
