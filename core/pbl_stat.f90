@@ -1,7 +1,5 @@
 ! pbl_stat  : Fortran module, providing support to elementary statistical
 !             functions.
-!! pbl_stat  : Fortran module, providing support to elementary statistical
-!             functions.
 !
 ! This module is part of the pbl_met library.
 !
