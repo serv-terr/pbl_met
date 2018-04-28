@@ -456,6 +456,32 @@ contains
 		end do
 		print *
 		
+		! Normal case
+		rvX = [1.0, 1.9, NaN, 3.9, 5.2]
+		iRetCode = AutoCov(rvX, rvACov)
+		print *, "Cov - Test 3: return code = ", iRetCode
+		iRetCode = AutoCov(rvX, rvACov2nd, ACV_2ND_ORDER)
+		print *, "Cov - Test 4: return code = ", iRetCode
+		print *, "Printing combined results"
+		print *, "Lag Expected Found.2nd.ord Found.general"
+		do i = 0, 4
+			print "(i1,2(4x,f8.5))", i, rvACov2nd(i), rvACov(i)
+		end do
+		print *
+		
+		! Boundary
+		rvX = NaN
+		iRetCode = AutoCov(rvX, rvACov)
+		print *, "Cov - Test 5: return code = ", iRetCode
+		iRetCode = AutoCov(rvX, rvACov2nd, ACV_2ND_ORDER)
+		print *, "Cov - Test 6: return code = ", iRetCode
+		print *, "Printing combined results"
+		print *, "Lag Expected Found.2nd.ord Found.general"
+		do i = 0, 4
+			print "(i1,2(4x,f8.5))", i, rvACov2nd(i), rvACov(i)
+		end do
+		print *
+		
 		! Leave
 		deallocate(rvACov2nd)
 		deallocate(rvACovRef)
