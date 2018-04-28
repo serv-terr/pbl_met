@@ -26,3 +26,12 @@ test.acov <- function() {
   a <- acf(x, lag.max=4, type="covariance")
   return(a)
 }
+
+
+# Normal case, autcorrelation, test 1
+test.acor <- function() {
+  x <- c(1.0, 1.9, 3.1, 3.9, 5.2)
+  a <- acf(x, lag.max=4, type="correlation")
+  return(a)
+}
+
