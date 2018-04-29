@@ -275,7 +275,7 @@ contains
 	
 		! Routine arguments
 		real, dimension(:), intent(in)		:: rvX			! Signal (may contain NaN values)
-		real, dimension(0:), intent(out)	:: rvACov		! Vector containing the desired values (rvACov(1) refers to lag 0, rvACov(2) to lag 1, ...)
+		real, dimension(0:), intent(out)	:: rvACov		! Vector containing the desired values
 		integer, intent(in), optional		:: iType		! Type of ACV (ACV_GENERAL, default: no stationarity assumption, ACV_2ND_ORDER:2nd order stationarity assumed (as in W. N. Venables, 
 		integer								:: iRetCode		! Flag indicating success (value = 0) or failure.
 		
@@ -384,7 +384,7 @@ contains
 	
 		! Routine arguments
 		real, dimension(:), intent(in)		:: rvX			! Signal (may contain NaN values)
-		real, dimension(0:), intent(out)	:: rvACorr		! Vector containing the desired values (rvACorr(1) refers to lag 0, rvACorr(2) to lag 1, ...)
+		real, dimension(0:), intent(out)	:: rvACorr		! Vector containing the desired values
 		integer, intent(in), optional		:: iType		! Type of ACV (ACV_GENERAL, default: no stationarity assumption, ACV_2ND_ORDER:2nd order stationarity assumed (as in W. N. Venables, 
 		integer								:: iRetCode		! Flag indicating success (value = 0) or failure.
 		
@@ -547,52 +547,67 @@ contains
 	
 	! Partial autocorrelation values, from autocorrelation. Useful, to determine
 	! the order of an autoregressive process.
-	function PartialAutoCorr(rvACorr) result(rvPACorr)
+	function PartialAutoCorr(rvACov) result(rvPACorr)
 		
 		! Routine arguments
-		real, dimension(:), intent(in)	:: rvACorr		! Autocorrelation values (rvACorr(1) refers to lag 0, rvACorr(2) to lag 1, ...)
-		real, dimension(size(rvACorr))	:: rvPACorr		! Partial autocorrelation, same indexing convention as above
+		real, dimension(0:), intent(in)	:: rvACov		! Autocovariance values
+		real, dimension(size(rvACov)-1)	:: rvPACorr		! Partial autocorrelation, same indexing convention as above
 		
 		! Locals
-		real, dimension(size(rvACorr) - 1)	:: p, a
-		integer								:: l
-		integer								:: i
-		integer								:: j
-		integer								:: k
-		integer								:: lp
-		real								:: q
-		real								:: u
-		real								:: v
-		real								:: hold
+		real, dimension(:), allocatable			:: phi
+		real, dimension(:), allocatable			:: phiNew
+		real, dimension(:), allocatable			:: rho
+		real									:: numer
+		real									:: denom
+		real									:: total
+		integer									:: j
+		integer									:: k
+		integer									:: km1
+		integer									:: n
 		
-		! Compute partial autocorrelation coefficients
-		p = rvACorr(2:)
-		lp = size(p)
-		do i = 1, lp
-			if(i < 2) then
-				q = p(i)
-				v = 1.0 - q*q
-			else
-				q = u/v
-				v = v*(1.0 - q*q)
-				l = (i-1)/2
-				if(l /= 0) then
-					do j = 1, l
-						hold = a(j)
-						k = i-j
-						a(j) = a(j) - q*a(k)
-						a(k) = a(k) - q*hold
-					end do
-				end if
-				if(2*l < i-1) a(l+i) = a(l+i)*(1.0 - q)
-			end if
-			a(i) = -q
-			u = p(i+1)
-			do j = 1, i
-				u = u + a(j) * p(i-j+1)
+		! Check no gaps exist in autocorrelation, and they constitute a non-negative
+		! decreasing sequence (the PACF makes sense in case of autoregressive
+		! processes)
+		if(any(.invalid.rvACov)) then
+			rvPACorr = NaN
+			return
+		end if
+		n = size(rvACov) - 1
+		if(rvACov(0) <= 0.) then
+			rvPACorr = NaN
+			return
+		end if
+		
+		! Reserve workspace
+		allocate(phi(n), phiNew(n), rho(n))
+		phi = 0.d0
+		rho = 0.d0
+		
+		! Compute partial autocorrelation by Durbin-Levinson algorithm
+		! (see [Brockwell, 2002], section 2.5.1, for clarifications).
+		! The implementation follows prof. G.R. Ihaka's (see [Ihaka, web1])
+		rho = rvACov(1:n)/rvACov(0)
+		phi(1) = rho(1)
+		rvPACorr(1) = phi(1)
+		
+		do k = 2, n
+			km1 = k - 1
+			total = 0.d0
+			do j = 1, km1
+				total = total + phi(j)*rho(km1-j+1)
 			end do
-			rvPACorr(i) = q
+			numer = rho(k) - total
+			denom = 1.d0 - dot_product(phi(1:km1),rho(1:km1))
+			phi(k) = numer / denom
+			do j = 1, km1
+				phiNew(j) = phi(j) - phi(k) * phi(km1-j+1)
+			end do
+			phi(1:km1) = phiNew(1:km1)
+			rvPACorr(k) = phi(k)
 		end do
+		
+		! Leave
+		deallocate(phi, phiNew, rho)
 		
 	end function PartialAutoCorr
 	
