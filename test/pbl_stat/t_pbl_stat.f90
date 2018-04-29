@@ -23,6 +23,7 @@ program test_pbl_stat
 	call testCov()
 	call testAutoCov()
 	call testAutoCorr()
+	call testPartialAutoCorr()
 	
 contains
 
@@ -521,7 +522,8 @@ contains
 		print *, "Printing combined results"
 		print *, "Lag Expected Found.2nd.ord Found.general"
 		do i = 0, 4
-			print "(i1,3(4x,f9.7))", i, rvAcorRef(i), rvACor2nd(i), rvACor(i)
+			print "(i1,5(4x,f9.7))", i, rvAcorRef(i), rvACor2nd(i), rvACor(i), &
+			                            rvAcorRef(i)-rvACor2nd(i),(rvAcorRef(i)-rvACor2nd(i))/rvAcorRef(i)
 		end do
 		print *
 		
@@ -562,5 +564,48 @@ contains
 		deallocate(rvX)
 		
 	end subroutine testAutoCorr
+
+	
+	subroutine testPartialAutoCorr()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvX
+		real, dimension(:), allocatable	:: rvAcov
+		real, dimension(:), allocatable	:: rvAcovRef
+		real, dimension(:), allocatable	:: rvPacf
+		real, dimension(:), allocatable	:: rvPacfRef
+		integer							:: i
+		integer							:: iRetCode
+		
+		! Normal case
+		allocate(rvX(5))
+		allocate(rvACov(0:4))
+		allocate(rvACovRef(0:4))
+		allocate(rvPacf(4))
+		allocate(rvPacfRef(4))
+		rvX = [1.0, 1.9, 3.1, 3.9, 5.2]
+		rvAcovRef = [2.17360,0.83232,-0.19456,-0.84384,-0.88072]
+		rvPacfRef = [0.3829223,-0.2767145,-0.3026571,-0.2005165]
+		iRetCode = AutoCov(rvX, rvACov, ACV_2ND_ORDER)
+		print *, "Autocovariance computed, return code = ", iRetCode
+		rvPacf   = PartialAutoCorr(rvACov)
+		print *, "PartialAutoCorr - Test 1"
+		print *, "Lag Expected Found"
+		do i = 1, 4
+			print "(i1,2(2x,f9.7))", i, rvPacfRef(i), rvPacf(i)
+		end do
+		print *
+		
+		! Leave
+		deallocate(rvPacfRef)
+		deallocate(rvPacf)
+		deallocate(rvACovRef)
+		deallocate(rvACov)
+		deallocate(rvX)
+		
+	end subroutine testPartialAutoCorr
 	
 end program test_pbl_stat
