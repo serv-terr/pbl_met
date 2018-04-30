@@ -25,6 +25,7 @@ program test_pbl_stat
 	call testAutoCorr()
 	call testPartialAutoCorr()
 	call testCrossCov()
+	call testCrossCorr()
 	
 contains
 
@@ -677,5 +678,72 @@ contains
 		
 	end subroutine testCrossCov
 	
+	
+	subroutine testCrossCorr()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvX
+		real, dimension(:), allocatable	:: rvy
+		real, dimension(:), allocatable	:: rvCcorRef
+		real, dimension(:), allocatable	:: rvCcor
+		real, dimension(:), allocatable	:: rvCcor2nd
+		integer							:: i
+		integer							:: iRetCode
+		
+		! Normal case
+		allocate(rvX(9))
+		allocate(rvY(9))
+		allocate(rvCCorRef(-4:4))
+		allocate(rvCCor2nd(-4:4))
+		allocate(rvCCor(-4:4))
+		rvX = [1.,2.,3.,4.,5.,4.,3.,2.,1.]
+		rvY = [3.,4.,5.,4.,3.,2.,1.,1.,1.]
+		rvCCorRef = [-0.36963551,-0.63081510,-0.71935055,-0.36299536,0.25896620,0.61974817,0.72156394,0.44489065,0.07525513]
+		iRetCode = CrossCorr(rvX, rvY, rvCCor)
+		print *, "CrossCorr - Test 1: return code = ", iRetCode
+		iRetCode = CrossCorr(rvX, rvY, rvCCor2nd, ACV_2ND_ORDER)
+		print *, "CrossCorr - Test 2: return code = ", iRetCode
+		print *, "Printing results"
+		print *, "Lag Expected Found.2nd.ord Found"
+		do i = -4, 4
+			print "(i2,3(4x,f8.5))", i, rvCCorRef(i), rvCCor2nd(i), rvCCor(i)
+		end do
+		print *
+		
+		! Boundary
+		rvX = [1.,2.,3.,4.,NaN,4.,3.,2.,1.]
+		rvY = [3.,4.,5.,4.,3.,2.,1.,1.,1.]
+		iRetCode = CrossCorr(rvX, rvY, rvCCor)
+		print *, "CrossCorr - Test 3: return code = ", iRetCode
+		print *, "Printing results"
+		print *, "Lag Found"
+		do i = -4, 4
+			print "(i2,2(4x,f8.5))", i, rvCCor(i)
+		end do
+		print *
+		
+		! Boundary
+		rvX = NaN
+		rvY = [3.,4.,5.,4.,3.,2.,1.,1.,1.]
+		iRetCode = CrossCorr(rvX, rvY, rvCCor)
+		print *, "CrossCorr - Test 4: return code = ", iRetCode
+		print *, "Printing results"
+		print *, "Lag Found"
+		do i = -4, 4
+			print "(i2,2(4x,f8.5))", i, rvCCor(i)
+		end do
+		print *
+		
+		! Leave
+		deallocate(rvCCor)
+		deallocate(rvCCor2nd)
+		deallocate(rvCCorRef)
+		deallocate(rvY)
+		deallocate(rvX)
+		
+	end subroutine testCrossCorr
 	
 end program test_pbl_stat
