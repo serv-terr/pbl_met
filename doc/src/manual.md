@@ -338,3 +338,29 @@ To date this module is a placeholder, still to be filled.
 ### `pbl_depth`: PBL depth estimates and related quantities
 
 To date this module is a placeholder, still to be filled.
+
+# References
+
+|                 |                                                              |
+| :-------------- | ------------------------------------------------------------ |
+|                 |                                                              |
+|                 |                                                              |
+| Brockwell, 2002 | P.J. Brockwell, R.A. Davis, _Introduction to Time Series and Forecasting_, Springer, 2002 |
+|                 |                                                              |
+|                 |                                                              |
+| Geiger, 2003    | R. Geiger, R.H. Aron, P. Todhunter, _The Climate Near the Ground_, 6th edition, Rowman & Littlefield, 2003 |
+|                 |                                                              |
+| Ihaka, web1     | G.R. Ihaka, "Statistics 726, Assignment 2, Solution", https://www.stat.auckland.ac.nz/~ihaka/726/sol02.pdf, section1 on an implementation of Durbin-Levinson algorithm, written in R and producing the same result as R's "acf" function with `type="partial"`. |
+|                 |                                                              |
+|                 |                                                              |
+|                 |                                                              |
+|                 |                                                              |
+| Sozzi, 2002     | R. Sozzi, M. Valentini, T. Georgiadis, _Introduzione alla turbolenza atmosferica - Concetti, stime, misure_, Pitagora, 2002 |
+| Stull, 1988     | R.B. Stull, _An Introduction to Boundary Layer Meteorology_, Kluwer Academic Publishers, 1988 |
+|                 |                                                              |
+|                 |                                                              |
+| Venables, 2002  | W.N. Venables, B.D. Ripley, _Modern Applied Statistics with S_, 2nd edition, Springer, 2002 |
+|                 |                                                              |
+|                 |                                                              |
+
+
