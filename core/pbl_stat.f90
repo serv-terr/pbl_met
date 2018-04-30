@@ -440,8 +440,6 @@ contains
 		integer	:: n
 		real(8)	:: rMeanX
 		real(8)	:: rMeanY
-		real(8)	:: rSumA
-		real(8)	:: rSumB
 		real(8)	:: rSumAB
 		
 		! Assume success (will falsify on failure)
@@ -521,70 +519,104 @@ contains
 	
 	! Compute the autocorrelation of a signal up the specified number of lags,
 	! by using the direct summation method.
-	function CrossCorr(rvX, rvY, rvCCorr) result(iRetCode)
+	function CrossCorr(rvX, rvY, rvCCorr, iType) result(iRetCode)
 	
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX			! First signal (may contain NaN values)
 		real, dimension(:), intent(in)	:: rvY			! Second signal (may contain NaN values)
-		real, dimension(:), intent(out)	:: rvCCorr		! Vector containing the desired values (rvCCorr(1) refers to lag 0, rvCCorr(2) to lag 1, ...)
+		real, dimension(:), intent(out)	:: rvCCorr		! Vector containing the desired values, dimensioned (-iLagMax:iLagMax) where iLagMax > 0
+		integer, intent(in), optional	:: iType		! Type of ACV (ACV_GENERAL, default: no stationarity assumption, ACV_2ND_ORDER:2nd order stationarity assumed (as in W. N. Venables, 
 		integer							:: iRetCode		! Flag indicating success (value = 0) or failure.
 		
 		! Locals
+		logical	:: lGeneral
 		integer	:: iLag
+		integer	:: iLagMax
 		integer	:: i
+		integer	:: iMin
+		integer	:: iMax
 		integer	:: n
-		real	:: rAvgA
-		real	:: rAvgB
-		real	:: rSum2A
-		real	:: rSum2B
-		real	:: rStdA
-		real	:: rStdB
-		integer	:: iNum
+		real(8)	:: rMeanX
+		real(8)	:: rMeanY
+		real(8)	:: rSigmaX
+		real(8)	:: rSigmaY
+		real(8)	:: rSumAB
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
 		! Check parameters
-		if(size(rvX) <= 0 .OR. size(rvY) <= 0 .OR. size(rvCCorr) <= 0 .OR. size(rvCCorr) > size(rvX)/2) then
+		if(size(rvX) <= 0 .OR. size(rvY) <= 0) then
+			rvCCorr = NaN
 			iRetCode = 1
 			return
 		end IF
-		n = size(rvX)
+		if(size(rvX) /= size(rvY)) then
+			rvCCorr = NaN
+			iRetCode = 2
+			return
+		end IF
+		if(size(rvCCorr) <= 0 .OR. size(rvCCorr) > size(rvX)) then
+			rvCCorr = NaN
+			iRetCode = 3
+			return
+		end IF
+		if(mod(size(rvCCorr),2) /= 1) then
+			rvCCorr = NaN
+			iRetCode = 4
+			return
+		end IF
+		if(any(.invalid.rvX) .OR. any(.invalid.rvY)) then
+			rvCCorr = NaN
+			iRetCode = 5
+			return
+		end IF
+		n       = size(rvX)
+		iLagMax = (size(rvCCorr) - 1) / 2
+		
+		! Determine type of processing
+		if(present(iType)) then
+			lGeneral = (iType == ACV_GENERAL)
+		else
+			lGeneral = .TRUE.
+		end if
 		
 		! Compute autocovariance for each lag
-		do iLag = 0, size(rvCCorr)-1
-			rAvgA = 0.
-			rAvgB = 0.
-			rSum2A = 0.
-			rSum2B = 0.
-			iNum = 0
-			do i = 1, n - iLag
-				if(.not.isnan(rvX(i)) .and. .not.isnan(rvY(i+iLag))) then
-					iNum = iNum + 1
-					rAvgA = rAvgA + rvX(i)
-					rAvgB = rAvgB + rvY(i+iLag)
-					rSum2A = rSum2A + rvX(i)**2
-					rSum2B = rSum2B + rvY(i+iLag)**2
-				end if
-			end do
-			if(iNum > 0) then
-				rAvgA = rAvgA / iNum
-				rAvgB = rAvgB / iNum
-				rSum2A = rSum2A / iNum
-				rSum2B = rSum2B / iNum
-				rStdA  = sqrt(rSum2A - rAvgA**2)
-				rStdB  = sqrt(rSum2B - rAvgB**2)
-				rvCCorr(iLag+1) = 0.
-				do i = 1, n - iLag
-					if(.not.isnan(rvX(i)) .and. .not.isnan(rvY(i+iLag))) then
-						rvCCorr(iLag+1) = rvCCorr(iLag+1) + (rvX(i) - rAvgA)*(rvY(i+iLag) - rAvgB)
-					end if
+		if(lGeneral) then
+				
+			! Compute autocovariances with respect to the same overall mean
+			do iLag = -iLagMax, iLagMax
+				iMin = max(1,1-iLag)
+				iMax = min(n - iLag,n)
+				rMeanX  = sum(rvX(iMin:iMax)) / (iMax-iMin)
+				rMeanY  = sum(rvY(iMin:iMax)) / (iMax-iMin)
+				rSigmaX = sqrt(sum((rvX(iMin:iMax) - rMeanX)**2) / (iMax-iMin))
+				rSigmaY = sqrt(sum((rvY(iMin:iMax) - rMeanY)**2) / (iMax-iMin))
+				rSumAB = 0.d0
+				do i = iMin, iMax
+					rSumAB = rSumAB + (rvX(i+iLag) - rMeanX) * (rvY(i) - rMeanY)
 				end do
-				rvCCorr(iLag+1) = (rvCCorr(iLag+1)/iNum) / (rStdA * rStdB)
-			else
-				rvCCorr(iLag+1) = NaN
-			end if
-		end do
+				rvCCorr(iLag+iLagMax+1) = (rSumAB / (iMax-iMin)) / (rSigmaX*rSigmaY)
+			end do
+		
+		else
+		
+			! Compute overall mean and std.dev., assuming 2nd-order stationarity
+			rMeanX  = sum(rvX) / n
+			rMeanY  = sum(rvY) / n
+			rSigmaX = sqrt(sum((rvX - rMeanX)**2) / n)
+			rSigmaY = sqrt(sum((rvY - rMeanY)**2) / n)
+		
+			! Compute autocovariances with respect to the same overall mean
+			do iLag = -iLagMax, iLagMax
+				rSumAB = 0.d0
+				do i = max(1,1-iLag), min(n - iLag,n)
+					rSumAB = rSumAB + (rvX(i+iLag) - rMeanX) * (rvY(i) - rMeanY)
+				end do
+				rvCCorr(iLag+iLagMax+1) = (rSumAB / n) / (rSigmaX*rSigmaY)
+			end do
+		
+		end if
 		
 	end function CrossCorr
 	
