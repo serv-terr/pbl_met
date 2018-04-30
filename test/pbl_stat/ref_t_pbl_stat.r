@@ -63,3 +63,14 @@ durbin.levinson <-
     pacf
   }
 
+#######################################
+# Reference case for cross-covariance #
+#######################################
+
+test.ccov <- function() {
+  x <- c(1.,2.,3.,4.,5.,4.,3.,2.,1.)
+  y <- c(3.,4.,5.,4.,3.,2.,1.,1.,1.)
+  d <- ccf(x,y,lag.max=4,type="covariance")
+  return(d)
+}
+
