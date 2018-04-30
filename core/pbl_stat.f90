@@ -328,17 +328,18 @@ contains
 				end do
 				
 				! Compute autocovariance
-				rSumAB = 0.d0
-				do i = 1, n - iLag
-					if(.valid.rvX(i) .and. .valid.rvX(i+iLag)) then
-						rSumAB = rSumAB + (rvX(i) - rSumA/iNum) * (rvX(i+iLag) - rSumB/iNum)
-					end if
-				end do
 				if(iNum > 0) then
+					rSumAB = 0.d0
+					do i = 1, n - iLag
+						if(.valid.rvX(i) .and. .valid.rvX(i+iLag)) then
+							rSumAB = rSumAB + (rvX(i) - rSumA/iNum) * (rvX(i+iLag) - rSumB/iNum)
+						end if
+					end do
 					rvACov(iLag) = rSumAB/iNum
 				else
 					rvACov(iLag) = NaN
 				end if
+				
 			end do
 			
 		else
@@ -347,7 +348,7 @@ contains
 			iNum  = 0
 			rMean = 0.d0
 			do i = 1, n
-				if(.valid.rvX(i) .and. .valid.rvX(i+iLag)) then
+				if(.valid.rvX(i)) then
 					iNum = iNum + 1
 					rMean = rMean + rvX(i)
 				end if
@@ -411,66 +412,109 @@ contains
 	
 	
 	! Compute the autocovariance of a signal up the specified number of lags,
-	! by using the direct summation method.
+	! by using the direct summation method under the mandatory assumption of
+	! second-order statoinarity.
 	!
-	! Warning: On call to this routine, a vector rvACov having dimension
-	! ======== 0:n can be used without any restraint. Inside AutoCov, this
-	!          vector will be indexed 1:n+1, but the convention adopted
-	!          (i.e. index 1 to mean lag 0, index 2 lag 1, ...) ensures
-	!          full consistency
+	! Warning: The formula used provides the same result as in R, and is
+	! described in [Venables, 2002]. The actual equation, in section 14.1
+	! of [Venables, 2002] is however incorrect: the lower summation limit
+	! is stated to be MAX(1,-iLag), which should be MAX(1,1-iLag) instead.
+	! The R implementation is correct however: the bug is in the manual only.
 	!
-	function CrossCov(rvX, rvY, rvCCov) result(iRetCode)
+	function CrossCov(rvX, rvY, rvCCov, iType) result(iRetCode)
 	
 		! Routine arguments
-		real, dimension(:), intent(in)	:: rvX			! First signal (may contain NaN values)
-		real, dimension(:), intent(in)	:: rvY			! Second signal (may contain NaN values)
-		real, dimension(:), intent(out)	:: rvCCov		! Vector containing the desired values (rvCCov(1) refers to lag 0, rvCCov(2) to lag 1, ...)
+		real, dimension(:), intent(in)	:: rvX			! First signal (should contain no NaN values)
+		real, dimension(:), intent(in)	:: rvY			! Second signal (should contain no NaN values)
+		real, dimension(:), intent(out)	:: rvCCov		! Vector containing the desired values, dimensioned (-iLagMax:iLagMax) where iLagMax > 0
+		integer, intent(in), optional	:: iType		! Type of ACV (ACV_GENERAL, default: no stationarity assumption, ACV_2ND_ORDER:2nd order stationarity assumed (as in W. N. Venables, 
 		integer							:: iRetCode		! Flag indicating success (value = 0) or failure.
 		
 		! Locals
+		logical	:: lGeneral
 		integer	:: iLag
+		integer	:: iLagMax
 		integer	:: i
+		integer	:: iMin
+		integer	:: iMax
 		integer	:: n
-		real	:: rAvgA
-		real	:: rAvgB
-		integer	:: iNum
+		real(8)	:: rMeanX
+		real(8)	:: rMeanY
+		real(8)	:: rSumA
+		real(8)	:: rSumB
+		real(8)	:: rSumAB
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
 		! Check parameters
-		if(size(rvX) <= 0 .OR. size(rvY) <= 0 .OR. size(rvCCov) <= 0 .OR. size(rvCCov) > size(rvX)/2) then
+		if(size(rvX) <= 0 .OR. size(rvY) <= 0) then
+			rvCCov = NaN
 			iRetCode = 1
 			return
 		end IF
-		n = size(rvX)
+		if(size(rvX) /= size(rvY)) then
+			rvCCov = NaN
+			iRetCode = 2
+			return
+		end IF
+		if(size(rvCCov) <= 0 .OR. size(rvCCov) > size(rvX)) then
+			rvCCov = NaN
+			iRetCode = 3
+			return
+		end IF
+		if(mod(size(rvCCov),2) /= 1) then
+			rvCCov = NaN
+			iRetCode = 4
+			return
+		end IF
+		if(any(.invalid.rvX) .OR. any(.invalid.rvY)) then
+			rvCCov = NaN
+			iRetCode = 5
+			return
+		end IF
+		n       = size(rvX)
+		iLagMax = (size(rvCCov) - 1) / 2
+		
+		! Determine type of processing
+		if(present(iType)) then
+			lGeneral = (iType == ACV_GENERAL)
+		else
+			lGeneral = .TRUE.
+		end if
 		
 		! Compute autocovariance for each lag
-		do iLag = 0, size(rvCCov)-1
-			rAvgA = 0.
-			rAvgB = 0.
-			iNum = 0
-			do i = 1, n - iLag
-				if(.not.isnan(rvX(i)) .and. .not.isnan(rvY(i+iLag))) then
-					iNum = iNum + 1
-					rAvgA = rAvgA + rvX(i)
-					rAvgB = rAvgB + rvY(i+iLag)
-				end if
-			end do
-			if(iNum > 0) then
-				rAvgA = rAvgA / iNum
-				rAvgB = rAvgB / iNum
-				rvCCov(iLag+1) = 0.
-				do i = 1, n - iLag
-					if(.not.isnan(rvX(i)) .and. .not.isnan(rvY(i+iLag))) then
-						rvCCov(iLag+1) = rvCCov(iLag+1) + (rvX(i) - rAvgA)*(rvY(i+iLag) - rAvgB)
-					end if
+		if(lGeneral) then
+				
+			! Compute autocovariances with respect to the same overall mean
+			do iLag = -iLagMax, iLagMax
+				iMin = max(1,1-iLag)
+				iMax = min(n - iLag,n)
+				rMeanX = sum(rvX(iMin:iMax)) / (iMax-iMin)
+				rMeanY = sum(rvY(iMin:iMax)) / (iMax-iMin)
+				rSumAB = 0.d0
+				do i = iMin, iMax
+					rSumAB = rSumAB + (rvX(i+iLag) - rMeanX) * (rvY(i) - rMeanY)
 				end do
-				rvCCov(iLag+1) = rvCCov(iLag+1)/iNum			
-			else
-				rvCCov(iLag+1) = NaN
-			end if
-		end do
+				rvCCov(iLag+iLagMax+1) = rSumAB / (iMax-iMin)
+			end do
+		
+		else
+		
+			! Compute overall mean, assuming 2nd-order stationarity
+			rMeanX = sum(rvX) / n
+			rMeanY = sum(rvY) / n
+		
+			! Compute autocovariances with respect to the same overall mean
+			do iLag = -iLagMax, iLagMax
+				rSumAB = 0.d0
+				do i = max(1,1-iLag), min(n - iLag,n)
+					rSumAB = rSumAB + (rvX(i+iLag) - rMeanX) * (rvY(i) - rMeanY)
+				end do
+				rvCCov(iLag+iLagMax+1) = rSumAB / n
+			end do
+		
+		end if
 		
 	end function CrossCov
 	
