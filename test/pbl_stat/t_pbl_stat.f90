@@ -24,6 +24,7 @@ program test_pbl_stat
 	call testAutoCov()
 	call testAutoCorr()
 	call testPartialAutoCorr()
+	call testCrossCov()
 	
 contains
 
@@ -607,5 +608,74 @@ contains
 		deallocate(rvX)
 		
 	end subroutine testPartialAutoCorr
+	
+	
+	subroutine testCrossCov()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvX
+		real, dimension(:), allocatable	:: rvy
+		real, dimension(:), allocatable	:: rvCcovRef
+		real, dimension(:), allocatable	:: rvCcov
+		real, dimension(:), allocatable	:: rvCcov2nd
+		integer							:: i
+		integer							:: iRetCode
+		
+		! Normal case
+		allocate(rvX(9))
+		allocate(rvY(9))
+		allocate(rvCCovRef(-4:4))
+		allocate(rvCCov2nd(-4:4))
+		allocate(rvCCov(-4:4))
+		rvX = [1.,2.,3.,4.,5.,4.,3.,2.,1.]
+		rvY = [3.,4.,5.,4.,3.,2.,1.,1.,1.]
+		rvCCovRef = [-0.6872428,-1.1728395,-1.3374486,-0.6748971,0.4814815,1.1522634,1.3415638,0.8271605,0.1399177]
+		iRetCode = CrossCov(rvX, rvY, rvCCov)
+		print *, "CrossCov - Test 1: return code = ", iRetCode
+		iRetCode = CrossCov(rvX, rvY, rvCCov2nd, ACV_2ND_ORDER)
+		print *, "CrossCov - Test 2: return code = ", iRetCode
+		print *, "Printing results"
+		print *, "Lag Expected Found.2nd.ord Found"
+		do i = -4, 4
+			print "(i2,3(4x,f8.5))", i, rvCCovRef(i), rvCCov2nd(i), rvCCov(i)
+		end do
+		print *
+		
+		! Boundary
+		rvX = [1.,2.,3.,4.,NaN,4.,3.,2.,1.]
+		rvY = [3.,4.,5.,4.,3.,2.,1.,1.,1.]
+		iRetCode = CrossCov(rvX, rvY, rvCCov)
+		print *, "CrossCov - Test 3: return code = ", iRetCode
+		print *, "Printing results"
+		print *, "Lag Found"
+		do i = -4, 4
+			print "(i2,2(4x,f8.5))", i, rvCCov(i)
+		end do
+		print *
+		
+		! Boundary
+		rvX = NaN
+		rvY = [3.,4.,5.,4.,3.,2.,1.,1.,1.]
+		iRetCode = CrossCov(rvX, rvY, rvCCov)
+		print *, "CrossCov - Test 4: return code = ", iRetCode
+		print *, "Printing results"
+		print *, "Lag Found"
+		do i = -4, 4
+			print "(i2,2(4x,f8.5))", i, rvCCov(i)
+		end do
+		print *
+		
+		! Leave
+		deallocate(rvCCov)
+		deallocate(rvCCov2nd)
+		deallocate(rvCCovRef)
+		deallocate(rvY)
+		deallocate(rvX)
+		
+	end subroutine testCrossCov
+	
 	
 end program test_pbl_stat
