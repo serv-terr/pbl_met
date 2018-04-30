@@ -74,3 +74,11 @@ test.ccov <- function() {
   return(d)
 }
 
+
+test.ccor <- function() {
+  x <- c(1.,2.,3.,4.,5.,4.,3.,2.,1.)
+  y <- c(3.,4.,5.,4.,3.,2.,1.,1.,1.)
+  d <- ccf(x,y,lag.max=4,type="correlation")
+  return(d)
+}
+
