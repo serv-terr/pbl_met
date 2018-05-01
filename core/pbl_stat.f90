@@ -690,53 +690,76 @@ contains
 	
 	! Estimate the Euleriam decorrelation time of a signal
 	!
-	! Routine originally developed by Roberto Sozzi
-	!
-	function EulerianTime(rFcv, rvX, iMaxLag) result(rEul)
+	function EulerianTime(rDataRate, rvX, rMaxEulerianTime, rEulerianTime, rvACorr) result(iRetCode)
 	
 		! Routine arguments
-		real, intent(in)				:: rFcv		! Data acquisition rate (Hz)
-		real, dimension(:), intent(in)	:: rvX		! Signal (any unit)
-		integer, intent(in)				:: iMaxLag	! Maximum lag to consider
-		real							:: rEul		! Estimate of Eulerian decorrelation time (s)
+		real, intent(in)				:: rDataRate			! Data acquisition rate (Hz)
+		real, dimension(:), intent(in)	:: rvX					! Signal (any unit)
+		real, intent(in)				:: rMaxEulerianTime		! Maximum Eulerian time to consider
+		real, intent(out)				:: rEulerianTime		! Estimate of Eulerian decorrelation time (s)
+		real, dimension(:), allocatable, optional	:: rvACorr	! Autocorrelation found, for diagnostic purposes
+		integer							:: iRetCode
 		
 		! Locals
-		real, dimension(0:iMaxLag)	:: rvC		! On exchange with AutoCov indices run 1 to iMaxLag+1
-		real, dimension(0:iMaxLag)	:: rvK
-		integer						:: iErrCode
-		integer						:: i
-		real						:: rDelta
-		real						:: rNum
-		real						:: rDen
-		integer						:: iNumPoints
+		real, dimension(:), allocatable	:: rvC
+		integer							:: iErrCode
+		integer							:: iMaxLag
+		integer							:: i
 		
-		! Auxiliary constants
-		real, parameter		:: TOL = 1.e-4
-		integer, parameter	:: MAX_ITER = 16
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(rDataRate <= 0. .or. rMaxEulerianTime <= 0. .or. size(rvX) <= 0) then
+			rEulerianTime = NaN
+			iRetCode = 1
+			return
+		end if
+		if(any(.invalid.rvX)) then
+			rEulerianTime = NaN
+			iRetCode = 2
+			return
+		end if
+		
+		! Compute the maximum lag
+		iMaxLag = rMaxEulerianTime * rDataRate
+		if(iMaxLag >= size(rvX)) then
+			rEulerianTime = NaN
+			iRetCode = 3
+			return
+		end if
+		if(iMaxLag <= 0) then
+			rEulerianTime = 0.
+			iRetCode = 4
+			return
+		end if
 		
 		! Compute autocorrelations
-		iErrCode = AutoCorr(rvX, rvC)
+		allocate(rvC(0:iMaxLag))
+		iErrCode = AutoCorr(rvX, rvC, ACV_2ND_ORDER)
+		if(iErrCode /= 0) then
+			rEulerianTime = NaN
+			iRetCode = 5
+			deallocate(rvC)
+			return
+		end if
 		
-		! Initialize the auxiliary vector
-		rvK = (/ (float(i),i=0,iMaxLag) /)
-		
-		! Compute the linear regression estimate of the Eulerian time
-		rDelta = 1. / rFcv
-		iNumPoints = 0
-		rNum = 0.
-		rDen = 0.
-		do i = 0, iMaxLag
-			if(.not.isnan(rvC(i)) .and. rvC(i) > 0.) then
-				iNumPoints = iNumPoints + 1
-				rNum = rNum + rvK(i)**2
-				rDen = rDen - rvK(i)*log(rvC(i))
+		! Estimate the Eulerian decorrelation time
+		rEulerianTime = iMaxLag / rDataRate
+		do i = 1, iMaxLag - 1
+			if(rvC(i) < 1.96/sqrt(float(size(rvX) - i))) then
+				rEulerianTime = (i-1) / rDataRate
+				if(present(rvACorr)) then
+					if(allocated(rvACorr)) deallocate(rvACorr)
+					allocate(rvACorr(0:iMaxLag))
+					rvACorr = rvC
+				end if
+				deallocate(rvC)
+				return
 			end if
 		end do
-		if(iNumPoints > 2) then
-			rEul = rDelta * rNum / rDen
-		else
-			rEul = NaN
-		end if
+		deallocate(rvC)
+		iRetCode = 6
 		
 	end function EulerianTime
 	
