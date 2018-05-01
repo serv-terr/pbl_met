@@ -82,3 +82,35 @@ test.ccor <- function() {
   return(d)
 }
 
+#############################################
+# Test case for Eulerian decorrelation time #
+#############################################
+
+# Generate a negative-exponentially correlated Gaussian process
+# using the algorithm described in [Deserno, web1]
+neg.exp.proc <- function(n, tau) {
+  f <- exp(-1/tau)
+  g <- rnorm(n,0,1)
+  r <- numeric(n)
+  r[1] <- g[1]
+  for(i in 2:n) {
+    r[i] <- f*r[i-1] + sqrt(1.0-f^2)*g[i]
+  }
+  return(r)
+}
+
+# Predispose and write the test set
+test.eulerian.time <- function() {
+  v <- neg.exp.proc(1024, 7.0)
+  write.csv(v, file="euler.dat", row.names=FALSE)
+  ac <- acf(v, lag.max = 50, type="cor")$acf
+  write.csv(ac, file="euler.ref", row.names=FALSE)
+  idx <- 0:50
+  pos <- which(ac > 0)
+  ac.p <- log(ac[pos])
+  id.p <- idx[pos]
+  plot(id.p, ac.p)
+  l <- lm(ac.p~id.p)
+  print(summary(l))
+  return(l)
+}
