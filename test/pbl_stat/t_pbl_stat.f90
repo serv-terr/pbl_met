@@ -27,6 +27,7 @@ program test_pbl_stat
 	call testCrossCov()
 	call testCrossCorr()
 	call testEulerianTime()
+	call testRemoveLinearTrend()
 	
 contains
 
@@ -823,5 +824,40 @@ contains
 		deallocate(rvX)
 		
 	end subroutine testEulerianTime
+	
+	
+	subroutine testRemoveLinearTrend()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(-100:100)	:: rvX
+		real, dimension(-100:100)	:: rvY
+		integer						:: i
+		integer						:: iRetCode
+		real						:: rMultiplier
+		real						:: rOffset
+		
+		! Test 1 - Normal
+		rvX = [(0.1*(i+100), i=-100,100)]
+		rvY = [(10.+0.1*i, i=-100,100)]
+		print *, 'RemoveLinearTrend - Test 1'
+		print *, 'Mean before detrending:  ', sum(rvY) / size(rvY)
+		print *, 'Slope before detrending: ', 0.1
+		iRetCode = RemoveLinearTrend(rvX, rvY, rMultiplier, rOffset)
+		print *, 'Mean after detrending:  ', sum(rvY) / size(rvY)
+		print *, 'Slope after detrending: ', (rvY(100) - rvY(-100)) / (rvX(100) - rvX(-100))
+		print *, 'Multiplier:             ', rMultiplier
+		print *, 'Offset:                 ', rOffset
+		print *
+		
+		! Test 2 - Boundary
+		rvX(0) = NaN
+		print *, 'RemoveLinearTrend - Test 2'
+		iRetCode = RemoveLinearTrend(rvX, rvY, rMultiplier, rOffset)
+		print *, 'Result: ', iRetCode, '  Expected: any non-zero'
+		
+	end subroutine testRemoveLinearTrend
 	
 end program test_pbl_stat
