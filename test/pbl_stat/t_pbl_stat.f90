@@ -26,6 +26,7 @@ program test_pbl_stat
 	call testPartialAutoCorr()
 	call testCrossCov()
 	call testCrossCorr()
+	call testEulerianTime()
 	
 contains
 
@@ -745,5 +746,82 @@ contains
 		deallocate(rvX)
 		
 	end subroutine testCrossCorr
+	
+	
+	subroutine testEulerianTime()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvX
+		real, dimension(:), allocatable	:: rvACorr
+		integer							:: iRetCode
+		character(len=32)				:: sBuffer
+		integer							:: iNumData
+		integer							:: iData
+		integer							:: i
+		real							:: rSamplingRate
+		real							:: rEuler
+		
+		! Gather all data from test file (generated using
+		! routine 'test.eulerian.time' in 'ref_t_pbl_stat.R'
+		! -1- Phase 1: Count data
+		open(10, file='euler.dat', status='old', action='read')
+		iNumData = -1	! This starting limit to account for the first line (a header), to be skipped
+		do
+			read(10, "(a)", iostat=iRetCode) sBuffer
+			if(iRetCode /= 0) exit
+			iNumData = iNumData + 1
+		end do
+		! -1- Phase 2: Reserve workspace and read data into it
+		rewind(10)
+		read(10, "(a)") sBuffer	! Skip header
+		allocate(rvX(iNumData))
+		do iData = 1, iNumData
+			read(10, *) rvX(iData)
+		end do
+		close(10)
+		
+		! Add some (fictive) context data
+		rSamplingRate = 10.0
+		
+		! Estimate Eulerian decorrelation time for test 1
+		iRetCode = EulerianTime(rSamplingRate, rvX, 60., rEuler, rvACorr)
+		print *, "EulerianTime - Test 1 - Return code: ", iRetCode
+		print *, "Estimated value = ", rEuler, "  (expected any positive value)"
+		print *
+		print *,'Lag  ACF   Significance.95'
+		do i = 0, size(rvACorr)
+			print *, i, rvACorr(i), 1.96 / sqrt(float(iNumData) - i)
+			if(rvACorr(i) < 1.96 / sqrt(float(iNumData) - i)) exit
+		end do
+		print *
+		
+		! Normal: uncorrelated time series
+		call random_number(rvX)
+		iRetCode = EulerianTime(rSamplingRate, rvX, 60., rEuler)
+		print *, "EulerianTime - Test 2 - Return code: ", iRetCode
+		print *, "Estimated value = ", rEuler, "  - Expected:", 0.0
+		print *
+		
+		! Normal: constant time series
+		rvX = 1.
+		iRetCode = EulerianTime(rSamplingRate, rvX, 60., rEuler)
+		print *, "EulerianTime - Test 3 - Return code: ", iRetCode
+		print *, "Estimated value = ", rEuler, "  - Expected:", 60.0, " with positive (error) return code"
+		print *
+		
+		! Boundary: holed time series
+		rvX(1) = NaN
+		iRetCode = EulerianTime(rSamplingRate, rvX, 60., rEuler)
+		print *, "EulerianTime - Test 4 - Return code: ", iRetCode
+		print *, "Estimated value = ", rEuler, "  - Expected:", NaN, " with positive (error) return code"
+		print *
+		
+		deallocate(rvACorr)
+		deallocate(rvX)
+		
+	end subroutine testEulerianTime
 	
 end program test_pbl_stat
