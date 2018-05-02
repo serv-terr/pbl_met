@@ -39,8 +39,12 @@ module pbl_stat
     ! Data types
     
     type TimeSeries
-    	real(8), dimension(:), allocatable	:: rvTimeStamp
-    	real(8), dimension(:), allocatable	:: rvValue
+    	real(8), dimension(:), allocatable, private	:: rvTimeStamp
+    	real, dimension(:), allocatable, private	:: rvValue
+    contains
+    	procedure, public	:: createEmpty				=> tsCreateEmpty
+    	procedure, public	:: isEmpty					=> tsIsEmpty
+    	procedure, public	:: createFromDataVector		=> tsCreateFromDataVector
     end type TimeSeries
     
 contains
@@ -839,5 +843,125 @@ contains
 		rOffset = rOffset - rMeanAfterDetrend + rMeanBeforeDetrend
 	
 	end function RemoveLinearTrend
+	
+	
+	function tsCreateEmpty(this, n) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(inout)	:: this			! Current time series
+		integer, intent(in)					:: n			! Number of elements (must be positive)
+		integer								:: iRetCode		! Return code (0 if successful completion; any non-zero in case of error(s))
+		
+		! Locals
+		integer	:: iErrCode
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check input parameters
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Reserve workspace
+		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(allocated(this % rvValue)) deallocate(this % rvValue)
+		allocate(this % rvTimeStamp(n), stat = iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			return
+		end if
+		allocate(this % rvValue(n), stat = iErrCode)
+		if(iErrCode /= 0) then
+			deallocate(this % rvTimeStamp)
+			iRetCode = 2
+			return
+		end if
+		
+		! Fill with appropriate initial values
+		this % rvTimeStamp = NaN_8
+		this % rvValue     = NaN
+		
+	end function tsCreateEmpty
+	
+	
+	function tsIsEmpty(this) result(lIsEmpty)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)	:: this			! Current time series
+		logical							:: lIsEmpty		! Flag indicating (.true.) whether a time series is still unallocated or empty, or (.true.) not
+		
+		! Locals
+		! --none--
+		
+		! Check allocation state
+		if(.not.allocated(this % rvTimeStamp) .or. .not.allocated(this % rvValue)) then
+			! Not yet allocated
+			lIsEmpty = .true.
+		else
+			! At least one vector allocated (but, they're private within class, so we can be sure that if
+			! one is allocated, the other is too
+			lIsEmpty = all(.invalid.this % rvTimeStamp) .and. all(.invalid.this % rvValue)
+		end if
+		
+	end function tsIsEmpty
+	
+	
+	function tsCreateFromDataVector(this, rvValues, rTimeFrom, rDeltaTime) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(inout)	:: this			! Current time series
+		real, dimension(:), intent(in)		:: rvValues		! Data values
+		real(8), intent(in)					:: rTimeFrom	! Initial date-time (s since the Epoch)
+		real(8), intent(in), optional		:: rDeltaTime	! Time difference between two any series elements (default: 1.d0; must be positive if present)
+		integer								:: iRetCode		! Return code (0 if successful completion; any non-zero in case of error(s))
+		
+		! Locals
+		integer	:: iErrCode
+		integer	:: i
+		integer	:: n
+		real(8)	:: rTimeIncrement
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check input parameters
+		n = size(rvValues)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(present(rDeltaTime)) then
+			if(rDeltaTime <= 0.d0) then
+				iRetCode = 2
+				return
+			else
+				rTimeIncrement = rDeltaTime
+			end if
+		else
+			rTimeIncrement = 1.d0
+		end if
+		
+		! Reserve workspace
+		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(allocated(this % rvValue)) deallocate(this % rvValue)
+		allocate(this % rvTimeStamp(n), stat = iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		allocate(this % rvValue(n), stat = iErrCode)
+		if(iErrCode /= 0) then
+			deallocate(this % rvTimeStamp)
+			iRetCode = 3
+			return
+		end if
+		
+		! Fill with appropriate initial values
+		this % rvTimeStamp = [(rTimeFrom + rTimeIncrement*(i-1), i = 1, n)]
+		this % rvValue     = rvValues
+		
+	end function tsCreateFromDataVector
 	
 end module pbl_stat
