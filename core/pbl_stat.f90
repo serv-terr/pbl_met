@@ -33,6 +33,15 @@ module pbl_stat
     public	:: CrossCorr
     ! 5. Utilities
     public	:: RemoveLinearTrend
+    ! 6. Time series
+    public	:: TimeSeries
+    
+    ! Data types
+    
+    type TimeSeries
+    	real(8), dimension(:), allocatable	:: rvTimeStamp
+    	real(8), dimension(:), allocatable	:: rvValue
+    end type TimeSeries
     
 contains
 
@@ -771,21 +780,21 @@ contains
 	function RemoveLinearTrend(rvX, rvY, rMultiplier, rOffset) result(iRetCode)
 	
 		! Routine argument
-		real, dimension(:), intent(in)		:: rvX			! Index signal (typically time, in floating point form)
+		real(8), dimension(:), intent(in)	:: rvX			! Index signal (typically time, in floating point form)
 		real, dimension(:), intent(inout)	:: rvY			! Signal to remove the trend from
-		real, intent(out)					:: rMultiplier	! Multiplier of trend line
-		real, intent(out)					:: rOffset		! Offset of trend line
+		real(8), intent(out)				:: rMultiplier	! Multiplier of trend line
+		real(8), intent(out)				:: rOffset		! Offset of trend line
 		integer								:: iRetCode
 		
 		! Locals
 		integer	:: n
-		real	:: rSx
-		real	:: rSy
-		real	:: rSxx
-		real	:: rSxy
-		real	:: rDelta
-		real	:: rMeanBeforeDetrend
-		real	:: rMeanAfterDetrend
+		real(8)	:: rSx
+		real(8)	:: rSy
+		real(8)	:: rSxx
+		real(8)	:: rSxy
+		real(8)	:: rDelta
+		real(8)	:: rMeanBeforeDetrend
+		real(8)	:: rMeanAfterDetrend
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -807,14 +816,14 @@ contains
 		! Compute counts and sums
 		n    = size(rvX)
 		rSx  = sum(rvX)
-		rSy  = sum(rvY)
+		rSy  = sum(dble(rvY))
 		rSxx = dot_product(rvX,rvX)
-		rSxy = dot_product(rvX,rvY)
-		rMeanBeforeDetrend = rSx / n
+		rSxy = dot_product(rvX,dble(rvY))
+		rMeanBeforeDetrend = rSy / n
 		
 		! Compute multiplier and offset
 		rDelta      = n*rSxx - rSx**2
-		if(rDelta <= 0.) then
+		if(rDelta <= 0.d0) then
 			iRetCode = 4
 			return
 		end if
@@ -825,8 +834,9 @@ contains
 		rvY = rvY - rMultiplier*(rvX - rSx/n)
 		
 		! Remove residual average, and add back the original mean
-		rMeanAfterDetrend = sum(rvY) / n
+		rMeanAfterDetrend = sum(dble(rvY)) / n
 		rvY = rvY - rMeanAfterDetrend + rMeanBeforeDetrend
+		rOffset = rOffset - rMeanAfterDetrend + rMeanBeforeDetrend
 	
 	end function RemoveLinearTrend
 	
