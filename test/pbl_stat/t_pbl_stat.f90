@@ -832,15 +832,15 @@ contains
 		! -none-
 		
 		! Locals
-		real, dimension(-100:100)	:: rvX
-		real, dimension(-100:100)	:: rvY
-		integer						:: i
-		integer						:: iRetCode
-		real						:: rMultiplier
-		real						:: rOffset
+		real(8), dimension(-100:100)	:: rvX
+		real, dimension(-100:100)		:: rvY
+		integer							:: i
+		integer							:: iRetCode
+		real(8)							:: rMultiplier
+		real(8)							:: rOffset
 		
 		! Test 1 - Normal
-		rvX = [(0.1*(i+100), i=-100,100)]
+		rvX = [(0.1d0*(i+100), i=-100,100)]
 		rvY = [(10.+0.1*i, i=-100,100)]
 		print *, 'RemoveLinearTrend - Test 1'
 		print *, 'Mean before detrending:  ', sum(rvY) / size(rvY)
@@ -848,12 +848,19 @@ contains
 		iRetCode = RemoveLinearTrend(rvX, rvY, rMultiplier, rOffset)
 		print *, 'Mean after detrending:  ', sum(rvY) / size(rvY)
 		print *, 'Slope after detrending: ', (rvY(100) - rvY(-100)) / (rvX(100) - rvX(-100))
-		print *, 'Multiplier:             ', rMultiplier
-		print *, 'Offset:                 ', rOffset
+		print *, 'Multiplier:             ', sngl(rMultiplier)
+		print *, 'Offset:                 ', sngl(rOffset)
 		print *
 		
 		! Test 2 - Boundary
-		rvX(0) = NaN
+		rvX(0) = NaN_8
+		print *, 'RemoveLinearTrend - Test 2'
+		iRetCode = RemoveLinearTrend(rvX, rvY, rMultiplier, rOffset)
+		print *, 'Result: ', iRetCode, '  Expected: any non-zero'
+		
+		! Test 3 - Boundary
+		rvX(0) = -100.d0
+		rvY(0) = NaN
 		print *, 'RemoveLinearTrend - Test 2'
 		iRetCode = RemoveLinearTrend(rvX, rvY, rMultiplier, rOffset)
 		print *, 'Result: ', iRetCode, '  Expected: any non-zero'
