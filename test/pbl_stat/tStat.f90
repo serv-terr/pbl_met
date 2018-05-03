@@ -22,7 +22,6 @@ program tStat
 	integer				:: iNumLines
 	integer				:: iLine
 	character(len=128)	:: sBuffer
-	real(8)				:: rMinDelta, rDelta, rMaxDelta
 	real(8), dimension(:), allocatable	:: rvTimeStamp
 	real, dimension(:), allocatable		:: rvValue
 	integer								:: iYear, iMonth, iDay, iHour, iMinute
@@ -84,22 +83,8 @@ program tStat
 	end do
 	close(10)
 	
-	! Check time stamps are ordered, and whether they form a gap-less series (they should
-	! for ARPA Lombardy proper data files)
-	rMinDelta =  huge(rMinDelta)
-	rMaxDelta = -huge(rMaxDelta)
-	do iLine = 2, size(rvTimeStamp)
-		rDelta = rvTimeStamp(iLine) - rvTimeStamp(iLine-1)
-		rMinDelta = min(rMinDelta, rDelta)
-		rMaxDelta = max(rMaxDelta, rDelta)
-	end do
-	if(rMinDelta /= rMaxDelta) then
-		print *,"tStat:: error: Time stamps are not well-ordered as in ARPA Lombardy files"
-		stop
-	end if
-	
 	! Populate time series from input file
-	iRetCode = ts % createFromDataVector(rvValue, rvTimeStamp(1), rDelta)
+	iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
 	deallocate(rvTimeStamp, rvValue)
 	if(iRetCode /= 0) then
 		print *, "tStat:: error: Creation of time series failed with return code = ", iRetCode
