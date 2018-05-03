@@ -43,12 +43,14 @@ module pbl_stat
     	real(8), dimension(:), allocatable, private	:: rvTimeStamp
     	real, dimension(:), allocatable, private	:: rvValue
     contains
-    	procedure, public	:: createEmpty				=> tsCreateEmpty
-    	procedure, public	:: isEmpty					=> tsIsEmpty
-    	procedure, public	:: createFromDataVector		=> tsCreateFromDataVector
-    	procedure, public	:: populateFromDataVector	=> tsCreateFromDataVector
-    	procedure, public	:: summary					=> tsSummary
-    	procedure, public	:: RangeInvalidate			=> tsRangeInvalidate
+    	procedure, public	:: createEmpty						=> tsCreateEmpty
+    	procedure, public	:: isEmpty							=> tsIsEmpty
+    	procedure, public	:: createFromDataVector				=> tsCreateFromDataVector
+    	procedure, public	:: populateFromDataVector			=> tsCreateFromDataVector
+    	procedure, public	:: createFromTimeAndDataVectors		=> tsCreateFromTimeAndDataVectors
+    	procedure, public	:: populateFromTimeAndDataVectors	=> tsCreateFromTimeAndDataVectors
+    	procedure, public	:: summary							=> tsSummary
+    	procedure, public	:: RangeInvalidate					=> tsRangeInvalidate
     end type TimeSeries
     
 contains
@@ -967,6 +969,55 @@ contains
 		this % rvValue     = rvValues
 		
 	end function tsCreateFromDataVector
+	
+	
+	function tsCreateFromTimeAndDataVectors(this, rvTimeStamp, rvValues) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(inout)	:: this			! Current time series
+		real(8), dimension(:), intent(in)	:: rvTimeStamp	! Time stamp values
+		real, dimension(:), intent(in)		:: rvValues		! Data values (rvValue(i) corresponds to rvTimeStamp(i), i=1,...)
+		integer								:: iRetCode		! Return code (0 if successful completion; any non-zero in case of error(s))
+		
+		! Locals
+		integer	:: iErrCode
+		integer	:: i
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check input parameters
+		n = size(rvValues)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(n /= size(rvTimeStamp)) then
+			iRetCode = 2
+			return
+		end if
+		
+		! Reserve workspace
+		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(allocated(this % rvValue)) deallocate(this % rvValue)
+		allocate(this % rvTimeStamp(n), stat = iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		allocate(this % rvValue(n), stat = iErrCode)
+		if(iErrCode /= 0) then
+			deallocate(this % rvTimeStamp)
+			iRetCode = 3
+			return
+		end if
+		
+		! Fill with appropriate initial values
+		this % rvTimeStamp = rvTimeStamp
+		this % rvValue     = rvValues
+		
+	end function tsCreateFromTimeAndDataVectors
 	
 	
 	subroutine tsSummary(this, iNumValues, rValidPercentage, rMin, rMean, rStdDev, rMax)
