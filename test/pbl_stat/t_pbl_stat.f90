@@ -28,6 +28,7 @@ program test_pbl_stat
 	call testCrossCorr()
 	call testEulerianTime()
 	call testRemoveLinearTrend()
+	call testTimeSeries()
 	
 contains
 
@@ -866,5 +867,101 @@ contains
 		print *, 'Result: ', iRetCode, '  Expected: any non-zero'
 		
 	end subroutine testRemoveLinearTrend
+	
+	
+	subroutine testTimeSeries()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		integer				:: iRetCode
+		character(len=256)	:: sInputFile
+		type(TimeSeries)	:: ts
+		real				:: rValid, rMin, rMean, rStdDev, rMax
+		integer				:: iNumData
+		integer				:: iNumLines
+		integer				:: iLine
+		character(len=128)	:: sBuffer
+		real(8)				:: rMinDelta, rDelta, rMaxDelta
+		real(8), dimension(:), allocatable	:: rvTimeStamp
+		real, dimension(:), allocatable		:: rvValue
+		integer								:: iYear, iMonth, iDay, iHour, iMinute
+		integer								:: iFirstComma
+		integer								:: iCurrentTime
+	
+		! Assign file name(s)
+		sInputFile = "./Moggio_Temp.csv"
+	
+		! Get data, assuming ARPA Lombardy format
+		open(10, file=sInputFile, status='old', action='read', iostat=iRetCode)
+		if(iRetCode /= 0) then
+			print *, "tStat:: error: Input file not opened - check name, position and access rights"
+			stop
+		end if
+		iNumLines = -1	! Take header into account
+		iFirstComma = 0
+		do
+			read(10, "(a)", iostat=iRetCode) sBuffer
+			if(iRetCode /= 0) exit
+			iNumLines = iNumLines + 1
+			if(iNumLines == 1) iFirstComma = index(sBuffer, ",")
+		end do
+		if(iNumLines <= 0) then
+			print *, "tStat:: error: No useable data in file"
+		end if
+		allocate(rvTimeStamp(iNumLines), rvValue(iNumLines))
+		rewind(10)
+		read(10, "(a)") sBuffer	! Skip header
+		do iLine = 1, iNumLines
+			read(10, "(a)") sBuffer
+			read(sBuffer(iFirstComma+1:iFirstComma+16), "(i4,4(1x,i2))") &
+				iYear, iMonth, iDay, iHour, iMinute
+			call PackTime(iCurrentTime, iYear, iMonth, iDay, iHour, iMinute, 0)
+			rvTimeStamp(iLine) = iCurrentTime
+			read(sBuffer(iFirstComma+18:), *) rvValue(iLine)
+		end do
+		close(10)
+		
+		! Check time stamps are ordered, and whether they form a gap-less series (they should
+		! for ARPA Lombardy proper data files)
+		rMinDelta =  huge(rMinDelta)
+		rMaxDelta = -huge(rMaxDelta)
+		do iLine = 2, size(rvTimeStamp)
+			rDelta = rvTimeStamp(iLine) - rvTimeStamp(iLine-1)
+			rMinDelta = min(rMinDelta, rDelta)
+			rMaxDelta = max(rMaxDelta, rDelta)
+		end do
+		if(rMinDelta /= rMaxDelta) then
+			print *,"tStat:: error: Time stamps are not well-ordered as in ARPA Lombardy files"
+			stop
+		end if
+		
+		! Populate time series from input file
+		iRetCode = ts % createFromDataVector(rvValue, rvTimeStamp(1), rDelta)
+		deallocate(rvTimeStamp, rvValue)
+		if(iRetCode /= 0) then
+			print *, "tStat:: error: Creation of time series failed with return code = ", iRetCode
+			stop
+		end if
+		
+		! Range-invalidate data, assuming they are temperature reading (other quantities will demand different limits
+		! (this code is for illustration only)
+		call ts % rangeInvalidate(-40., +60.)
+		
+		! Compute and print a short summary on values
+		call ts % summary(iNumData, rValid, rMin, rMean, rStdDev, rMax)
+		print *,"Summary on dava values"
+		print *,"======================"
+		print *
+		print *,"Number of data (valid and invalid) = ", iNumData
+		print *,"Fraction of valid data             = ", rValid, "%"
+		print *,"Minimum                            = ", rMin
+		print *,"Mean                               = ", rMean
+		print *,"Standard deviation                 = ", rStdDev
+		print *,"Maximum                            = ", rMax
+		print *
+	
+	end subroutine testTimeSeries
 	
 end program test_pbl_stat
