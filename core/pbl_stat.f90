@@ -8,6 +8,7 @@
 module pbl_stat
 
     use pbl_base
+    use pbl_time
 
     implicit none
     
@@ -45,6 +46,9 @@ module pbl_stat
     	procedure, public	:: createEmpty				=> tsCreateEmpty
     	procedure, public	:: isEmpty					=> tsIsEmpty
     	procedure, public	:: createFromDataVector		=> tsCreateFromDataVector
+    	procedure, public	:: populateFromDataVector	=> tsCreateFromDataVector
+    	procedure, public	:: summary					=> tsSummary
+    	procedure, public	:: RangeInvalidate			=> tsRangeInvalidate
     end type TimeSeries
     
 contains
@@ -963,5 +967,74 @@ contains
 		this % rvValue     = rvValues
 		
 	end function tsCreateFromDataVector
+	
+	
+	subroutine tsSummary(this, iNumValues, rValidPercentage, rMin, rMean, rStdDev, rMax)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)	:: this
+		integer, intent(out)			:: iNumValues
+		real, intent(out)				:: rValidPercentage
+		real, intent(out)				:: rMin
+		real, intent(out)				:: rMean
+		real, intent(out)				:: rStdDev
+		real, intent(out)				:: rMax
+		
+		! Locals
+		! -none-
+		
+		! Get size and valid count
+		if(.not.allocated(this % rvValue)) then
+			iNumValues       = 0.
+			rValidPercentage = 0.
+			rMin             = NaN
+			rMean            = NaN
+			rStdDev          = NaN
+			rMax             = NaN
+		else
+			iNumValues = size(this % rvValue)
+			if(iNumValues > 0) then
+				rValidPercentage = 100.0 * count(.valid. this % rvValue) / iNumValues
+				rMin             = minval(this % rvValue, mask = .valid. this % rvValue)
+				rMean            = sum(this % rvValue, mask = .valid. this % rvValue) / iNumValues
+				rStdDev          = sqrt(sum((this % rvValue - rMean)**2, mask = .valid. this % rvValue) / iNumValues)
+				rMax             = maxval(this % rvValue, mask = .valid. this % rvValue)
+			else
+				rValidPercentage = 0.
+				rMin             = NaN
+				rMean            = NaN
+				rStdDev          = NaN
+				rMax             = NaN
+			end if
+		end if
+		
+	end subroutine tsSummary
+	
+	
+	subroutine tsRangeInvalidate(this, rMin, rMax)
+	
+		! Routine arguments
+		class(TimeSeries), intent(inout)	:: this
+		real, intent(in)					:: rMin
+		real, intent(in)					:: rMax
+		
+		! Locals
+		real	:: rMinVal, rMaxVal
+		
+		! Ensure limits ordering
+		if(rMin <= rMax) then
+			rMinVal = rMin
+			rMaxVal = rMax
+		else
+			rMinVal = rMax
+			rMaxVal = rMin
+		end if
+		
+		! Invalidate by Range
+		if(.not.this % isEmpty()) then
+			call RangeInvalidate(this % rvValue, rMinVal, rMaxVal)
+		end if
+		
+	end subroutine tsRangeInvalidate
 	
 end module pbl_stat
