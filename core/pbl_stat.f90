@@ -43,16 +43,25 @@ module pbl_stat
     	real(8), dimension(:), allocatable, private	:: rvTimeStamp
     	real, dimension(:), allocatable, private	:: rvValue
     contains
+    	! Constructors
     	procedure, public	:: createEmpty						=> tsCreateEmpty
-    	procedure, public	:: isEmpty							=> tsIsEmpty
     	procedure, public	:: createFromDataVector				=> tsCreateFromDataVector
-    	procedure, public	:: populateFromDataVector			=> tsCreateFromDataVector
     	procedure, public	:: createFromTimeAndDataVectors		=> tsCreateFromTimeAndDataVectors
+    	! Modifiers and reshapers
+    	procedure, public	:: populateFromDataVector			=> tsCreateFromDataVector
     	procedure, public	:: populateFromTimeAndDataVectors	=> tsCreateFromTimeAndDataVectors
+    	! Selectors
+    	procedure, public	:: getSingleItem					=> tsGetSingleItem
+    	! Assigners
+    	procedure, public	:: putSingleItem					=> tsPutSingleItem
+    	! Summary generators
     	procedure, public	:: summary							=> tsSummary
     	procedure, public	:: rangeInvalidate					=> tsRangeInvalidate
+    	! State interrogations
+    	procedure, public	:: isEmpty							=> tsIsEmpty
     	procedure, public	:: timeIsMonotonic					=> tsTimeMonotonic
     	procedure, public	:: timeIsQuasiMonotonic				=> tsTimeQuasiMonotonic
+    	procedure, public	:: timeIsGapless					=> tsTimeGapless
     end type TimeSeries
     
 contains
@@ -81,6 +90,7 @@ contains
 	
 
 	! Make invalid data in a vector invalid if those of another also are, and viceversa.
+	! After 
 	subroutine PairInvalidate(rvX, rvY)
 	
 		! Routine arguments
@@ -1023,10 +1033,80 @@ contains
 		end if
 		
 		! Fill with appropriate initial values
-		this % rvTimeStamp = rvTimeStamp
-		this % rvValue     = rvValues
+		do i = 1, n
+			this % rvTimeStamp(i) = rvTimeStamp(i)
+			this % rvValue(i)     = rvValues(i)
+		end do
 		
 	end function tsCreateFromTimeAndDataVectors
+	
+	
+	function tsGetSingleItem(this, iItemIdx, rTimeStamp, rValue) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)	:: this
+		integer, intent(in)				:: iItemIdx
+		real(8), intent(out)			:: rTimeStamp
+		real, intent(out)				:: rValue
+		integer							:: iRetCode
+		
+		! Locals
+		! -none-
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(this % isEmpty()) then
+			rTimeStamp = NaN_8
+			rValue     = NaN
+			iRetCode   = 1
+			return
+		end if
+		if(iItemIdx <= 0 .or. iItemIdx > size(this % rvTimeStamp)) then
+			rTimeStamp = NaN_8
+			rValue     = NaN
+			iRetCode   = 2
+			return
+		end if
+		
+		! Gather value
+		rTimeStamp = this % rvTimeStamp(iItemIdx)
+		rValue     = this % rvValue(iItemIdx)
+		
+	end function tsGetSingleItem
+	
+	
+	function tsPutSingleItem(this, iItemIdx, rTimeStamp, rValue) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(inout)	:: this
+		integer, intent(in)					:: iItemIdx
+		real(8), intent(in)					:: rTimeStamp
+		real, intent(in)					:: rValue
+		integer								:: iRetCode
+		
+		! Locals
+		! -none-
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(this % isEmpty()) then
+			iRetCode   = 1
+			return
+		end if
+		if(iItemIdx <= 0 .or. iItemIdx > size(this % rvTimeStamp)) then
+			iRetCode   = 2
+			return
+		end if
+		
+		! Gather value
+		this % rvTimeStamp(iItemIdx) = rTimeStamp
+		this % rvValue(iItemIdx)     = rValue
+		
+	end function tsPutSingleItem
 	
 	
 	subroutine tsSummary(this, iNumValues, rValidPercentage, rMin, rMean, rStdDev, rMax)
@@ -1108,9 +1188,19 @@ contains
 		integer		:: n
 		integer		:: i
 		
+		! Check parameters
+		if(this % isEmpty()) then
+			lIsMonotonic = .false.
+			return
+		end if
+		n = size(this % rvTimeStamp)
+		if(n <= 1) then
+			lIsMonotonic = .false.
+			return
+		end if
+		
 		! Check time stamps are strictly increasing
 		lIsMonotonic = .true.
-		n = size(this % rvTimeStamp)
 		do i = 2, n
 			if(this % rvTimeStamp(i-1) >= this % rvTimeStamp(i)) then
 				lIsMonotonic = .false.
@@ -1131,9 +1221,19 @@ contains
 		integer		:: n
 		integer		:: i
 		
+		! Check parameters
+		if(this % isEmpty()) then
+			lIsMonotonic = .false.
+			return
+		end if
+		n = size(this % rvTimeStamp)
+		if(n <= 1) then
+			lIsMonotonic = .false.
+			return
+		end if
+		
 		! Check time stamps are strictly increasing
 		lIsMonotonic = .true.
-		n = size(this % rvTimeStamp)
 		do i = 2, n
 			if(this % rvTimeStamp(i-1) > this % rvTimeStamp(i)) then
 				lIsMonotonic = .false.
@@ -1142,5 +1242,38 @@ contains
 		end do
 	
 	end function tsTimeQuasiMonotonic
+	
+	
+	function tsTimeGapless(this) result(lIsGapless)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)	:: this
+		logical							:: lIsGapless
+		
+		! Locals
+		integer		:: n
+		integer		:: i
+		
+		! Check parameters
+		if(this % isEmpty()) then
+			lIsGapless = .false.
+			return
+		end if
+		n = size(this % rvTimeStamp)
+		if(n <= 1) then
+			lIsGapless = .false.
+			return
+		end if
+		
+		! Check time stamps are strictly increasing
+		lIsGapless = .true.
+		do i = 1, n
+			if(.invalid.this % rvTimeStamp(i)) then
+				lIsGapless = .false.
+				return
+			end if
+		end do
+	
+	end function tsTimeGapless
 	
 end module pbl_stat
