@@ -81,7 +81,6 @@ contains
 	
 
 	! Make invalid data in a vector invalid if those of another also are, and viceversa.
-	! After 
 	subroutine PairInvalidate(rvX, rvY)
 	
 		! Routine arguments
@@ -90,12 +89,17 @@ contains
 		
 		! Locals
 		integer	:: i
+		integer	:: iMin, iMax
 		
-		! Validate by range
-		do i = 1, size(rvX)
-			if(isnan(rvX(i))) then
+		! Compute loop limits from array dimensions
+		iMin = max(lbound(rvX,dim=1), lbound(rvY,dim=1))
+		iMax = min(ubound(rvX,dim=1), ubound(rvY,dim=1))
+		
+		! Ensure invalid positions in one vector are propagated to the other
+		do i = iMin, iMax
+			if(.invalid. rvX(i)) then
 				rvY(i) = NaN
-			elseif(isnan(rvY(i))) then
+			elseif(.invalid. rvY(i)) then
 				rvX(i) = NaN
 			end if
 		end do
