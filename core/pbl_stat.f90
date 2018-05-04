@@ -912,9 +912,12 @@ contains
 			! Not yet allocated
 			lIsEmpty = .true.
 		else
-			! At least one vector allocated (but, they're private within class, so we can be sure that if
-			! one is allocated, the other is too
-			lIsEmpty = all(.invalid.this % rvTimeStamp) .and. all(.invalid.this % rvValue)
+			if(size(this % rvTimeStamp) <= 0 .or. size(this % rvValue) <= 0) then
+				lIsEmpty = .true.
+			else
+				! Both vectors are allocated: do they contain something?
+				lIsEmpty = all(.invalid.this % rvValue)
+			end if
 		end if
 		
 	end function tsIsEmpty
