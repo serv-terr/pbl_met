@@ -50,7 +50,9 @@ module pbl_stat
     	procedure, public	:: createFromTimeAndDataVectors		=> tsCreateFromTimeAndDataVectors
     	procedure, public	:: populateFromTimeAndDataVectors	=> tsCreateFromTimeAndDataVectors
     	procedure, public	:: summary							=> tsSummary
-    	procedure, public	:: RangeInvalidate					=> tsRangeInvalidate
+    	procedure, public	:: rangeInvalidate					=> tsRangeInvalidate
+    	procedure, public	:: timeIsMonotonic					=> tsTimeMonotonic
+    	procedure, public	:: timeIsQuasiMonotonic				=> tsTimeQuasiMonotonic
     end type TimeSeries
     
 contains
@@ -1087,5 +1089,51 @@ contains
 		end if
 		
 	end subroutine tsRangeInvalidate
+	
+	
+	function tsTimeMonotonic(this) result(lIsMonotonic)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)	:: this
+		logical							:: lIsMonotonic
+		
+		! Locals
+		integer		:: n
+		integer		:: i
+		
+		! Check time stamps are strictly increasing
+		lIsMonotonic = .true.
+		n = size(this % rvTimeStamp)
+		do i = 2, n
+			if(this % rvTimeStamp(i-1) >= this % rvTimeStamp(i)) then
+				lIsMonotonic = .false.
+				return
+			end if
+		end do
+	
+	end function tsTimeMonotonic
+	
+	
+	function tsTimeQuasiMonotonic(this) result(lIsMonotonic)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)	:: this
+		logical							:: lIsMonotonic
+		
+		! Locals
+		integer		:: n
+		integer		:: i
+		
+		! Check time stamps are strictly increasing
+		lIsMonotonic = .true.
+		n = size(this % rvTimeStamp)
+		do i = 2, n
+			if(this % rvTimeStamp(i-1) > this % rvTimeStamp(i)) then
+				lIsMonotonic = .false.
+				return
+			end if
+		end do
+	
+	end function tsTimeQuasiMonotonic
 	
 end module pbl_stat
