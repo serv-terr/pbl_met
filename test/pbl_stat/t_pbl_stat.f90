@@ -884,6 +884,7 @@ contains
 		integer				:: iLine
 		character(len=128)	:: sBuffer
 		real(8)				:: rMinDelta, rDelta, rMaxDelta
+		real(8)				:: hold
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		real, dimension(:), allocatable		:: rvValue
 		integer								:: iYear, iMonth, iDay, iHour, iMinute
@@ -961,7 +962,32 @@ contains
 		print *,"Standard deviation                 = ", rStdDev
 		print *,"Maximum                            = ", rMax
 		print *
+		
+		! Check time is monotonic
+		print *,'Test 2 - Check time stamp strict monotonicity (increasing)'
+		print *,'Monotonic? ', ts % timeIsMonotonic(), "    (Expected: T)"
+		print *
 	
+		! Check time is quasi monotonic
+		print *,'Test 2 - Check time stamp weak monotonicity (non-decreasing)'
+		print *,'Monotonic? ', ts % timeIsQuasiMonotonic(), "    (Expected: T)"
+		print *
+		
+		! Make time stamp non-monotonic
+		hold = this % rvTimeStamp(1)
+		this % rvTimeStamp(1) = this % rvTimeStamp(2)
+		this % rvTimeStamp(2) = hold
+	
+		! Check time is monotonic
+		print *,'Test 3 - Check time stamp strict monotonicity (increasing)'
+		print *,'Monotonic? ', ts % timeIsMonotonic(), "    (Expected: F)"
+		print *
+	
+		! Check time is quasi monotonic
+		print *,'Test 3 - Check time stamp weak monotonicity (non-decreasing)'
+		print *,'Monotonic? ', ts % timeIsQuasiMonotonic(), "    (Expected: F)"
+		print *
+		
 	end subroutine testTimeSeries
 	
 end program test_pbl_stat
