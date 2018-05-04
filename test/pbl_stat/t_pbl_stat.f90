@@ -884,7 +884,10 @@ contains
 		integer				:: iLine
 		character(len=128)	:: sBuffer
 		real(8)				:: rMinDelta, rDelta, rMaxDelta
-		real(8)				:: hold
+		real(8)				:: hold8_1
+		real				:: hold4_1
+		real(8)				:: hold8_2
+		real				:: hold4_2
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		real, dimension(:), allocatable		:: rvValue
 		integer								:: iYear, iMonth, iDay, iHour, iMinute
@@ -940,7 +943,6 @@ contains
 		
 		! Populate time series from input file
 		iRetCode = ts % createFromDataVector(rvValue, rvTimeStamp(1), rDelta)
-		deallocate(rvTimeStamp, rvValue)
 		if(iRetCode /= 0) then
 			print *, "tStat:: error: Creation of time series failed with return code = ", iRetCode
 			stop
@@ -952,7 +954,7 @@ contains
 		
 		! Compute and print a short summary on values
 		call ts % summary(iNumData, rValid, rMin, rMean, rStdDev, rMax)
-		print *,"Summary on dava values"
+		print *,"Summary on data values"
 		print *,"======================"
 		print *
 		print *,"Number of data (valid and invalid) = ", iNumData
@@ -973,10 +975,11 @@ contains
 		print *,'Monotonic? ', ts % timeIsQuasiMonotonic(), "    (Expected: T)"
 		print *
 		
-		! Make time stamp non-monotonic
-		hold = this % rvTimeStamp(1)
-		this % rvTimeStamp(1) = this % rvTimeStamp(2)
-		this % rvTimeStamp(2) = hold
+		! Make time stamp non-monotonic by exchanging the monotonic's first two elements
+		iRetCode = ts % getSingleItem(1, hold8_1, hold4_1)
+		iRetCode = ts % getSingleItem(2, hold8_2, hold4_2)
+		iRetCode = ts % putSingleItem(1, hold8_2, hold4_2)
+		iRetCode = ts % putSingleItem(2, hold8_1, hold4_1)
 	
 		! Check time is monotonic
 		print *,'Test 3 - Check time stamp strict monotonicity (increasing)'
@@ -987,6 +990,19 @@ contains
 		print *,'Test 3 - Check time stamp weak monotonicity (non-decreasing)'
 		print *,'Monotonic? ', ts % timeIsQuasiMonotonic(), "    (Expected: F)"
 		print *
+		
+		! Check time is gapless
+		print *, 'Test 4 - Check time stamp vector to be gapless'
+		iRetCode = ts % populateFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		print *, 'Gapless? ', ts % timeIsGapless(), '   (Expected: T)'
+		iRetCode = ts % getSingleItem(2, hold8_2, hold4_2)
+		iRetCode = ts % putSingleItem(2, NaN_8, hold4_2)
+		print *, 'And now? ', ts % timeIsGapless(), '   (Expected: F)'
+		iRetCode = ts % putSingleItem(2, hold8_2, hold4_2)
+		print *, 'And now? ', ts % timeIsGapless(), '   (Expected: T)'
+		print *
+		
+		deallocate(rvTimeStamp, rvValue)
 		
 	end subroutine testTimeSeries
 	
