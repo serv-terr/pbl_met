@@ -892,9 +892,9 @@ contains
 		real(8)				:: rMinTimeStamp
 		real(8)				:: rMaxTimeStamp
 		integer				:: iNumGaps
+		integer				:: iYear, iMonth, iDay, iHour, iMinute, iSecond
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		real, dimension(:), allocatable		:: rvValue
-		integer								:: iYear, iMonth, iDay, iHour, iMinute
 		integer								:: iFirstComma
 		integer								:: iCurrentTime
 	
@@ -1040,6 +1040,13 @@ contains
 		print *, '     Time step: ', rTimeStep, '  (Expected: NaN)'
 		print *, '     Num. gaps: ', iNumGaps,  '  (Expected: -1)'
 		deallocate(rvTimeStamp, rvValue)
+		
+		! Time stamp related tests
+		print *, "Test 7 - Maximum/minimum date/time values."
+		call UnpackTime(0, iYear, iMonth, iDay, iHour, iMinute, iSecond)
+		print "('Min date: ',i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2))", iYear, iMonth, iDay, iHour, iMinute, iSecond
+		call UnpackTime(huge(iYear), iYear, iMonth, iDay, iHour, iMinute, iSecond)
+		print "('Max date: ',i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2))", iYear, iMonth, iDay, iHour, iMinute, iSecond
 		
 	end subroutine testTimeSeries
 	
