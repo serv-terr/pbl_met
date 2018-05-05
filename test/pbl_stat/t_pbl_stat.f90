@@ -889,6 +889,8 @@ contains
 		real(8)				:: hold8_2
 		real				:: hold4_2
 		real(8)				:: rTimeStep
+		real(8)				:: rMinTimeStamp
+		real(8)				:: rMaxTimeStamp
 		integer				:: iNumGaps
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		real, dimension(:), allocatable		:: rvValue
@@ -1004,10 +1006,23 @@ contains
 		print *, 'And now? ', ts % timeIsGapless(), '   (Expected: T)'
 		print *
 		
+		print *, 'Test 5 - Exercise member function getTimeSpan()'
+		iRetCode = ts % populateFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = ts % getTimeSpan(rMinTimeStamp, rMaxTimeStamp)
+		print *, 'No gaps: ', rMinTimeStamp, ' to ', rMaxTimeStamp, '   Return code = ', iRetCode,' (Expected: 0)'
+		iRetCode = ts % getSingleItem(2, hold8_2, hold4_2)
+		iRetCode = ts % putSingleItem(2, NaN_8, hold4_2)
+		iRetCode = ts % getTimeSpan(rMinTimeStamp, rMaxTimeStamp)
+		print *, 'One gap: ', rMinTimeStamp, ' to ', rMaxTimeStamp, '   Return code = ', iRetCode,' (Expected: 0)'
+		rvTimeStamp = NaN_8
+		iRetCode = ts % populateFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = ts % getTimeSpan(rMinTimeStamp, rMaxTimeStamp)
+		print *, 'All gaps:', rMinTimeStamp, ' to ', rMaxTimeStamp, '   Return code = ', iRetCode,' (Expected: 1)'
+		
 		deallocate(rvTimeStamp, rvValue)
 		
 		allocate(rvTimeStamp(5), rvValue(5))
-		print *, 'Test 5 - Exercise member function timeIsWellSpaced()'
+		print *, 'Test 6 - Exercise member function timeIsWellSpaced()'
 		rvTimeStamp = [1.d0, 2.d0, 3.d0, 4.d0, 5.d0]	! Perfect: well-spaced, no gaps
 		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
 		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
