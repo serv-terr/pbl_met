@@ -264,12 +264,60 @@ As mentioned in the previous section, `.valid.` and `.invalid.` operators are al
 
 ### `pbl_stat`: Statistics
 
-#### Data types
+#### Data types and classes
 
-#### Procedures
+##### The `TimeSeries` class
+
+###### Introduction
+
+The `TimeSeries` is an object-oriented Fortran type, supporting the basic treatment of time series whose data contents is logically a set of ordered couples
+$$
+\left( t_{i}, x_{i} \right)
+$$
+where the index $i$ range extends over all integers between 1 and $n>0$ , inclusive.
+
+In the _pbl_met_ actual implementation, univariate time series are made by two floating point vectors: one, of double precision (64 bit) type, holding the time stamp, and another, of single precision (32 bit), containing the corresponding series value. The two vectors are of identical length, and the ordered couples mentioned above are formed by elements having the same index value.
+
+Both time stamp and data vectors are _not_ accessible by users of the `TimeSeries` class: any possible use, from creation through data population to processing, is performed using appropriate member functions. This approach allows to maintain vector integrity better than it would be possible allowing class users to access vectors directly, at the price of a bit of study more.
+
+###### Why a vector of time series? Why not just an initial time and a time step? 
+
+On a first superficial look, using a double precision vector to hold time stamps may seem a huge overhead. But, we have our good reasons.
+
+The library _pbl_met_ is designed to operate on real-world data sets. These collections have been created using a variety of hardware devices whose components may fail, or be reconfigured by users, or changed in many ways. So, assuming all time stamps are exactly equally spaces and without gaps would have exposed _pbl_met_ to the risk of not being able to deal with real data.
+
+Using a time stamp vector allows time stamps to be irregularly spaced (as they could be, for example, for data coming from IoT appliances where the data sampling time is not always defined unambiguously), and even to be not monotonically increasing (as it may happen because of a failure in the data logger real time clock).
+
+This permissive approach is complemented by the existence of quite a number of member functions whose task is to test the time stamps of a specific time series possess some desirable properties, like being equally-spaced, containing no gaps or invalid times, and more. _pbl_met_ users  may then choose which actual properties to check (and then ensure) prior to perform their application-specific processing.
+
+###### Member procedures
+
+
+#### Low-level procedures
 
 ##### Off-range and invalid data management
 ###### Subroutine `RangeInvalidate`
+
+Make data outside a specified range invalid, by replacing their value with NaN.
+
+Interface
+
+```
+subroutine RangeInvalidate(rvX, rMin, rMax)
+	real, dimension(:), intent(inout)	:: rvX		! Vector of data to range-invalidate
+	real, intent(in)					:: rMin		! Minimum allowed value
+	real, intent(in)					:: rMax		! Maximum allowed value
+end subroutine RangeInvalidate
+```
+
+The data vector `rvX`may be both fixed-dimension and allocatable. In the latter case, it is the responsibility of user to make sure the vector is allocated on entry to this routine.
+
+It must also be `rMin < rMax`.
+
+The result is straightforward: assuming `rvX = [1., 2., 3., 4., 5.]` and `rMin = 2.`, `rMax = 4.`, then on exit we would have `rvX = [NaN, 2., 3., 4., NaN]`as both 1. and 5. are off.range. The two extremes `rMin, rMax` are used in inclusive mode, that is, if $v$ is a generic floating point value, it is accepted if
+
+`rMin`$\le v \le$ `rMax`
+
 ###### Subroutine `PairInvalidate`
 
 ###### Subroutine `RangeClip`
@@ -343,10 +391,10 @@ To date this module is a placeholder, still to be filled.
 
 |                 |                                                              |
 | :-------------- | ------------------------------------------------------------ |
-|                 |                                                              |
-|                 |                                                              |
 | Brockwell, 2002 | P.J. Brockwell, R.A. Davis, _Introduction to Time Series and Forecasting_, Springer, 2002 |
 |                 |                                                              |
+|                 |                                                              |
+| Deserno, web1   | M. Deserno, "How to generate exponentially correlated Gaussian random numbers", https://www.cmu.edu/biolphys/deserno/pdf/corr_gaussian_random.pdf |
 |                 |                                                              |
 | Geiger, 2003    | R. Geiger, R.H. Aron, P. Todhunter, _The Climate Near the Ground_, 6th edition, Rowman & Littlefield, 2003 |
 |                 |                                                              |
