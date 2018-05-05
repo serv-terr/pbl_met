@@ -8,9 +8,12 @@
 module pbl_met
 
 	use pbl_base
-	use pbl_time
-	use pbl_thermo
+	use pbl_depth
 	use pbl_evtrn
+	use pbl_simil
+	use pbl_stat
+	use pbl_thermo
+	use pbl_time
 	use pbl_wind
 	
 	implicit none
