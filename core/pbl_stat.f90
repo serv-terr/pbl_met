@@ -62,6 +62,7 @@ module pbl_stat
     	procedure, public	:: timeIsMonotonic					=> tsTimeMonotonic
     	procedure, public	:: timeIsQuasiMonotonic				=> tsTimeQuasiMonotonic
     	procedure, public	:: timeIsGapless					=> tsTimeGapless
+    	procedure, public	:: timeIsWellSpaced					=> tsTimeWellSpaced
     end type TimeSeries
     
 contains
@@ -1275,5 +1276,81 @@ contains
 		end do
 	
 	end function tsTimeGapless
+	
+	
+	function tsTimeWellSpaced(this, rTimeStep, iNumGaps) result(iWellSpacingType)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)	:: this
+		real(8), intent(out), optional	:: rTimeStep			! NaN in case of non-well-spaced data
+		integer, intent(out), optional	:: iNumGaps				! -1 in case of non-well-spaced data
+		integer							:: iWellSpacingType		! -1:well-spacing cannot be determined; 0:well-spaced, no gaps;
+																! 1:well-spaced, with at least one gap;
+		! Locals												! 2:not well-spaced (irregular time step)
+		integer		:: i
+		integer		:: n
+		real(8)		:: rDelta
+		real(8)		:: rQuotient
+		real(8)		:: rMinDelta
+		integer		:: iQuotient
+		integer		:: iMaxQuotient
+		integer		:: iNumGapsFound
+		
+		! Check parameters
+		if(this % isEmpty()) then
+			iWellSpacingType = -1
+			if(present(rTimeStep)) rTimeStep = NaN_8
+			if(present(iNumGaps))  iNumGaps  = -1
+			return
+		end if
+		n = size(this % rvTimeStamp)
+		if(n <= 1) then
+			! Degenerate case: less than two data available, success assumed
+			iWellSpacingType = 0
+			if(present(rTimeStep)) rTimeStep = 0.d0
+			if(present(iNumGaps))  iNumGaps  = 0
+			return
+		end if
+		
+		! First pass: find the minimum non-zero difference between any two consecutive time stamps
+		! (zero differences are allowed to occur, due to coarse-grained resolution of some
+		! data acquisition timing systems; an example of data sets for which zero time differences
+		! are allowed to occur is the SonicLib format
+		rMinDelta = huge(rMinDelta)
+		do i = 2, n
+			rDelta = abs(this % rvTimeStamp(i) - this % rvTimeStamp(i-1))
+			if(rDelta > 0.d0) rMinDelta = min(rDelta, rMinDelta)
+		end do
+		
+		! Second pass: check all the non-zero time differences are integer multiples of the minimum
+		! delta
+		iNumGapsFound = 0
+		do i = 2, n
+			rDelta = abs(this % rvTimeStamp(i) - this % rvTimeStamp(i-1))
+			rQuotient = rDelta / rMinDelta
+			iQuotient = floor(rQuotient)
+			if(rQuotient - iQuotient <= 10.0*epsilon(rQuotient)) then
+				iMaxQuotient = max(iQuotient, iMaxQuotient)
+				if(iQuotient > 1) iNumGapsFound = iNumGapsFound + 1
+			else
+				iWellSpacingType = 2	! Not well-spaced
+				if(present(rTimeStep)) rTimeStep = NaN_8
+				if(present(iNumGaps))  iNumGaps  = -1
+				return
+			end if
+		end do
+		
+		! Decide the final result based on counters evaluated so far
+		if(iNumGapsFound > 0) then
+			iWellSpacingType = 1	! Well-spaced, with one gap
+			if(present(rTimeStep)) rTimeStep = rMinDelta
+			if(present(iNumGaps))  iNumGaps  = iNumGapsFound
+		else
+			iWellSpacingType = 0	! Well-spaced, no time gaps (ideal condition)
+			if(present(rTimeStep)) rTimeStep = rMinDelta
+			if(present(iNumGaps))  iNumGaps  = 0
+		end if
+		
+	end function tsTimeWellSpaced
 	
 end module pbl_stat
