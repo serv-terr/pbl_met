@@ -888,6 +888,8 @@ contains
 		real				:: hold4_1
 		real(8)				:: hold8_2
 		real				:: hold4_2
+		real(8)				:: rTimeStep
+		integer				:: iNumGaps
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		real, dimension(:), allocatable		:: rvValue
 		integer								:: iYear, iMonth, iDay, iHour, iMinute
@@ -1002,6 +1004,26 @@ contains
 		print *, 'And now? ', ts % timeIsGapless(), '   (Expected: T)'
 		print *
 		
+		deallocate(rvTimeStamp, rvValue)
+		
+		allocate(rvTimeStamp(5), rvValue(5))
+		print *, 'Test 5 - Exercise member function timeIsWellSpaced()'
+		rvTimeStamp = [1.d0, 2.d0, 3.d0, 4.d0, 5.d0]	! Perfect: well-spaced, no gaps
+		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		print *, 'Well spacing state: ', ts % timeIsWellSpaced(rTimeStep, iNumGaps), ' (expected=0)'
+		print *, '     Time step: ', rTimeStep, '  (Expected: 1)'
+		print *, '     Num. gaps: ', iNumGaps,  '  (Expected: 0)'
+		rvTimeStamp = [1.d0, 2.d0, 4.d0, 5.d0, 6.d0]	! Almost perfect: well-spaced, one gap
+		iRetCode = ts % populateFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		print *, 'Well spacing state: ', ts % timeIsWellSpaced(rTimeStep, iNumGaps), ' (expected=1)'
+		print *, '     Time step: ', rTimeStep, '  (Expected: 1)'
+		print *, '     Num. gaps: ', iNumGaps,  '  (Expected: 1)'
+		rvTimeStamp = [1.13d0, 2.06d0, 3.61d0, 4.15d0, 5.70d0]	! Not well-spaced, one gap
+		iRetCode = ts % populateFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		print *, 'Well spacing state: ', ts % timeIsWellSpaced(rTimeStep, iNumGaps), ' (expected=2)'
+		print *, '     Time step: ', rTimeStep, '  (Expected: NaN)'
+		print *, '     Num. gaps: ', iNumGaps,  '  (Expected: -1)'
 		deallocate(rvTimeStamp, rvValue)
 		
 	end subroutine testTimeSeries
