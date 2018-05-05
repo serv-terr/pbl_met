@@ -52,6 +52,7 @@ module pbl_stat
     	procedure, public	:: populateFromTimeAndDataVectors	=> tsCreateFromTimeAndDataVectors
     	! Selectors
     	procedure, public	:: getSingleItem					=> tsGetSingleItem
+    	procedure, public	:: getTimeSpan						=> tsGetTimeSpan
     	! Assigners
     	procedure, public	:: putSingleItem					=> tsPutSingleItem
     	! Summary generators
@@ -1076,6 +1077,35 @@ contains
 		rValue     = this % rvValue(iItemIdx)
 		
 	end function tsGetSingleItem
+	
+	
+	function tsGetTimeSpan(this, rMinTimeStamp, rMaxTimeStamp) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)	:: this
+		real(8), intent(out)			:: rMinTimeStamp
+		real(8), intent(out)			:: rMaxTimeStamp
+		integer							:: iRetCode
+		
+		! Locals
+		! - --none--
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(this % isEmpty()) then
+			rMinTimeStamp = NaN_8
+			rMaxTimeStamp = NaN_8
+			iRetCode   = 1
+			return
+		end if
+		
+		! Compute time bounds, even if some invalid time stamps exist
+		rMinTimeStamp = minval(this % rvTimeStamp, mask = .valid.this % rvTimeStamp)
+		rMaxTimeStamp = maxval(this % rvTimeStamp, mask = .valid.this % rvTimeStamp)
+		
+	end function tsGetTimeSpan
 	
 	
 	function tsPutSingleItem(this, iItemIdx, rTimeStamp, rValue) result(iRetCode)
