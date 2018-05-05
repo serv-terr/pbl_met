@@ -928,7 +928,7 @@ contains
 				lIsEmpty = .true.
 			else
 				! Both vectors are allocated: do they contain something?
-				lIsEmpty = all(.invalid.this % rvValue)
+				lIsEmpty = all(.invalid.this % rvTimeStamp) .or. all(.invalid.this % rvValue)
 			end if
 		end if
 		
