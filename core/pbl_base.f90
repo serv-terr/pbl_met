@@ -28,6 +28,7 @@ module pbl_base
 	public	:: YEAR_DURATION
 	public	:: MONTH_DURATION
 	public	:: BASE_DAY
+	public	:: BASE_DAY_8
 	public	:: operator(.valid.)
 	public	:: operator(.invalid.)
 	
@@ -37,6 +38,7 @@ module pbl_base
 	real, parameter		:: YEAR_DURATION	       = 365.25
 	real, parameter		:: MONTH_DURATION	       = 30.6001
 	integer, parameter	:: BASE_DAY			       = 2440588		! 01. 01. 1970
+	integer, parameter	:: BASE_DAY_8		       = 2440588_8		! 01. 01. 1970
 	integer, parameter	:: LAI_GRASS               = 0
 	integer, parameter	:: LAI_ALFALFA             = 1
 	integer, parameter	:: ASCE_STANDARDATMOSPHERE = 0
