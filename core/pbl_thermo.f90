@@ -932,7 +932,7 @@ contains
 		! Routine arguments
 		REAL, INTENT(IN)				:: Td		! Dry bulb (that is "ordinary") temperature (K)
 		REAL, INTENT(IN)				:: Ur		! Relative humidity (%)
-		REAL						:: Dp
+		REAL						    :: Dp       ! Dew point (K)
 		
 		! Locals
 		REAL, PARAMETER	:: a =   6.112
