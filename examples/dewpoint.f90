@@ -28,7 +28,7 @@ program DewPoint
 		call helpfulMessage()
 		stop
 	end if
-	call get_command_argument(1, sBuffer)
+	call get_command_argument(2, sBuffer)
 	read(sBuffer, *, iostat=iRetCode) relh
 	if(iRetCode /= 0) then
 		print *, "Error: invalid relative humidity!"
