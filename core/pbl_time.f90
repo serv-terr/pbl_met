@@ -525,4 +525,44 @@ contains
 		
 	end function timeEncode1
 
+	
+	function timeEncode2(ivTimeStamp, iPeriodLength, iStepSize, ivTimeCode) result(iRetCode)
+	
+		! Routine arguments
+		integer, intent(in), dimension(:)				:: ivTimeStamp
+		integer, intent(in)								:: iPeriodLength
+		integer, intent(in)								:: iStepSize
+		integer, intent(out), dimension(:), allocatable	:: ivTimeCode
+		integer											:: iRetCode
+		
+		! Locals
+		integer		:: n
+		integer		:: i
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Reserve workspace
+		if(allocated(ivTimeCode)) deallocate(ivTimeCode)
+		n = size(ivTimeStamp)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		allocate(ivTimeCode(n))
+		
+		! Iterate over time stamps, and assign codes
+		do i = 1, n
+			if(ivTimeStamp(i) > 0) then
+				ivTimeCode(i) = mod(ivTimeStamp(i), iPeriodLength) / iStepSize + 1
+			else
+				ivTimeCode(i) = 0	! Special "invalid" code
+			end if
+		end do
+		
+		! Leave
+		deallocate(ivTimeCode)
+		
+	end function timeEncode2
+
 end module pbl_time
