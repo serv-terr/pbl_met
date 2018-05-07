@@ -32,6 +32,8 @@ module pbl_time
 	public	:: SunRiseSunSet				! Old PBL_MET evaluation of sun rise and sun set times (revised)
 	! 3. Data types
 	public	:: DateTime						! Class, supporting the new REAL(8) time stamps used in Time Series
+	! 4. Support for time stamps as vectors
+	public	:: timeEncode					! Compute aggregation indices for a time stamp vector
 	
 	! Data types
 	type DateTime
@@ -51,8 +53,8 @@ module pbl_time
 	end type DateTime
 	
 	! Internal constants
-	real(8), parameter	:: TIME_MIN =                0.
-	real(8), parameter	:: TIME_MAX = 9007199254740991.
+	real(8), parameter	:: TIME_MIN =            0.d0
+	real(8), parameter	:: TIME_MAX = 253402300800.d0
 	
 	! Polymorphic interfaces
 	interface timeEncode
@@ -694,9 +696,6 @@ contains
 			end if
 		end do
 		
-		! Leave
-		deallocate(ivTimeCode)
-		
 	end function timeEncode1
 
 	
@@ -733,9 +732,6 @@ contains
 				ivTimeCode(i) = 0	! Special "invalid" code
 			end if
 		end do
-		
-		! Leave
-		deallocate(ivTimeCode)
 		
 	end function timeEncode2
 
