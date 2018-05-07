@@ -1041,13 +1041,6 @@ contains
 		print *, '     Num. gaps: ', iNumGaps,  '  (Expected: -1)'
 		deallocate(rvTimeStamp, rvValue)
 		
-		! Time stamp related tests
-		print *, "Test 7 - Maximum/minimum date/time values."
-		call UnpackTime(0, iYear, iMonth, iDay, iHour, iMinute, iSecond)
-		print "('Min date: ',i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2))", iYear, iMonth, iDay, iHour, iMinute, iSecond
-		call UnpackTime(huge(iYear), iYear, iMonth, iDay, iHour, iMinute, iSecond)
-		print "('Max date: ',i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2))", iYear, iMonth, iDay, iHour, iMinute, iSecond
-		
 	end subroutine testTimeSeries
 	
 end program test_pbl_stat
