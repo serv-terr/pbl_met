@@ -11,13 +11,21 @@ program test_pbl_time
 	implicit none
 	
 	! Locals
+	integer				:: iYear, iMonth, iDay, iHour, iMinute, iSecond
 	type(DateTime)		:: dt
 	character(len=23)	:: sDateTime
 	integer				:: iRetCode
 	real(8)				:: rEpoch
 	
-	! Test 1: which is the largest representable date?
-	print *, "Test 1 - Common date and time manipulations related to REAL(8) time stamps"
+	! Time stamp related tests
+	print *, "Test 1 - Maximum/minimum date/time values."
+	call UnpackTime(0, iYear, iMonth, iDay, iHour, iMinute, iSecond)
+	print "('Min date: ',i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2))", iYear, iMonth, iDay, iHour, iMinute, iSecond
+	call UnpackTime(huge(iYear), iYear, iMonth, iDay, iHour, iMinute, iSecond)
+	print "('Max date: ',i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2))", iYear, iMonth, iDay, iHour, iMinute, iSecond
+		
+	! Test 2: which is the largest representable date?
+	print *, "Test 2 - Common date and time manipulations related to REAL(8) time stamps"
 	iRetCode  = dt % fromEpoch(253402300799.999d0)
 	sDateTime = dt % toIso()
 	print *, "Maximum date-time: ", trim(sDateTime), "  (Return code = ", iRetCode, "  - Expected = 0)"
