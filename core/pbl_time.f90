@@ -35,7 +35,8 @@ module pbl_time
 	! 4. Support for time stamps as vectors
 	public	:: timeEncode					! Compute aggregation indices for a time stamp vector
 	public	:: timeGetYear					! Extract year from a time stamp vector (may be used to obtain an index)
-	public	:: timeGetMonth					! Extract Month from a time stamp vector (may be used to obtain an index)
+	public	:: timeGetMonth					! Extract month from a time stamp vector (may be used to obtain an index)
+	public	:: timeGetYearMonth				! Extract a year-month value from a time stamp vector (may be used to obtain an index)
 	
 	! Data types
 	type DateTime
@@ -77,6 +78,11 @@ module pbl_time
 		module procedure	:: timeGetMonth2
 	end interface timeGetMonth
 	
+	
+	interface timeGetYearMonth
+		module procedure	:: timeGetYearMonth1
+		module procedure	:: timeGetYearMonth2
+	end interface timeGetYearMonth
 	
 contains
 
@@ -907,5 +913,84 @@ contains
 		end do
 		
 	end function timeGetMonth2
+
+	
+	function timeGetYearMonth1(rvTimeStamp, ivYearMonth) result(iRetCode)
+	
+		! Routine arguments
+		real(8), intent(in), dimension(:)				:: rvTimeStamp
+		integer, intent(out), dimension(:), allocatable	:: ivYearMonth
+		integer											:: iRetCode
+		
+		! Locals
+		integer			:: n
+		integer			:: i
+		type(DateTime)	:: dt
+		integer			:: iErrCode
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Reserve workspace
+		if(allocated(ivYearMonth)) deallocate(ivYearMonth)
+		n = size(rvTimeStamp)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		allocate(ivYearMonth(n))
+		
+		! Iterate over time stamps, and assign codes
+		do i = 1, n
+			if(.valid.rvTimeStamp(i)) then
+				iErrCode = dt % fromEpoch(rvTimeStamp(i))
+				if(iErrCode == 0) then
+					ivYearMonth(i) = 12 * dt % iYear + dt % iMonth - 1
+				else
+					ivYearMonth(i) = -9999	! Special "invalid" code
+				end if
+			else
+				ivYearMonth(i) = -9999	! Special "invalid" code
+			end if
+		end do
+		
+	end function timeGetYearMonth1
+
+	
+	function timeGetYearMonth2(ivTimeStamp, ivYearMonth) result(iRetCode)
+	
+		! Routine arguments
+		integer, intent(in), dimension(:)				:: ivTimeStamp
+		integer, intent(out), dimension(:), allocatable	:: ivYearMonth
+		integer											:: iRetCode
+		
+		! Locals
+		integer		:: n
+		integer		:: i
+		integer		:: iYear, iMonth, iDay, iHour, iMinute, iSecond
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Reserve workspace
+		if(allocated(ivYearMonth)) deallocate(ivYearMonth)
+		n = size(ivTimeStamp)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		allocate(ivYearMonth(n))
+		
+		! Iterate over time stamps, and assign codes
+		do i = 1, n
+			if(ivTimeStamp(i) > 0) then
+				call UnpackTime(ivTimeStamp(i), iYear, iMonth, iDay, iHour, iMinute, iSecond)
+				ivYearMonth(i) = 12 * iYear + iMonth - 1
+			else
+				ivYearMonth(i) = -9999	! Special "invalid" code
+			end if
+		end do
+		
+	end function timeGetYearMonth2
 
 end module pbl_time
