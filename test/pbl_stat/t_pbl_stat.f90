@@ -1054,6 +1054,9 @@ contains
 		iRetCode = tsCopy % getValues(rvValue)
 		print *, "Actual time stamps:    ", rvTimeStamp
 		print *, "Actual values:         ", rvValue
+		call tsCopy % timeShift(1.d0)
+		iRetCode = tsCopy % getTimeStamp(rvTimeStamp)
+		print *, "Shifted time stamps:   ", rvTimeStamp
 		print *
 		
 		! Leave
