@@ -51,17 +51,18 @@ module pbl_stat
     	! Modifiers and reshapers
     	procedure, public	:: populateFromDataVector			=> tsCreateFromDataVector
     	procedure, public	:: populateFromTimeAndDataVectors	=> tsCreateFromTimeAndDataVectors
+    	procedure, public	:: rangeInvalidate					=> tsRangeInvalidate
+    	procedure, public	:: timeShift						=> tsTimeShift
     	! Selectors
     	procedure, public	:: getSingleItem					=> tsGetSingleItem
     	procedure, public	:: getTimeStamp						=> tsGetTimeStamp
     	procedure, public	:: getValues						=> tsGetValues
-    	procedure, public	:: getTimeSpan						=> tsGetTimeSpan
     	! Assigners
     	procedure, public	:: putSingleItem					=> tsPutSingleItem
     	! Summary generators
     	procedure, public	:: size								=> tsSize
     	procedure, public	:: summary							=> tsSummary
-    	procedure, public	:: rangeInvalidate					=> tsRangeInvalidate
+    	procedure, public	:: getTimeSpan						=> tsGetTimeSpan
     	! State interrogations
     	procedure, public	:: isEmpty							=> tsIsEmpty
     	procedure, public	:: timeIsMonotonic					=> tsTimeMonotonic
@@ -1094,6 +1095,23 @@ contains
 		end do
 		
 	end function tsCreateFromTimeAndDataVectors
+	
+	
+	! Shift time stamp values by a given time difference (useful for example when changing a posticipated
+	! time stamp to an anticipated one
+	subroutine tsTimeShift(this, deltaTime)
+	
+		! Routine arguments
+		class(TimeSeries), intent(inout)	:: this
+		real(8), intent(in)					:: deltaTime
+		
+		! Locals
+		! --none--
+		
+		! Apply shift operator in place
+		this % rvTimeStamp = this % rvTimeStamp + deltaTime
+		
+	end subroutine tsTimeShift
 	
 	
 	function tsGetSingleItem(this, iItemIdx, rTimeStamp, rValue) result(iRetCode)
