@@ -15,13 +15,13 @@ endif
 pbl_met.a : pbl_met.o pbl_base.o pbl_stat.o pbl_time.o pbl_thermo.o pbl_evtrn.o pbl_wind.o pbl_simil.o pbl_depth.o
 	$(AR) $(ARFLAGS) pbl_met.a pbl_met.o pbl_base.o pbl_stat.o pbl_time.o pbl_thermo.o pbl_evtrn.o pbl_wind.o pbl_simil.o pbl_depth.o $(ARPOST)
 
-pbl_met.o pbl_met.mod : pbl_met.f90 pbl_base.mod pbl_stat.mod pbl_time.mod pbl_thermo.mod pbl_evtrn.mod pbl_wind.mod
+pbl_met.o pbl_met.mod : pbl_met.f90 pbl_base.mod pbl_stat.mod pbl_time.mod pbl_thermo.mod pbl_evtrn.mod pbl_wind.mod pbl_depth.mod
 	$(F90) $(FFLAGS) pbl_met.f90
 
 pbl_base.o pbl_base.mod : pbl_base.f90
 	$(F90) -fno-range-check $(FFLAGS) pbl_base.f90
 	
-pbl_stat.o pbl_stat.mod : pbl_stat.f90
+pbl_stat.o pbl_stat.mod : pbl_stat.f90 pbl_base.mod pbl_time.mod
 	$(F90) $(FFLAGS) pbl_stat.f90
 	
 pbl_time.o pbl_time.mod : pbl_time.f90
