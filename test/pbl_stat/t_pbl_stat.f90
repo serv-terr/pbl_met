@@ -877,7 +877,7 @@ contains
 		! Locals
 		integer				:: iRetCode
 		character(len=256)	:: sInputFile
-		type(TimeSeries)	:: ts
+		type(TimeSeries)	:: ts, tsCopy
 		real				:: rValid, rMin, rMean, rStdDev, rMax
 		integer				:: iNumData
 		integer				:: iNumLines
@@ -1039,6 +1039,24 @@ contains
 		print *, 'Well spacing state: ', ts % timeIsWellSpaced(rTimeStep, iNumGaps), ' (expected=2)'
 		print *, '     Time step: ', rTimeStep, '  (Expected: NaN)'
 		print *, '     Num. gaps: ', iNumGaps,  '  (Expected: -1)'
+		print *
+		
+		! Check copy constructor
+		print *, "Test 7 - Exercise the copy constructor"
+		rvTimeStamp = [1.d0, 2.d0, 3.d0, 4.d0, 5.d0]	! Perfect: well-spaced, no gaps
+		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = tsCopy % createFromTimeSeries(ts)
+		print *, "Return code from copy: ", iRetCode
+		print *, "Expected time stamps:  ", rvTimeStamp
+		print *, "Expected values:       ", rvValue
+		iRetCode = tsCopy % getTimeStamp(rvTimeStamp)
+		iRetCode = tsCopy % getValues(rvValue)
+		print *, "Actual time stamps:    ", rvTimeStamp
+		print *, "Actual values:         ", rvValue
+		print *
+		
+		! Leave
 		deallocate(rvTimeStamp, rvValue)
 		
 	end subroutine testTimeSeries
