@@ -1059,6 +1059,39 @@ contains
 		print *, "Shifted time stamps:   ", rvTimeStamp
 		print *
 		
+		
+		! Check copy constructor
+		print *, "Test 8 - Exercise the time-based selector"
+		print *, "-- Normal case"
+		rvTimeStamp = [1.d0, 2.d0, 3.d0, 4.d0, 5.d0]	! Perfect: well-spaced, no gaps
+		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = tsCopy % getTimeSubset(ts, 2.d0, 4.d0)
+		print *, "Expected time stamps:  [2, 3, 4]"
+		print *, "Expected values:       [1, 1, 1]"
+		iRetCode = tsCopy % getTimeStamp(rvTimeStamp)
+		iRetCode = tsCopy % getValues(rvValue)
+		print *, "Actual time stamps:    ", rvTimeStamp
+		print *, "Actual values:         ", rvValue
+		print *, "-- Boundary case"
+		deallocate(rvTimeStamp)
+		deallocate(rvValue)
+		allocate(rvTimeStamp(5))
+		allocate(rvValue(5))
+		rvTimeStamp = [1.d0, NaN_8, 3.d0, 4.d0, 5.d0]	! Not perfect: well-spaced, but one gap
+		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = ts % getTimeStamp(rvTimeStamp)
+		iRetCode = ts % getValues(rvValue)
+		iRetCode = tsCopy % getTimeSubset(ts, 2.d0, 4.d0)
+		print *, "Expected time stamps:  [3, 4]"
+		print *, "Expected values:       [1, 1]"
+		iRetCode = tsCopy % getTimeStamp(rvTimeStamp)
+		iRetCode = tsCopy % getValues(rvValue)
+		print *, "Actual time stamps:    ", rvTimeStamp
+		print *, "Actual values:         ", rvValue
+		print *
+		
 		! Leave
 		deallocate(rvTimeStamp, rvValue)
 		
