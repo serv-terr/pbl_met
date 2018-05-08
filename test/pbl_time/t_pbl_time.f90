@@ -26,6 +26,8 @@ program test_pbl_time
 	integer, dimension(:), allocatable	:: ivTimeCode2
 	integer, dimension(:), allocatable	:: ivYear1
 	integer, dimension(:), allocatable	:: ivYear2
+	integer, dimension(:), allocatable	:: ivMonth1
+	integer, dimension(:), allocatable	:: ivMonth2
 	
 	! Time stamp related tests
 	print *, "Test 1 - Maximum/minimum date/time values."
@@ -66,9 +68,11 @@ program test_pbl_time
 	iRetCode = timeEncode(ivTimeStamp, 86400, 3600, ivTimeCode2)
 	iRetCode = timeGetYear(rvTimeStamp, ivYear1)
 	iRetCode = timeGetYear(ivTimeStamp, ivYear2)
-	print *, "i,  Idx.1,  Idx.2, Year.1, Year.2"
+	iRetCode = timeGetMonth(rvTimeStamp, ivMonth1)
+	iRetCode = timeGetMonth(ivTimeStamp, ivMonth2)
+	print *, "i,  Idx.1,  Idx.2, Year.1, Year.2, Month.1, Month.2"
 	do i = 1, iNumHours
-		print *, i, ivTimeCode1(i), ivTimeCode2(i), ivYear1(i), ivYear2(i)
+		print *, i, ivTimeCode1(i), ivTimeCode2(i), ivYear1(i), ivYear2(i), ivMonth1(i), ivMonth2(i)
 	end do
 	print *
 	
@@ -80,11 +84,13 @@ program test_pbl_time
 	iRetCode = timeEncode(ivTimeStamp, 86400, 3600, ivTimeCode2)
 	iRetCode = timeGetYear(rvTimeStamp, ivYear1)
 	iRetCode = timeGetYear(ivTimeStamp, ivYear2)
-	print *, "i,  Idx.1,  Idx.2, Year.1, Year.2"
+	iRetCode = timeGetMonth(rvTimeStamp, ivMonth1)
+	iRetCode = timeGetMonth(ivTimeStamp, ivMonth2)
+	print *, "i,  Idx.1,  Idx.2, Year.1, Year.2, Month.1, Month.2"
 	do i = 1, iNumHours
-		print *, i, ivTimeCode1(i), ivTimeCode2(i), ivYear1(i), ivYear2(i)
+		print *, i, ivTimeCode1(i), ivTimeCode2(i), ivYear1(i), ivYear2(i), ivMonth1(i), ivMonth2(i)
 	end do
 	print *
-	deallocate(rvTimeStamp, ivTimeStamp, ivTimeCode1, ivTimeCode2, ivYear1, ivYear2)
+	deallocate(rvTimeStamp, ivTimeStamp, ivTimeCode1, ivTimeCode2, ivYear1, ivYear2, ivMonth1, ivMonth2)
 	
 end program test_pbl_time
