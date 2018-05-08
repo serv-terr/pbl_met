@@ -45,6 +45,7 @@ module pbl_stat
     contains
     	! Constructors
     	procedure, public	:: createEmpty						=> tsCreateEmpty
+    	procedure, public	:: createFromTimeSeries				=> tsCreateFromTimeSeries
     	procedure, public	:: createFromDataVector				=> tsCreateFromDataVector
     	procedure, public	:: createFromTimeAndDataVectors		=> tsCreateFromTimeAndDataVectors
     	! Modifiers and reshapers
@@ -52,10 +53,13 @@ module pbl_stat
     	procedure, public	:: populateFromTimeAndDataVectors	=> tsCreateFromTimeAndDataVectors
     	! Selectors
     	procedure, public	:: getSingleItem					=> tsGetSingleItem
+    	procedure, public	:: getTimeStamp						=> tsGetTimeStamp
+    	procedure, public	:: getValues						=> tsGetValues
     	procedure, public	:: getTimeSpan						=> tsGetTimeSpan
     	! Assigners
     	procedure, public	:: putSingleItem					=> tsPutSingleItem
     	! Summary generators
+    	procedure, public	:: size								=> tsSize
     	procedure, public	:: summary							=> tsSummary
     	procedure, public	:: rangeInvalidate					=> tsRangeInvalidate
     	! State interrogations
@@ -868,6 +872,9 @@ contains
 	
 	end function RemoveLinearTrend
 	
+	! ********************************
+	! * Members of Time<series class *
+	! ********************************
 	
 	function tsCreateEmpty(this, n) result(iRetCode)
 	
@@ -908,6 +915,52 @@ contains
 		this % rvValue     = NaN
 		
 	end function tsCreateEmpty
+	
+	
+	! Copy constructor, creates a duplicate of current time series
+	function tsCreateFromTimeSeries(this, ts) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(out)		:: this
+		type(TimeSeries), intent(in)		:: ts
+		integer								:: iRetCode
+		
+		! Locals
+		integer	:: n
+		integer	:: iErrCode
+		real(8), dimension(:), allocatable	:: rvTimeStamp
+		real(4), dimension(:), allocatable	:: rvValues
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Reserve workspace in copy, based on original
+		n = ts % size()
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(allocated(this % rvValue)) deallocate(this % rvValue)
+		allocate(this % rvTimeStamp(n), stat = iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			return
+		end if
+		allocate(this % rvValue(n), stat = iErrCode)
+		if(iErrCode /= 0) then
+			deallocate(this % rvTimeStamp)
+			iRetCode = 2
+			return
+		end if
+		
+		! Fill with appropriate initial values
+		iRetCode           = ts % getTimeStamp(rvTimeStamp)
+		this % rvTimeStamp = rvTimeStamp
+		iRetCode           = ts % getValues(rvValues)
+		this % rvValue     = rvValues
+		
+	end function tsCreateFromTimeSeries
 	
 	
 	function tsIsEmpty(this) result(lIsEmpty)
@@ -1079,6 +1132,66 @@ contains
 	end function tsGetSingleItem
 	
 	
+	function tsGetTimeStamp(this, rvTimeStamp) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)					:: this
+		real(8), dimension(:), allocatable, intent(out)	:: rvTimeStamp
+		integer											:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something is to be made
+		n = size(this % rvTimeStamp)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Reserve workspace
+		if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
+		allocate(rvTimeStamp(n))
+		
+		! Transfer values
+		rvTimeStamp = this % rvTimeStamp
+		
+	end function tsGetTimeStamp
+	
+	
+	function tsGetValues(this, rvValues) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)					:: this
+		real(4), dimension(:), allocatable, intent(out)	:: rvValues
+		integer											:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something is to be made
+		n = size(this % rvValue)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Reserve workspace
+		if(allocated(rvValues)) deallocate(rvValues)
+		allocate(rvValues(n))
+		
+		! Transfer values
+		rvValues = this % rvValue
+		
+	end function tsGetValues
+	
+	
 	function tsGetTimeSpan(this, rMinTimeStamp, rMaxTimeStamp) result(iRetCode)
 	
 		! Routine arguments
@@ -1138,6 +1251,25 @@ contains
 		this % rvValue(iItemIdx)     = rValue
 		
 	end function tsPutSingleItem
+	
+	
+	function tsSize(this) result(iNumValues)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)	:: this
+		integer							:: iNumValues
+		
+		! Locals
+		! --none--
+		
+		! Get the information desired
+		if(this % isEmpty()) then
+			iNumValues = 0
+		else
+			iNumValues = min(size(this % rvTimeStamp), size(this % rvValue))
+		end if
+		
+	end function tsSize
 	
 	
 	subroutine tsSummary(this, iNumValues, rValidPercentage, rMin, rMean, rStdDev, rMax)
