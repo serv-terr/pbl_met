@@ -997,6 +997,17 @@ contains
 			sTimeStamp = tm % toIso()
 			print *, sTimeStamp, rValue
 		end do
+		print *, 'Monthly average'
+		iRetCode = ts % aggregateLinear(TDELTA_YEARMONTH, FUN_MEAN, tsReduced)
+		print *, 'Ret.code = ', iRetCode
+		print *, 'Resulting time series size = ', tsReduced % size()
+		print *, 'TimeStamp, Mean'
+		do i = 1, tsReduced % size()
+			iRetCode = tsReduced % getSingleItem(i, rTimeStamp, rValue)
+			iRetCode = tm % fromEpoch(rTimeStamp)
+			sTimeStamp = tm % toIso()
+			print *, sTimeStamp, rValue
+		end do
 		
 		! Make time stamp non-monotonic by exchanging the monotonic's first two elements
 		iRetCode = ts % getSingleItem(1, hold8_1, hold4_1)
@@ -1077,7 +1088,6 @@ contains
 		iRetCode = tsCopy % getTimeStamp(rvTimeStamp)
 		print *, "Shifted time stamps:   ", rvTimeStamp
 		print *
-		
 		
 		! Check copy constructor
 		print *, "Test 10 - Exercise the time-based selector"
