@@ -877,8 +877,10 @@ contains
 		! Locals
 		integer				:: iRetCode
 		character(len=256)	:: sInputFile
-		type(TimeSeries)	:: ts, tsCopy
+		type(TimeSeries)	:: ts, tsCopy, tsReduced
+		type(DateTime)		:: tm
 		real				:: rValid, rMin, rMean, rStdDev, rMax
+		integer				:: i
 		integer				:: iNumData
 		integer				:: iNumLines
 		integer				:: iLine
@@ -889,10 +891,13 @@ contains
 		real(8)				:: hold8_2
 		real				:: hold4_2
 		real(8)				:: rTimeStep
+		real(8)				:: rTimeStamp
+		real				:: rValue
 		real(8)				:: rMinTimeStamp
 		real(8)				:: rMaxTimeStamp
 		integer				:: iNumGaps
 		integer				:: iYear, iMonth, iDay, iHour, iMinute, iSecond
+		character(len=23)	:: sTimeStamp
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		real, dimension(:), allocatable		:: rvValue
 		integer								:: iFirstComma
@@ -979,6 +984,20 @@ contains
 		print *,'Monotonic? ', ts % timeIsQuasiMonotonic(), "    (Expected: T)"
 		print *
 		
+		! Check linear aggregator, by computing yearly average
+		print *, 'Test 3 - Check aggregateLinear'
+		print *, 'Yearly average'
+		iRetCode = ts % aggregateLinear(TDELTA_YEAR, FUN_MEAN, tsReduced)
+		print *, 'Ret.code = ', iRetCode
+		print *, 'Resulting time series size = ', tsReduced % size()
+		print *, 'TimeStamp, Mean'
+		do i = 1, tsReduced % size()
+			iRetCode = tsReduced % getSingleItem(i, rTimeStamp, rValue)
+			iRetCode = tm % fromEpoch(rTimeStamp)
+			sTimeStamp = tm % toIso()
+			print *, sTimeStamp, rValue
+		end do
+		
 		! Make time stamp non-monotonic by exchanging the monotonic's first two elements
 		iRetCode = ts % getSingleItem(1, hold8_1, hold4_1)
 		iRetCode = ts % getSingleItem(2, hold8_2, hold4_2)
@@ -986,17 +1005,17 @@ contains
 		iRetCode = ts % putSingleItem(2, hold8_1, hold4_1)
 	
 		! Check time is monotonic
-		print *,'Test 3 - Check time stamp strict monotonicity (increasing)'
+		print *,'Test 4 - Check time stamp strict monotonicity (increasing)'
 		print *,'Monotonic? ', ts % timeIsMonotonic(), "    (Expected: F)"
 		print *
 	
 		! Check time is quasi monotonic
-		print *,'Test 3 - Check time stamp weak monotonicity (non-decreasing)'
+		print *,'Test 5 - Check time stamp weak monotonicity (non-decreasing)'
 		print *,'Monotonic? ', ts % timeIsQuasiMonotonic(), "    (Expected: F)"
 		print *
 		
 		! Check time is gapless
-		print *, 'Test 4 - Check time stamp vector to be gapless'
+		print *, 'Test 6 - Check time stamp vector to be gapless'
 		iRetCode = ts % populateFromTimeAndDataVectors(rvTimeStamp, rvValue)
 		print *, 'Gapless? ', ts % timeIsGapless(), '   (Expected: T)'
 		iRetCode = ts % getSingleItem(2, hold8_2, hold4_2)
@@ -1006,7 +1025,7 @@ contains
 		print *, 'And now? ', ts % timeIsGapless(), '   (Expected: T)'
 		print *
 		
-		print *, 'Test 5 - Exercise member function getTimeSpan()'
+		print *, 'Test 7 - Exercise member function getTimeSpan()'
 		iRetCode = ts % populateFromTimeAndDataVectors(rvTimeStamp, rvValue)
 		iRetCode = ts % getTimeSpan(rMinTimeStamp, rMaxTimeStamp)
 		print *, 'No gaps: ', rMinTimeStamp, ' to ', rMaxTimeStamp, '   Return code = ', iRetCode,' (Expected: 0)'
@@ -1022,7 +1041,7 @@ contains
 		deallocate(rvTimeStamp, rvValue)
 		
 		allocate(rvTimeStamp(5), rvValue(5))
-		print *, 'Test 6 - Exercise member function timeIsWellSpaced()'
+		print *, 'Test 8 - Exercise member function timeIsWellSpaced()'
 		rvTimeStamp = [1.d0, 2.d0, 3.d0, 4.d0, 5.d0]	! Perfect: well-spaced, no gaps
 		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
 		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
@@ -1042,7 +1061,7 @@ contains
 		print *
 		
 		! Check copy constructor
-		print *, "Test 7 - Exercise the copy constructor"
+		print *, "Test 9 - Exercise the copy constructor"
 		rvTimeStamp = [1.d0, 2.d0, 3.d0, 4.d0, 5.d0]	! Perfect: well-spaced, no gaps
 		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
 		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
@@ -1061,7 +1080,7 @@ contains
 		
 		
 		! Check copy constructor
-		print *, "Test 8 - Exercise the time-based selector"
+		print *, "Test 10 - Exercise the time-based selector"
 		print *, "-- Normal case"
 		rvTimeStamp = [1.d0, 2.d0, 3.d0, 4.d0, 5.d0]	! Perfect: well-spaced, no gaps
 		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
