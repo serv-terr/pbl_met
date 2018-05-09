@@ -36,6 +36,16 @@ module pbl_stat
     public	:: RemoveLinearTrend
     ! 6. Time series
     public	:: TimeSeries
+    public	:: TDELTA_YEAR
+    public	:: TDELTA_MONTH
+    public	:: TDELTA_YEARMONTH
+    public	:: TDELTA_ONEMINUTE
+    public	:: TDELTA_ONEHOUR
+    public	:: TDELTA_ONEDAY
+    public	:: FUN_MEAN
+    public	:: FUN_STDEV
+    public	:: FUN_MIN
+    public	:: FUN_MAX
     
     ! Data types
     
@@ -70,7 +80,22 @@ module pbl_stat
     	procedure, public	:: timeIsQuasiMonotonic				=> tsTimeQuasiMonotonic
     	procedure, public	:: timeIsGapless					=> tsTimeGapless
     	procedure, public	:: timeIsWellSpaced					=> tsTimeWellSpaced
+    	! Aggregators
+    	procedure, public	:: aggregateLinear					=> tsAggregateLinear
     end type TimeSeries
+    
+    ! Constants
+    
+    integer, parameter	:: TDELTA_YEARMONTH  =    -3
+    integer, parameter	:: TDELTA_YEAR       =    -2
+    integer, parameter	:: TDELTA_MONTH      =    -1
+    integer, parameter	:: TDELTA_ONEMINUTE  =    60
+    integer, parameter	:: TDELTA_ONEHOUR    =  3600
+    integer, parameter	:: TDELTA_ONEDAY     = 86400
+    integer, parameter	:: FUN_MEAN          =     0
+    integer, parameter	:: FUN_STDEV         =     1
+    integer, parameter	:: FUN_MIN           =     2
+    integer, parameter	:: FUN_MAX           =     3
     
 contains
 
@@ -1604,5 +1629,192 @@ contains
 		end if
 		
 	end function tsTimeWellSpaced
+	
+	
+	! Aggregate data of a time series according to a positive time difference,
+	! or a negative code indicating time divisions like month and year.
+	! Result is a time series, containing the aggregated values and time
+	! stamps spaced according to the time difference selected.
+	function tsAggregateLinear(this, iTimeDelta, iFunction, ts) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)	:: this
+		integer, intent(in)				:: iTimeDelta	! A positive time difference, or TDELTA_MONTH, or TDELTA_YEAR
+		integer, intent(in), optional	:: iFunction	! Function code: FUN_MEAN (default), FUN_STDEV, FUN_MIN, FUN_MAX
+		type(TimeSeries), intent(out)	:: ts			! The resulting time series
+		integer							:: iRetCode
+		
+		! Locals
+		integer								:: iErrCode
+		integer								:: n
+		integer								:: m
+		integer								:: i
+		integer								:: j
+		integer								:: iProcessing
+		integer								:: iYear
+		integer								:: iMonth
+		integer								:: iMinTimeIndex
+		type(DateTime)						:: tDateTime
+		real(8), dimension(:), allocatable	:: rvTimeStamp
+		integer, dimension(:), allocatable	:: ivTimeIndex
+		real, dimension(:), allocatable		:: rvValue
+		real(8), dimension(:), allocatable	:: rvTimeStamp_Reduced
+		integer, dimension(:), allocatable	:: ivNumData
+		real, dimension(:), allocatable		:: rvMin
+		real, dimension(:), allocatable		:: rvMax
+		real, dimension(:), allocatable		:: rvMean
+		real, dimension(:), allocatable		:: rvStDev
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something is to be made
+		if(this % isEmpty()) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Check delta time validity
+		if(iTimeDelta == 0) then
+			iRetCode = 2
+		elseif(iTimeDelta < 0) then
+			if(iTimeDelta /= TDELTA_MONTH .and. iTimeDelta /= TDELTA_YEAR) then
+				iRetCode = 2
+			end if
+		end if
+		if(iRetCode /= 0) return
+		
+		! Retrieve time stamp and data vectors from original time series
+		iErrCode = this % getTimeStamp(rvTimeStamp)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		iErrCode = this % getValues(rvValue)
+		if(iErrCode /= 0) then
+			iRetCode = 4
+			deallocate(rvTimeStamp)
+			return
+		end if
+		n = size(rvTimeStamp)
+		
+		! Index time, based on the desired time delta
+		if(iTimeDelta > 0) then
+			where(.valid.rvTimeStamp)
+				ivTimeIndex = floor(rvTimeStamp / iTimeDelta) + 1
+			elsewhere
+				ivTimeIndex = 0
+			end where
+		else
+			select case(iTimeDelta)
+			case(TDELTA_YEAR)
+				iErrCode = timeGetYear(rvTimeStamp, ivTimeIndex)
+			case(TDELTA_YEARMONTH)
+				iErrCode = timeGetYearMonth(rvTimeStamp, ivTimeIndex)
+			end select
+			if(iErrCode /= 0) then
+				iRetCode = 5
+				deallocate(rvValue)
+				deallocate(rvTimeStamp)
+				return
+			end if
+		end if
+		if(count(ivTimeIndex > 0) <= 0) then
+			iRetCode = 6
+			deallocate(rvValue)
+			deallocate(rvTimeStamp)
+			return
+		end if
+		
+		! Count maximum index, and use it to reserve workspace
+		iMinTimeIndex = minval(ivTimeIndex, mask = ivTimeIndex > 0)
+		m = (maxval(ivTimeIndex) - iMinTimeIndex) / iTimeDelta + 1
+		allocate(rvTimeStamp_Reduced(m), ivNumData(m), rvMin(m), rvMax(m), rvMean(m), rvStDev(m))
+		
+		! Change time indicator to a true, 1-based index
+		do i = 1, n
+			if(ivTimeIndex(i) > 0) then
+				ivTimeIndex(i) = ivTimeIndex(i) - iMinTimeIndex + 1
+			end if
+		end do
+			
+		! Form time stamp for new time series
+		if(iTimeDelta > 0) then
+			do j = 1, m
+				rvTimeStamp_Reduced(j) = dble((iMinTimeIndex - 1 + j - 1)) * iTimeDelta
+			end do
+		else
+			select case(iTimeDelta)
+			case(TDELTA_YEAR)
+				do j = 1, m
+					iYear = iMinTimeIndex - 1
+					tDateTime = DateTime(iYear, 1, 1, 0, 0, 0.d0)
+					rvTimeStamp_Reduced(j) = tDateTime % toEpoch()
+				end do
+			case(TDELTA_YEARMONTH)
+				do j = 1, m
+					iMonth = mod(iMinTimeIndex - 1, 12) + 1
+					iYear  = (iMinTimeIndex - 1) / 12
+					tDateTime = DateTime(iYear, iMonth, 1, 0, 0, 0.d0)
+					rvTimeStamp_Reduced(j) = tDateTime % toEpoch()
+				end do
+			end select
+		end if
+		
+		! Update counts
+		ivNumData =  0
+		rvMin     =  huge(1.)
+		rvMax     = -huge(1.)
+		rvMean    =  0.
+		rvStDev   =  0.
+		do i = 1, n
+			if(ivTimeIndex(i) > 0) then
+				j = ivTimeIndex(i)
+				ivNumData(j) = ivNumData(j) + 1
+				rvMin(j)     = min(rvMin(j), rvValue(i))
+				rvMax(j)     = max(rvMax(j), rvValue(i))
+				rvMean(j)    = rvMean(j) + rvValue(i)
+				rvStDev(j)   = rvStDev(j) + rvValue(i)**2
+			end if
+		end do
+		
+		! Transform mean and standard deviation counts in nominal quantities.
+		! Here I use a little trick, based on non-signalling NaNs: rvMean is computed
+		! by specifically discriminating between norman and invalid case. But StDev,
+		! on the other side, is computed directly counting on the fact that non
+		! signalling NaNs combine algebraically with valid values yielding NaNs
+		! (because of IEEE rules).
+		where(ivNumData > 0)
+			rvMean = rvMean / ivNumData
+		elsewhere
+			rvMean = NaN
+		end where
+		rvStDev = sqrt(rvStDev/ivNumData - rvMean**2)
+		
+		! Of all quantities computed, transmit (horrible inefficiency) the one desired
+		! to the resulting time series
+		if(present(iFunction)) then
+			iProcessing = iFunction
+		else
+			iProcessing = FUN_MEAN
+		end if
+		select case(iFunction)
+		case(FUN_MEAN)
+			iErrCode = ts % createFromTimeAndDataVectors(rvTimeStamp_Reduced, rvMean)
+		case(FUN_STDEV)
+			iErrCode = ts % createFromTimeAndDataVectors(rvTimeStamp_Reduced, rvStDev)
+		case(FUN_MIN)
+			iErrCode = ts % createFromTimeAndDataVectors(rvTimeStamp_Reduced, rvMin)
+		case(FUN_MAX)
+			iErrCode = ts % createFromTimeAndDataVectors(rvTimeStamp_Reduced, rvMax)
+		end select
+		if(iErrCode /= 0) then
+			iRetCode = 7
+		end if
+		
+		! Leave
+		deallocate(rvTimeStamp_Reduced, ivNumData, rvMin, rvMax, rvMean, rvStDev)
+		
+	end function tsAggregateLinear
 	
 end module pbl_stat
