@@ -1639,7 +1639,7 @@ contains
 	
 		! Routine arguments
 		class(TimeSeries), intent(in)	:: this
-		integer, intent(in)				:: iTimeDelta	! A positive time difference, or TDELTA_MONTH, or TDELTA_YEAR
+		integer, intent(in)				:: iTimeDelta	! A positive time difference, or TDELTA_YEARMONTH, or TDELTA_YEAR
 		integer, intent(in), optional	:: iFunction	! Function code: FUN_MEAN (default), FUN_STDEV, FUN_MIN, FUN_MAX
 		type(TimeSeries), intent(out)	:: ts			! The resulting time series
 		integer							:: iRetCode
@@ -1728,7 +1728,11 @@ contains
 		
 		! Count maximum index, and use it to reserve workspace
 		iMinTimeIndex = minval(ivTimeIndex, mask = ivTimeIndex > 0)
-		m = (maxval(ivTimeIndex) - iMinTimeIndex) / iTimeDelta + 1
+		if(iTimeDelta > 0) then
+			m = (maxval(ivTimeIndex) - iMinTimeIndex) / iTimeDelta + 1
+		else
+			m = maxval(ivTimeIndex) - iMinTimeIndex + 1
+		end if
 		allocate(rvTimeStamp_Reduced(m), ivNumData(m), rvMin(m), rvMax(m), rvMean(m), rvStDev(m))
 		
 		! Change time indicator to a true, 1-based index
@@ -1741,20 +1745,20 @@ contains
 		! Form time stamp for new time series
 		if(iTimeDelta > 0) then
 			do j = 1, m
-				rvTimeStamp_Reduced(j) = dble((iMinTimeIndex - 1 + j - 1)) * iTimeDelta
+				rvTimeStamp_Reduced(j) = dble((iMinTimeIndex + j - 1)) * iTimeDelta
 			end do
 		else
 			select case(iTimeDelta)
 			case(TDELTA_YEAR)
 				do j = 1, m
-					iYear = iMinTimeIndex - 1
+					iYear = iMinTimeIndex + j - 1
 					tDateTime = DateTime(iYear, 1, 1, 0, 0, 0.d0)
 					rvTimeStamp_Reduced(j) = tDateTime % toEpoch()
 				end do
 			case(TDELTA_YEARMONTH)
 				do j = 1, m
-					iMonth = mod(iMinTimeIndex - 1, 12) + 1
-					iYear  = (iMinTimeIndex - 1) / 12
+					iMonth = mod(iMinTimeIndex + j - 1, 12) + 1
+					iYear  = (iMinTimeIndex + j - 1) / 12
 					tDateTime = DateTime(iYear, iMonth, 1, 0, 0, 0.d0)
 					rvTimeStamp_Reduced(j) = tDateTime % toEpoch()
 				end do
@@ -1768,7 +1772,7 @@ contains
 		rvMean    =  0.
 		rvStDev   =  0.
 		do i = 1, n
-			if(ivTimeIndex(i) > 0) then
+			if(ivTimeIndex(i) > 0 .and. .valid.rvTimeStamp(i) .and. .valid.rvValue(i)) then
 				j = ivTimeIndex(i)
 				ivNumData(j) = ivNumData(j) + 1
 				rvMin(j)     = min(rvMin(j), rvValue(i))
