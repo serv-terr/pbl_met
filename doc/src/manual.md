@@ -353,6 +353,62 @@ The result is straightforward: assuming `rvX = [1., 2., 3., 4., 5.]` and `rMin =
 
 ### `pbl_time`: Dates, times and astronomy
 
+#### Date and times, according to the _pbl_met_
+
+In many programming languages (R and Python among them), dates and times are supported either natively, or by standard libraries.
+
+This is not the case with Fortran, at least to date, which provides no support at all for date and time values.
+
+In past times, some vendors in reality implemented date and time routines in Fortran (then still named FORTRAN), but these goodies did not find their way into the language standards, and eventually began their steady way to oblivion.
+
+But, Fortran is a language ideally suited to numerical applications, and implementing dates and times within of it is not difficult.
+
+The real problem is, which of the subtleties connected with treating dates and times to implement, a subject around which it is not always simple to attract consensus. These subtleties range from leap year definitions (at least three among engineers), to leap seconds, passing through time zones.
+
+We had to take our choice, and this is: in _pbl_met_ time zones are _not_ considered, and leap seconds do _not_ exist. Leap years are considered the most accurate way, instead.
+
+These design assumptions are considered consistent with the _pbl_mt_ purpose, to support meteorological and micro-meteorological data processing. Then, contrary to what could happen in climatological applications, we'll typically deal with _short_ (few years at most) time spans, maybe projecting many years, even centuries in the past, and maybe of large memory size - think to a fast-sampling data acquisition system, for example. In these cases, time changes as the ones due to leap second may be ignored in most cases.
+
+Date and time values in _pbl_met_ are then encoded numerically, as either `integer(4)` or `real(8)` depending on circumstances.
+
+You, the user, are free to interpret these numerical values as you want, in particular for example if to consider them referred to UTC or some local time zone, but this is by no means mandatory. We suggest to adopt a local time however, as astronomical routines will use time and position to estimate their quantities, and for this to happen safely and sensibly knowledge of which the reference system is.
+
+#### Time stamp values
+
+##### What a time stamp is, exactly?
+
+What is a "time stamp" might seem obvious on a first instance.
+
+And presumably, it really is.
+
+Nonetheless, let's us state a definition: A _time stamp_ is a date/time value attached as a label to an event occurring at a precise time instant, or interval.
+
+The date/time values contained in time series vectors are, in strict sense, time stamps: labels, attached to the values having the same index value.
+
+The time stamp may be absolutely precise, in the sense that it designates the exact instant at which the event did occur, with reference to some well-defined clock; but more often than no, it deviates somewhat from the instant it should designate. This happens because of the finite resolution and accuracy of the real time clocks found in data acquisition devices, and is to a large extent inevitable. By the way, the resolution allowed by _pbl_met_ if finer of most practically used real time clocks'.
+
+In case of time stamps used to label time interval, in addition to isues of resolution and accuracy we have another, much larger one: inherent ambiguity. A time interval has by its very nature a finite positive time span, but is constituted by a continuum (discrete quantum mesh?) of individual time instants, and the problem arises of which one to select to designate the whole interval. In this respect various schools exist, of which two very popular, and one somewhat less frequent.
+
+The two popular interval time stamping camps are the earlier (the time stamp of an interval is the time stamp of its initial instant - this camp mostly collects scientists). And, the laters (the time stamp of an interval is the time stamp of its final instant - this other camp is populated mostly by data acquisition system manufacturers, and, yes, engineers). The third, less popular but still living, camp is of those who stay in the middle - quite literally: the time stamp of an interval is the time stamp corresponding to its mid-point.
+
+To make things a bit more confusing, we should define in some exact way what a "time interval" really is. We may assume it is a finite connected subset of the real line corresponding to all times from minus to plus infinity - this is the way people imagine a "time interval". But then, does the interval contain its extremal points, or not? It might not contain the final, or the initial, point for example, so to avoid the danger of counting a value lying on the extremum of an interval to be counted twice, once for the left and once for the right intervals it belongs to.
+
+In view of such bewildering variety, _pbl_met_ allows transforming one kind of time stamp to the other, by allowing _time shifts_ on time stamp vectors.
+
+##### Short time stamps
+
+A pbl_met short time span is an integer(4) value representing the number of seconds occurred since the "local Epoch", defined as 1970-01-01 00:00:00 referred to the selected time zone.
+
+Because of limitations in `INTEGER(4)` values, the maximum second-shift from the Epoch is 2147483647, which corresponds to a maximum time stamp
+`
+2038-01-19 03:14:07
+`
+
+This may not be the case for some applications demanding to label events farther in future, an
+
+
+##### Long time stamps
+
 
 
 ### `pbl_thermo`: Thermodynamics, psychrometry, thermal comfort and related things
