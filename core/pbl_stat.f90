@@ -1678,7 +1678,7 @@ contains
 		if(iTimeDelta == 0) then
 			iRetCode = 2
 		elseif(iTimeDelta < 0) then
-			if(iTimeDelta /= TDELTA_MONTH .and. iTimeDelta /= TDELTA_YEAR) then
+			if(iTimeDelta /= TDELTA_YEARMONTH .and. iTimeDelta /= TDELTA_YEAR) then
 				iRetCode = 2
 			end if
 		end if
