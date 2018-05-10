@@ -411,7 +411,19 @@ This may not be the sufficient for applications demanding to label events farthe
 
 A _pbl_met_ long time stamp is a real(8) ("double precision") value, whose integer part represents the number of seconds from the Epoch of current date-and-time, and whose fractional part is the sub-second part of the time stamp.
 
-In theory, a real(8) time stamp would be able to represent dates far if future by very many years. For practical reasons (mainly due to the need to let year to stay within 4 digits in printing, the maximum allowe date and time value has been fixed to `9999-12-31 23:59:59.999`). Epoch values larger than this value are not considered valid to specify a _pbl_met_ date and time.
+In theory, a real(8) time stamp would be able to represent dates far if future by very many years. For practical reasons (mainly due to the need to let year to stay within 4 digits in printing, the maximum allowed date and time value has been fixed to `9999-12-31 23:59:59.999`). Epoch values larger than this value are not considered valid to specify a _pbl_met_ date and time.
+
+##### Time stamp vectors, and the `DateTime` class
+
+In addition to single-number time stamps, ideal to encode time values in computer memory, time can be specified by assigning separately the year, month, and so on. This is known in _pbl_met_ as a _time vector_.
+
+Clearly, time vectors are less compact than integer(4) or real(8) based time stamps. But, they have a big advantage which in some circumstances may have a value: they can be easily understood by human readers.
+
+The disadvantage associated is, every time you have to use one of them you have to declare and use six numbers instead of a single one - and this may be cumbersome, in the long term.
+
+To mitigate this effect, the elements of a time vector may be placed into a user-defined data type. This way, they are declared all-in-one, and used group-wise.
+
+A better even method is, defining a class which, in addition to the elements of time vector, also contains member functions performing some common operations like conversion to and from single-number time values, or formatting as an ISO date-time. This is precisely the task of `DateTime` class.
 
 ### `pbl_thermo`: Thermodynamics, psychrometry, thermal comfort and related things
 
