@@ -1635,14 +1635,15 @@ contains
 	! or a negative code indicating time divisions like month and year.
 	! Result is a time series, containing the aggregated values and time
 	! stamps spaced according to the time difference selected.
-	function tsAggregateLinear(this, iTimeDelta, iFunction, ts) result(iRetCode)
+	function tsAggregateLinear(this, iTimeDelta, iFunction, ts, ivNumDataOut) result(iRetCode)
 	
 		! Routine arguments
-		class(TimeSeries), intent(in)	:: this
-		integer, intent(in)				:: iTimeDelta	! A positive time difference, or TDELTA_YEARMONTH, or TDELTA_YEAR
-		integer, intent(in), optional	:: iFunction	! Function code: FUN_MEAN (default), FUN_STDEV, FUN_MIN, FUN_MAX
-		type(TimeSeries), intent(out)	:: ts			! The resulting time series
-		integer							:: iRetCode
+		class(TimeSeries), intent(in)					:: this
+		integer, intent(in)								:: iTimeDelta	! A positive time difference, or TDELTA_YEARMONTH, or TDELTA_YEAR
+		integer, intent(in), optional					:: iFunction	! Function code: FUN_MEAN (default), FUN_STDEV, FUN_MIN, FUN_MAX
+		type(TimeSeries), intent(out)					:: ts			! The resulting time series
+		integer, dimension(:), allocatable, optional	:: ivNumDataOut	! Number of valid data contributing to classes
+		integer											:: iRetCode
 		
 		! Locals
 		integer								:: iErrCode
@@ -1814,6 +1815,13 @@ contains
 		end select
 		if(iErrCode /= 0) then
 			iRetCode = 7
+		end if
+		
+		! Transmit number of data, if desired
+		if(present(ivNumDataOut)) then
+			if(allocated(ivNumDataOut)) deallocate(ivNumDataOut)
+			allocate(ivNumDataOut(size(ivNumData)))
+			ivNumDataOut = ivNumData
 		end if
 		
 		! Leave
