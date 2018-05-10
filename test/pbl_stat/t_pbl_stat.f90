@@ -902,6 +902,7 @@ contains
 		real, dimension(:), allocatable		:: rvValue
 		integer								:: iFirstComma
 		integer								:: iCurrentTime
+		integer, dimension(:), allocatable	:: ivNumData
 	
 		! Assign file name(s)
 		sInputFile = "./Moggio_Temp.csv"
@@ -998,15 +999,15 @@ contains
 			print *, sTimeStamp, rValue
 		end do
 		print *, 'Monthly average'
-		iRetCode = ts % aggregateLinear(TDELTA_YEARMONTH, FUN_MEAN, tsReduced)
+		iRetCode = ts % aggregateLinear(TDELTA_YEARMONTH, FUN_MEAN, tsReduced, ivNumData)
 		print *, 'Ret.code = ', iRetCode
 		print *, 'Resulting time series size = ', tsReduced % size()
-		print *, 'TimeStamp, Mean'
+		print *, 'TimeStamp, Mean, Num.Data'
 		do i = 1, tsReduced % size()
 			iRetCode = tsReduced % getSingleItem(i, rTimeStamp, rValue)
 			iRetCode = tm % fromEpoch(rTimeStamp)
 			sTimeStamp = tm % toIso()
-			print *, sTimeStamp, rValue
+			print *, sTimeStamp, rValue, ivNumData(i)
 		end do
 		
 		! Make time stamp non-monotonic by exchanging the monotonic's first two elements
