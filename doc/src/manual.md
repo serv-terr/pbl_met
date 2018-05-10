@@ -399,17 +399,19 @@ In view of such bewildering variety, _pbl_met_ allows transforming one kind of t
 
 A pbl_met short time span is an integer(4) value representing the number of seconds occurred since the "local Epoch", defined as 1970-01-01 00:00:00 referred to the selected time zone.
 
-Because of limitations in `INTEGER(4)` values, the maximum second-shift from the Epoch is 2147483647, which corresponds to a maximum time stamp
+Because of limitations in `INTEGER(4)` values, the maximum second-shift from the Epoch is 2147483647, corresponding to a maximum time stamp
 `
 2038-01-19 03:14:07
 `
 
-This may not be the case for some applications demanding to label events farther in future, an
+This may not be the sufficient for applications demanding to label events farther in future. This inconvenient is addressed by changing from short to long time stamp encoding (see next section).
 
 
 ##### Long time stamps
 
+A _pbl_met_ long time stamp is a real(8) ("double precision") value, whose integer part represents the number of seconds from the Epoch of current date-and-time, and whose fractional part is the sub-second part of the time stamp.
 
+In theory, a real(8) time stamp would be able to represent dates far if future by very many years. For practical reasons (mainly due to the need to let year to stay within 4 digits in printing, the maximum allowe date and time value has been fixed to `9999-12-31 23:59:59.999`). Epoch values larger than this value are not considered valid to specify a _pbl_met_ date and time.
 
 ### `pbl_thermo`: Thermodynamics, psychrometry, thermal comfort and related things
 
