@@ -900,6 +900,10 @@ contains
 		character(len=23)	:: sTimeStamp
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		real, dimension(:), allocatable		:: rvValue
+		real, dimension(:), allocatable		:: rvMean
+		real, dimension(:), allocatable		:: rvStDev
+		real, dimension(:), allocatable		:: rvMin
+		real, dimension(:), allocatable		:: rvMax
 		integer								:: iFirstComma
 		integer								:: iCurrentTime
 		integer, dimension(:), allocatable	:: ivNumData
@@ -1009,6 +1013,28 @@ contains
 			sTimeStamp = tm % toIso()
 			print *, sTimeStamp, rValue, ivNumData(i)
 		end do
+		print *, 'Daily average'
+		iRetCode = ts % aggregateLinear2(TDELTA_ONEDAY, rvTimeStamp, rvMean, rvStDev, rvMin, rvMax, ivNumData)
+		print *, 'Ret.code = ', iRetCode
+		print *, 'Resulting time series size = ', size(rvTimeStamp)
+		print *, 'TimeStamp, Mean, StDev, Min, Max, Num.Data'
+		do i = 1, size(rvTimeStamp)
+			iRetCode = tm % fromEpoch(rvTimeStamp(i))
+			sTimeStamp = tm % toIso()
+			print *, sTimeStamp, rvMean(i), rvStDev(i), rvMin(i), rvMax(i), ivNumData(i)
+		end do
+		print *, 'Approx weekly average'
+		iRetCode = ts % aggregateLinear(TDELTA_ONEDAY*7, FUN_MEAN, tsReduced, ivNumData)
+		print *, 'Ret.code = ', iRetCode
+		print *, 'Resulting time series size = ', tsReduced % size()
+		print *, 'TimeStamp, Mean, Num.Data'
+		do i = 1, tsReduced % size()
+			iRetCode = tsReduced % getSingleItem(i, rTimeStamp, rValue)
+			iRetCode = tm % fromEpoch(rTimeStamp)
+			sTimeStamp = tm % toIso()
+			print *, sTimeStamp, rValue, ivNumData(i)
+		end do
+		stop
 		
 		! Make time stamp non-monotonic by exchanging the monotonic's first two elements
 		iRetCode = ts % getSingleItem(1, hold8_1, hold4_1)
