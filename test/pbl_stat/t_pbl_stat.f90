@@ -990,7 +990,7 @@ contains
 		print *
 		
 		! Check linear aggregator, by computing yearly average
-		print *, 'Test 3 - Check aggregateLinear'
+		print *, 'Test 3.1 - Check linear aggregateLinear'
 		print *, 'Yearly average'
 		iRetCode = ts % aggregateLinear(TDELTA_YEAR, FUN_MEAN, tsReduced)
 		print *, 'Ret.code = ', iRetCode
@@ -1034,6 +1034,19 @@ contains
 			sTimeStamp = tm % toIso()
 			print *, sTimeStamp, rValue, ivNumData(i)
 		end do
+		print *
+		
+		print *, 'Test 3.2 - Check aggregatePeriodic'
+		print *, 'Typical day'
+		iRetCode = ts % aggregatePeriodic(TDELTA_ONEDAY, TDELTA_ONEHOUR, rvMean, rvStDev, rvMin, rvMax, ivNumData)
+		print *, 'Ret.code = ', iRetCode
+		print *, 'Resulting time series size = ', size(rvTimeStamp)
+		print *, 'Time.Index, Mean, StDev, Min, Max, Num.Data'
+		do i = 1, size(rvMean)
+			print *, i-1, rvMean(i), rvStDev(i), rvMin(i), rvMax(i), ivNumData(i)
+		end do
+		print *
+		
 		stop
 		
 		! Make time stamp non-monotonic by exchanging the monotonic's first two elements
