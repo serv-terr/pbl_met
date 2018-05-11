@@ -1059,6 +1059,22 @@ contains
 				end do
 			end if
 		end do
+		print *, 'Boundary: monthly typical days with empty data set'
+		iMonth = 1
+		iRetCode = tsCopy % getMonth(ts, iMonth)
+		print *, "Month = ", iMonth, "  - Return code = ", iRetCode
+		call tsCopy % rangeInvalidate(100., 200.)	! Making sure all data are invalid
+		iRetCode = tsCopy % getSingleItem(1, rTimeStamp, rValue)
+		iRetCode = tsCopy % putSingleItem(1, rTimeStamp, 1.0)	! Make value at index 1 valid, so that the time series is non-empty
+		if(iRetCode == 0) then
+			iRetCode = tsCopy % aggregatePeriodic(TDELTA_ONEDAY, TDELTA_ONEHOUR, rvMean, rvStDev, rvMin, rvMax, ivNumData)
+			print *, 'Ret.code = ', iRetCode
+			print *, 'Resulting time series size = ', size(rvMean)
+			print *, 'Time.Index, Mean, StDev, Min, Max, Num.Data'
+			do i = 1, size(rvMean)
+					print *, i-1, rvMean(i), rvStDev(i), rvMin(i), rvMax(i), ivNumData(i)
+			end do
+		end if
 		print *
 		
 		stop
