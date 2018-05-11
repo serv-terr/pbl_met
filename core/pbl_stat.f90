@@ -67,6 +67,7 @@ module pbl_stat
     	procedure, public	:: getTimeStamp						=> tsGetTimeStamp
     	procedure, public	:: getValues						=> tsGetValues
     	procedure, public	:: getTimeSubset					=> tsGetTimeSubset
+    	procedure, public	:: getMonth							=> tsGetMonth
     	! Assigners
     	procedure, public	:: putSingleItem					=> tsPutSingleItem
     	! Summary generators
@@ -1335,6 +1336,80 @@ contains
 		end do
 		
 	end function tsGetTimeSubset
+	
+	
+	function tsGetMonth(this, ts, iMonth) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(out)		:: this
+		type(TimeSeries), intent(in)		:: ts
+		integer, intent(in)					:: iMonth
+		integer								:: iRetCode
+		
+		! Locals
+		integer	:: n, m
+		integer	:: i, j
+		integer	:: iErrCode
+		real(8), dimension(:), allocatable	:: rvTimeStamp
+		real(4), dimension(:), allocatable	:: rvValues
+		integer, dimension(:), allocatable	:: ivMonth
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Reserve workspace in copy, based on original
+		n = ts % size()
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Check parameters
+		if(iMonth < 1 .or. iMonth > 12) then
+			iRetCode = 2
+			return
+		end if
+
+		! Fill with appropriate initial values
+		iRetCode           = ts % getTimeStamp(rvTimeStamp)
+		this % rvTimeStamp = rvTimeStamp
+		iRetCode           = ts % getValues(rvValues)
+		this % rvValue     = rvValues
+		iErrCode = timeGetMonth(rvTimeStamp, ivMonth)
+		
+		! Count subset size, and if zero return doing nothing
+		m = count(ivMonth == iMonth)
+		if(m <= 0) then
+			iRetCode = 3
+			return
+		end if
+		
+		! Reserve workspace
+		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(allocated(this % rvValue)) deallocate(this % rvValue)
+		allocate(this % rvTimeStamp(m), stat = iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 4
+			return
+		end if
+		allocate(this % rvValue(m), stat = iErrCode)
+		if(iErrCode /= 0) then
+			deallocate(this % rvTimeStamp)
+			iRetCode = 5
+			return
+		end if
+		
+		! Fill with data in time range, preserving their order
+		j = 0
+		do i = 1, n
+			if(ivMonth(i) == iMonth) then
+				j = j + 1
+				this % rvTimeStamp(j) = rvTimeStamp(i)
+				this % rvValue(j)     = rvValues(i)
+			end if
+		end do
+		
+	end function tsGetMonth
 	
 	
 	function tsPutSingleItem(this, iItemIdx, rTimeStamp, rValue) result(iRetCode)
