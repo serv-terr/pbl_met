@@ -1040,10 +1040,24 @@ contains
 		print *, 'Typical day'
 		iRetCode = ts % aggregatePeriodic(TDELTA_ONEDAY, TDELTA_ONEHOUR, rvMean, rvStDev, rvMin, rvMax, ivNumData)
 		print *, 'Ret.code = ', iRetCode
-		print *, 'Resulting time series size = ', size(rvTimeStamp)
+		print *, 'Resulting time series size = ', size(rvMean)
 		print *, 'Time.Index, Mean, StDev, Min, Max, Num.Data'
 		do i = 1, size(rvMean)
 			print *, i-1, rvMean(i), rvStDev(i), rvMin(i), rvMax(i), ivNumData(i)
+		end do
+		print *, 'Monthly typical days'
+		do iMonth = 1, 12
+			iRetCode = tsCopy % getMonth(ts, iMonth)
+			print *, "Month = ", iMonth, "  - Return code = ", iRetCode
+			if(iRetCode == 0) then
+				iRetCode = tsCopy % aggregatePeriodic(TDELTA_ONEDAY, TDELTA_ONEHOUR, rvMean, rvStDev, rvMin, rvMax, ivNumData)
+				print *, 'Ret.code = ', iRetCode
+				print *, 'Resulting time series size = ', size(rvMean)
+				print *, 'Time.Index, Mean, StDev, Min, Max, Num.Data'
+				do i = 1, size(rvMean)
+					print *, i-1, rvMean(i), rvStDev(i), rvMin(i), rvMax(i), ivNumData(i)
+				end do
+			end if
 		end do
 		print *
 		
