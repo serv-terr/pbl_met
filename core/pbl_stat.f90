@@ -82,6 +82,7 @@ module pbl_stat
     	! Aggregators
     	procedure, public	:: aggregateLinear					=> tsAggregateLinear
     	procedure, public	:: aggregateLinear2					=> tsAggregateLinear2
+    	procedure, public	:: aggregatePeriodic				=> tsAggregatePeriodic
     end type TimeSeries
     
     ! Constants
@@ -2030,5 +2031,148 @@ contains
 		deallocate(ivNumData, rvMin, rvMax, rvStDev, ivTimeIndex)
 		
 	end function tsAggregateLinear2
+	
+	! Build typical periods (days, months, ...) by applying a periodic aggregation
+	function tsAggregatePeriodic( &
+		this, iPeriodLength, iTimeDelta, &
+		rvMean, &
+		rvStDevOut, rvMinOut, rvMaxOut, ivNumDataOut &
+	) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)					:: this
+		integer, intent(in)								:: iPeriodLength		! The length of period considered (positive)
+		integer, intent(in)								:: iTimeDelta			! A positive time difference (smaller than period length, and preferably an integer divisor of it)
+		real, dimension(:), allocatable					:: rvMean				! Mean value
+		real, dimension(:), allocatable, optional		:: rvStDevOut			! Standard deviation
+		real, dimension(:), allocatable, optional		:: rvMinOut				! Minimum
+		real, dimension(:), allocatable, optional		:: rvMaxOut				! Maximum
+		integer, dimension(:), allocatable, optional	:: ivNumDataOut			! Number of valid data contributing to classes
+		integer											:: iRetCode
+		
+		! Locals
+		integer								:: iErrCode
+		integer								:: n
+		integer								:: m
+		integer								:: i
+		integer								:: j
+		integer								:: iProcessing
+		integer								:: iYear
+		integer								:: iMonth
+		integer								:: iMinTimeIndex
+		type(DateTime)						:: tDateTime
+		integer, dimension(:), allocatable	:: ivTimeIndex
+		real, dimension(:), allocatable		:: rvValue
+		real(8), dimension(:), allocatable	:: rvTimeStamp
+		integer, dimension(:), allocatable	:: ivNumData
+		real, dimension(:), allocatable		:: rvMin
+		real, dimension(:), allocatable		:: rvMax
+		real, dimension(:), allocatable		:: rvStDev
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something is to be made
+		if(this % isEmpty()) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Check period and delta time validity
+		if(iPeriodLength <= 0) then
+			iRetCode = 2
+			return
+		end if
+		if(iTimeDelta <= 0 .or. iTimeDelta > iPeriodLength) then
+			iRetCode = 3
+			return
+		end if
+		
+		! Retrieve time stamp and data vectors from original time series
+		iErrCode = this % getTimeStamp(rvTimeStamp)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		iErrCode = this % getValues(rvValue)
+		if(iErrCode /= 0) then
+			iRetCode = 4
+			deallocate(rvTimeStamp)
+			return
+		end if
+		n = size(rvTimeStamp)
+		
+		! Index time, based on the desired time delta
+		iErrCode = timeEncode(rvTimeStamp, iPeriodLength, iTimeDelta, ivTimeIndex)
+		if(iErrCode /= 0) then
+			iRetCode = 6
+			deallocate(rvValue)
+			deallocate(rvTimeStamp)
+			return
+		end if
+		
+		! Compute minimum and maximum indices, and use the latter to reserve workspace
+		iMinTimeIndex = 1
+		m = iPeriodLength / iTimeDelta
+		if(allocated(rvMean)) deallocate(rvMean)
+		allocate(rvMean(m))
+		allocate(ivNumData(m), rvMin(m), rvMax(m), rvStDev(m))
+		
+		! Update counts
+		ivNumData =  0
+		rvMin     =  huge(1.)
+		rvMax     = -huge(1.)
+		rvMean    =  0.
+		rvStDev   =  0.
+		do i = 1, n
+			if(ivTimeIndex(i) > 0 .and. .valid.rvTimeStamp(i) .and. .valid.rvValue(i)) then
+				j = ivTimeIndex(i)
+				ivNumData(j) = ivNumData(j) + 1
+				rvMin(j)     = min(rvMin(j), rvValue(i))
+				rvMax(j)     = max(rvMax(j), rvValue(i))
+				rvMean(j)    = rvMean(j) + rvValue(i)
+				rvStDev(j)   = rvStDev(j) + rvValue(i)**2
+			end if
+		end do
+		
+		! Transform mean and standard deviation counts in nominal quantities.
+		! Here I use a little trick, based on non-signalling NaNs: rvMean is computed
+		! by specifically discriminating between norman and invalid case. But StDev,
+		! on the other side, is computed directly counting on the fact that non
+		! signalling NaNs combine algebraically with valid values yielding NaNs
+		! (because of IEEE rules).
+		where(ivNumData > 0)
+			rvMean = rvMean / ivNumData
+		elsewhere
+			rvMean = NaN
+		end where
+		rvStDev = sqrt(rvStDev/ivNumData - rvMean**2)
+		
+		! Transmit desired quantities
+		if(present(rvStDevOut)) then
+			if(allocated(rvStDevOut)) deallocate(rvStDevOut)
+			allocate(rvStDevOut(size(ivNumData)))
+			rvStDevOut = rvStDev
+		end if
+		if(present(rvMinOut)) then
+			if(allocated(rvMinOut)) deallocate(rvMinOut)
+			allocate(rvMinOut(size(ivNumData)))
+			rvMinOut = rvMin
+		end if
+		if(present(rvMaxOut)) then
+			if(allocated(rvMaxOut)) deallocate(rvMaxOut)
+			allocate(rvMaxOut(size(ivNumData)))
+			rvMaxOut = rvMax
+		end if
+		if(present(ivNumDataOut)) then
+			if(allocated(ivNumDataOut)) deallocate(ivNumDataOut)
+			allocate(ivNumDataOut(size(ivNumData)))
+			ivNumDataOut = ivNumData
+		end if
+		
+		! Leave
+		deallocate(ivNumData, rvMin, rvMax, rvStDev, ivTimeIndex)
+		
+	end function tsAggregatePeriodic
 	
 end module pbl_stat
