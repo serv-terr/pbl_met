@@ -49,6 +49,36 @@ contains
 		end do
 		print *
 		
+		print *, "Test 2 - Check Flow Cartesian to Provenance Polar conversions - Speed 1"
+		print *, "Expected.Vel, Expected.Dir, Result.Vel, Result.Dir"
+		do i = 0, 7
+			dir = 360./8. * i
+			e   = sin(dir*pi/180.)
+			n   = cos(dir*pi/180.)
+			rvCartesian2 = [e, n]
+			rvPolar2 = CartesianToPolar2(rvCartesian2, WCONV_FLOW_TO_PROVENANCE)
+			dir = dir + 180.0
+			if(dir >= 360.0) dir = dir - 360.0
+			print "('  1.0, ',f4.0,', ',f6.3,', ',f8.3)", &
+				dir, rvPolar2
+		end do
+		print *
+		
+		print *, "Test 3 - Check Provenance Cartesian to Flow Polar conversions - Speed 1"
+		print *, "Expected.Vel, Expected.Dir, Result.Vel, Result.Dir"
+		do i = 0, 7
+			dir = 360./8. * i
+			e   = sin(dir*pi/180.)
+			n   = cos(dir*pi/180.)
+			rvCartesian2 = [e, n]
+			rvPolar2 = CartesianToPolar2(rvCartesian2, WCONV_PROVENANCE_TO_FLOW)
+			dir = dir + 180.0
+			if(dir >= 360.0) dir = dir - 360.0
+			print "('  1.0, ',f4.0,', ',f6.3,', ',f8.3)", &
+				dir, rvPolar2
+		end do
+		print *
+		
 	end subroutine polar_cartesian
 
 end program t_pbl_wind
