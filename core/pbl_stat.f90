@@ -1158,7 +1158,7 @@ contains
 		iRetCode = 0
 		
 		! Check parameters
-		if(this % isEmpty()) then
+		if(size(this % rvTimeStamp) <= 0) then
 			rTimeStamp = NaN_8
 			rValue     = NaN
 			iRetCode   = 1
@@ -1428,7 +1428,7 @@ contains
 		iRetCode = 0
 		
 		! Check parameters
-		if(this % isEmpty()) then
+		if(size(this % rvTimeStamp) <= 0) then
 			iRetCode   = 1
 			return
 		end if
@@ -1872,6 +1872,12 @@ contains
 		end where
 		rvStDev = sqrt(rvStDev/ivNumData - rvMean**2)
 		
+		! Make sure minima and maxima are NaN when class is empty
+		where(ivNumData <= 0)
+			rvMin = NaN
+			rvMax = NaN
+		end where
+		
 		! Of all quantities computed, transmit (horrible inefficiency) the one desired
 		! to the resulting time series
 		if(present(iFunction)) then
@@ -2080,6 +2086,12 @@ contains
 		end where
 		rvStDev = sqrt(rvStDev/ivNumData - rvMean**2)
 		
+		! Make sure minima and maxima are NaN when class is empty
+		where(ivNumData <= 0)
+			rvMin = NaN
+			rvMax = NaN
+		end where
+		
 		! Transmit desired quantities
 		if(present(rvStDevOut)) then
 			if(allocated(rvStDevOut)) deallocate(rvStDevOut)
@@ -2222,6 +2234,12 @@ contains
 			rvMean = NaN
 		end where
 		rvStDev = sqrt(rvStDev/ivNumData - rvMean**2)
+		
+		! Make sure minima and maxima are NaN when class is empty
+		where(ivNumData <= 0)
+			rvMin = NaN
+			rvMax = NaN
+		end where
 		
 		! Transmit desired quantities
 		if(present(rvStDevOut)) then
