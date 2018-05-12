@@ -437,9 +437,55 @@ A better even method is, defining a class which, in addition to the elements of 
 
 ### `pbl_wind`: Wind, and its statistics
 
+#### Wind vector
 
+##### Definition
 
+In _pbl_met_ the word  _wind_ is used to designate the airflow vector at a given point and time - the latter being a given instant or averaging period.
 
+In general, the wind vector has three components, $$\left[u,v,w\right]$$ aligned to the $$x,y,z$$ axes of the reference frame in use. However, on flat terrain without obstruction and with uniform roughness the vertical component $$w$$ is small compared to the other two, and in many practical applications it is then neglected: we then speak of _horizontal wind_, $$\left[u,v\right]$$.
+
+##### Cartesian and polar form
+
+The horizontal wind may be expressed as a two-dimensional Cartesian vector $$\left[u,v\right]$$, the way we made in the previous section; but it may also be expressed in polar form as $$\rho \exp(i \delta)$$ where $$\rho$$ and $$\delta$$ are wind _speed_ and _direction_ respectively.
+
+The way the polar form is written indicates an interesting thing which may be useful from time to time in practical applications: the horizontal wind may be thought as a complex number.
+
+In meteorology, as in any other branch of the Earth sciences, the wind direction angle $$\delta$$ is expressed in degrees, and counted from North increasing clockwise, instead of using the "mathematical" convention of counting from East increasing anticlockwise. Using the symbol $$\alpha$$ to designate the same direction as $$\delta$$, expressed according to the mathematical convention, we have the following relationship:
+$$
+\delta = 90° - \alpha
+$$
+This given, we have the following conversion formula for horizontal wind speed components:
+$$
+\left[u,v\right] = \left[\rho \sin(\delta), \rho \cos(\delta) \right]
+$$
+This formula may be inverted. To do so, it is better to use complex notation however: if $$U = u + i v$$ is wind in complex form, then we can say
+$$
+\rho = \left| U \right|
+$$
+and
+$$
+\delta = 90° - \arg \left(U\right)
+$$
+(valid if $$\rho > 0$$).
+
+It can be noticed that the formula for wind direction $$\delta$$ contains an inherent ambiguity, as the argument of a non-zero complex number is defined (in degrees) up to $$k$$ times 360°, where $$k$$ is any integer. To overcome the problem, it is customarily assumed the argument function is restricted to its main branch, so that
+$$
+-180° < \delta \le +180°
+$$
+or
+$$
+0° \le \delta < 360°
+$$
+depending on the taste of users. _pbl_met_, incidentally, adopts the second standard range for $$\delta$$.
+
+The $$\arg$$ function of complex arithmetics is implemented in Fortran through the `atan2()`intrinsic function, so that the counterpart of the formula for $$\delta$$ is something like
+
+```
+dir = 180*atan2(u,v)/pi
+```
+
+where `pi` is a constant or variable containing the floating-point approximation of $$\pi$$.
 
 ### `pbl_turb`: Turbulence indicators from measured data and elements of eddy covariance
 
