@@ -79,6 +79,16 @@ contains
 		end do
 		print *
 		
+		print *, "Test 4 - Check zero wind - Speed 0"
+		print *, "Expected.Vel, Expected.Dir, Result.Vel, Result.Dir"
+		e   = 0.
+		n   = 0.
+		rvCartesian2 = [e, n]
+		rvPolar2 = CartesianToPolar2(rvCartesian2, WCONV_PROVENANCE_TO_FLOW)
+		print "('  0.0, NaN, ',f6.3,', ',f8.3)", &
+			rvPolar2
+		print *
+		
 	end subroutine polar_cartesian
 
 end program t_pbl_wind
