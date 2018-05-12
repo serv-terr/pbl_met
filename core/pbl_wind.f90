@@ -115,9 +115,11 @@ contains
 				if(interpretation == WCONV_SAME) then
 					! Same interpretation for input and output: no sign change
 					call uvWind(polar(1), polar(2), cartesian(1), cartesian(2))
+					cartesian(3) = polar(3)
 				elseif(interpretation == WCONV_PROVENANCE_TO_FLOW .or. interpretation == WCONV_FLOW_TO_PROVENANCE) then
 					! Different interpretation for input and output: sign change
 					call uvWind(polar(1), polar(2) - 180., cartesian(1), cartesian(2))
+					cartesian(3) = polar(3)
 				else
 					! Wrong convention
 					cartesian = [NaN, NaN, polar(3)]
@@ -183,9 +185,11 @@ contains
 				if(interpretation == WCONV_SAME) then
 					! Same interpretation for input and output: no sign change
 					call veldirWind(cartesian(1), cartesian(2), polar(1), polar(2))
+					polar(3) = cartesian(3)
 				elseif(interpretation == WCONV_PROVENANCE_TO_FLOW .or. interpretation == WCONV_FLOW_TO_PROVENANCE) then
 					! Different interpretation for input and output: sign change
 					call veldirWind(-cartesian(1), -cartesian(2), polar(1), polar(2))
+					polar(3) = cartesian(3)
 				else
 					! Wrong convention
 					polar = [NaN, NaN, cartesian(3)]
