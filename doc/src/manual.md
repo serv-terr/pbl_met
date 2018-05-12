@@ -487,6 +487,61 @@ dir = 180*atan2(u,v)/pi
 
 where `pi` is a constant or variable containing the floating-point approximation of $$\pi$$.
 
+##### Flow and provenance conventions for wind direction
+
+In mathematics, a 2D vector expressed in polar form yields no ambiguity on the meaning of the direction value $$\alpha$$: it represents the direction towards which the vector points.
+
+This is not the same with wind direction in meteorology. Historically, the first systematic observations of wind direction were made by mechanical sensors, whose secondary transducer was a potentiometer yielding a resistance proportional to the azimuth corresponding to the direction _from which_ wind is blowing. To be fair, in meteorology some people use the provenance convention so far described; some other people use the flow convention however, and a way must exist to convert from on to the other.
+
+If $$\delta_p$$ designates the provenance direction and $$\delta_f$$ the flow direction, then
+$$
+\delta_p = \delta_f \pm 180°
+$$
+
+##### Wind related functions
+
+###### Conversion of horizontal wind between Cartesian and polar form
+
+The conversion between Cartesian and polar form of horizontal wind is performed through two functions, `CartesianToPolar2` and `PolarToCartesian2`.
+
+The interface of these functions are
+
+```
+function CartesianToPolar2(cartesian, interpretation) result(polar)
+	
+    ! Routine arguments
+    real, dimension(2), intent(in)  :: cartesian    ! Wind in cartesian form (u=cartesian(1), v=cartesian(2), w=cartesian(3))
+    real, dimension(2)              :: polar        ! Wind in polar form (vel=polar(1), dir=polar(2))
+    integer, intent(in), optional   :: interpretation
+    
+end function CartesianToPolar
+```
+
+and
+
+```
+function PolarToCartesian2(polar, interpretation) result(cartesian)
+	
+    ! Routine arguments
+    real, dimension(2), intent(in)  :: polar      ! Wind in polar form (vel=polar(1), dir=polar(2))
+    real, dimension(2)              :: cartesian  ! Wind in cartesian form (u=cartesian(1), v=cartesian(2))
+    integer, intent(in), optional   :: interpretation
+
+end function PolarToCartesian2
+```
+
+The arguments common to the functions have the following meaning:
+
+* `cartesian`: 2D vector $$(u,v)$$.
+* `polar`: 2D vector $$(\rho, \delta)$$.
+* `interpretation`: optional integer constant, with values `WCONV_SAME` (default; designates when both forms share the same wind direction convention), `WCONV_PROVENANCE_TO_FLOW` when wind in provenance convention is converted to flow convention, and `WCONV_FLOW_TO_PROVENANCE` when wind in flow convention is converted to provenance convention.
+
+The conversion functions operate as described mathematically in the sections above. The exception is, when $$\rho \approx 0$$ and $$(u,v) \approx (0,0)$$. In this case the conversion function yield an invalid wind; to place this (mathematically-imposed) rule in due perspective, we should consider that null wind does not exist in Nature - air is constantly moving - and zero wind is an artifact due to instrumental nuisances as finite resolution and activation threshold.
+
+###### Conversion of 3D wind between Cartesian and polar form
+
+
+
 ### `pbl_turb`: Turbulence indicators from measured data and elements of eddy covariance
 
 To date this module is a placeholder, still to be filled.
