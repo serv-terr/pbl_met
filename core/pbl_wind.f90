@@ -161,7 +161,7 @@ contains
 				call veldirWind(cartesian(1), cartesian(2), polar(1), polar(2))
 			end if
 		else
-			polar = [NaN, NaN]
+			polar = [0., NaN]
 		end if
 		
 	end function CartesianToPolar2
@@ -195,7 +195,7 @@ contains
 				call veldirWind(cartesian(1), cartesian(2), polar(1), polar(2))
 			end if
 		else
-			polar = [NaN, NaN, cartesian(3)]
+			polar = [0., NaN, cartesian(3)]
 		end if
 		
 	end function CartesianToPolar3
