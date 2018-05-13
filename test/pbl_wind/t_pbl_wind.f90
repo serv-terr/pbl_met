@@ -153,6 +153,28 @@ contains
 		end do
 		print *
 		
+		print *, "Test 10 - Check Polar to Cartesian conversions - Flow to provenance, speed 1"
+		print *, "Vel, Dir, Result.u, Result.v"
+		do i = 0, 7
+			dir = 360./8. * i
+			rvPolar2 = [1.0, dir]
+			rvCartesian2 = PolarToCartesian2(rvPolar2, WCONV_FLOW_TO_PROVENANCE)
+			print "('  1.0, ',f4.0,', ',f6.3,', ',f6.3)", &
+				dir, rvCartesian2
+		end do
+		print *
+		
+		print *, "Test 11 - Check Polar to Cartesian conversions - Provenance to flow, speed 1"
+		print *, "Vel, Dir, Result.u, Result.v"
+		do i = 0, 7
+			dir = 360./8. * i
+			rvPolar2 = [1.0, dir]
+			rvCartesian2 = PolarToCartesian2(rvPolar2, WCONV_PROVENANCE_TO_FLOW)
+			print "('  1.0, ',f4.0,', ',f6.3,', ',f6.3)", &
+				dir, rvCartesian2
+		end do
+		print *
+		
 	end subroutine polar_cartesian
 
 end program t_pbl_wind
