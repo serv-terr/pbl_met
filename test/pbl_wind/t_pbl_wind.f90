@@ -168,7 +168,7 @@ contains
 		print *, "Vel, Dir, Result.u, Result.v"
 		do i = 0, 7
 			dir = 360./8. * i
-			rvPolar2 = [1.0, dir]
+			rvPolar2 = [0.0, dir]
 			rvCartesian2 = PolarToCartesian2(rvPolar2, WCONV_PROVENANCE_TO_FLOW)
 			print "('  1.0, ',f4.0,', ',f6.3,', ',f6.3)", &
 				dir, rvCartesian2
