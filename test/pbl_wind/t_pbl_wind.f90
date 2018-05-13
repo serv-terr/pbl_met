@@ -206,7 +206,7 @@ contains
 		end do
 		print *
 		
-		print *, "Test 11 - Check 3D Polar to Cartesian conversions - Provenance to flow, speed 1"
+		print *, "Test 15 - Check 3D Polar to Cartesian conversions - Provenance to flow, speed 1"
 		print *, "Vel, Dir, w, Result.u, Result.v"
 		do i = 0, 7
 			dir = 360./8. * i
@@ -215,6 +215,15 @@ contains
 			print "('  1.0, ',f4.0,', 1.0, ',f6.3,', ',f6.3,', ',f6.3)", &
 				dir, rvCartesian3
 		end do
+		print *
+		
+		print *, "Test 16 - Check 3D Polar to Cartesian conversions - Speed 0"
+		print *, "Vel, Dir, w, Expected.u, Expected.v, Result.u, Result.v, Result.w"
+		dir = 360./8.
+		rvPolar3 = [0.0, dir, 1.0]
+		rvCartesian3 = PolarToCartesian3(rvPolar3, WCONV_PROVENANCE_TO_FLOW)
+		print "('  0.0, ',f4.0,', NaN, NaN, 1.0, ',f6.3,', ',f6.3,', ',f6.3)", &
+			dir, rvCartesian3
 		print *
 		
 	end subroutine polar_cartesian
