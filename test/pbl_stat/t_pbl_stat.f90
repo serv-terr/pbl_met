@@ -1077,8 +1077,6 @@ contains
 		end if
 		print *
 		
-		stop
-		
 		! Make time stamp non-monotonic by exchanging the monotonic's first two elements
 		iRetCode = ts % getSingleItem(1, hold8_1, hold4_1)
 		iRetCode = ts % getSingleItem(2, hold8_2, hold4_2)
