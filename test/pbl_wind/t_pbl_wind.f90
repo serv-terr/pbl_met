@@ -168,10 +168,30 @@ contains
 		print *, "Vel, Dir, Result.u, Result.v"
 		do i = 0, 7
 			dir = 360./8. * i
-			rvPolar2 = [0.0, dir]
+			rvPolar2 = [1.0, dir]
 			rvCartesian2 = PolarToCartesian2(rvPolar2, WCONV_PROVENANCE_TO_FLOW)
 			print "('  1.0, ',f4.0,', ',f6.3,', ',f6.3)", &
 				dir, rvCartesian2
+		end do
+		print *
+		
+		print *, "Test 12 - Check Polar to Cartesian conversions - Speed 0"
+		print *, "Vel, Dir, Expected.u, Expected.v, Result.u, Result.v"
+		dir = 360./8.
+		rvPolar2 = [0.0, dir]
+		rvCartesian2 = PolarToCartesian2(rvPolar2, WCONV_PROVENANCE_TO_FLOW)
+		print "('  0.0, ',f4.0,', NaN, NaN, ',f6.3,', ',f6.3)", &
+			dir, rvCartesian2
+		print *
+		
+		print *, "Test 13 - Check 3D Polar to Cartesian conversions - Same convention, speed 1"
+		print *, "Vel, Dir, w, Result.u, Result.v, Result.w"
+		do i = 0, 7
+			dir = 360./8. * i
+			rvPolar3 = [1.0, dir, 1.0]
+			rvCartesian3 = PolarToCartesian3(rvPolar3, WCONV_SAME)
+			print "('  1.0, ',f4.0,', 1.0, ',f6.3,', ',f6.3,', ',f6.3)", &
+				dir, rvCartesian3
 		end do
 		print *
 		
