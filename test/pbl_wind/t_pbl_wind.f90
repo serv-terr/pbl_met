@@ -195,6 +195,28 @@ contains
 		end do
 		print *
 		
+		print *, "Test 14 - Check 3D Polar to Cartesian conversions - Flow to provenance, speed 1"
+		print *, "Vel, Dir, w, Result.u, Result.v, Result.w"
+		do i = 0, 7
+			dir = 360./8. * i
+			rvPolar3 = [1.0, dir, 1.0]
+			rvCartesian3 = PolarToCartesian3(rvPolar3, WCONV_FLOW_TO_PROVENANCE)
+			print "('  1.0, ',f4.0,', 1.0, ',f6.3,', ',f6.3,', ',f6.3)", &
+				dir, rvCartesian3
+		end do
+		print *
+		
+		print *, "Test 11 - Check 3D Polar to Cartesian conversions - Provenance to flow, speed 1"
+		print *, "Vel, Dir, w, Result.u, Result.v"
+		do i = 0, 7
+			dir = 360./8. * i
+			rvPolar3 = [1.0, dir, 1.0]
+			rvCartesian3 = PolarToCartesian3(rvPolar3, WCONV_PROVENANCE_TO_FLOW)
+			print "('  1.0, ',f4.0,', 1.0, ',f6.3,', ',f6.3,', ',f6.3)", &
+				dir, rvCartesian3
+		end do
+		print *
+		
 	end subroutine polar_cartesian
 
 end program t_pbl_wind
