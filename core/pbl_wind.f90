@@ -217,7 +217,13 @@ contains
 		integer		:: i
 		
 		! Check something is to be made: leave, if not
-		if(isnan(vel)) then
+		if(.invalid.vel) then
+			iClass = -9999
+			return
+		end if
+		
+		! Check added on input vector size
+		if(size(rvVel) <= 0) then
 			iClass = -9999
 			return
 		end if
@@ -670,3 +676,4 @@ contains
 	end subroutine veldirWind
 	
 end module pbl_wind
+ClassWindScalar
