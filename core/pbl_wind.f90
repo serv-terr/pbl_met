@@ -229,8 +229,8 @@ contains
 		end if
 		
 		! Perform a simple table lookup
-		n = size(rvVel) + 1
-		do i = 1, n-1
+		n = size(rvVel)
+		do i = 1, n
 			if(vel <= rvVel(i)) then
 				iClass = i
 				return
@@ -238,7 +238,7 @@ contains
 		end do
 		
 		! Execution reaches this point if no match is found, so
-		iClass = n
+		iClass = n + 1
 
 	end function ClassVelScalar
 
@@ -676,4 +676,3 @@ contains
 	end subroutine veldirWind
 	
 end module pbl_wind
-ClassWindScalar
