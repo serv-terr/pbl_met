@@ -19,6 +19,7 @@ program t_pbl_wind
 	
 	! Perform actual tests
 	call polar_cartesian()
+	call tst_classwindscalar()
 	
 contains
 
@@ -227,5 +228,31 @@ contains
 		print *
 		
 	end subroutine polar_cartesian
+	
+	
+	subroutine tst_classwindscalar()
+	
+		! Locals
+		real, dimension(:), allocatable		:: rvVel
+		integer								:: i
+		integer								:: iClass
+		
+		! Generate normal test set
+		allocate(rvVel(32))
+		rvVel = [(i/2., i=1, size(rvVel))]
+		
+		! Test 1, normal condition
+		print *, "Test 1 - Check ClassVelScalar under normal conditions"
+		print *, 'Vel, Class'
+		do i = 1, size(rvVel)
+			iClass = ClassVel(rvVel(i), [0.,1.,2.,3.,5.,7.])
+			print *, rvVel(i), iClass
+		end do
+		print *
+		
+		! Leave
+		deallocate(rvVel)
+		
+	end subroutine tst_classwindscalar
 
 end program t_pbl_wind
