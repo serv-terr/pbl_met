@@ -510,11 +510,11 @@ The interface of these functions are
 function CartesianToPolar2(cartesian, interpretation) result(polar)
 	
     ! Routine arguments
-    real, dimension(2), intent(in)  :: cartesian    ! Wind in cartesian form (u=cartesian(1), v=cartesian(2), w=cartesian(3))
+    real, dimension(2), intent(in)  :: cartesian    ! Wind in cartesian form (u=cartesian(1), v=cartesian(2))
     real, dimension(2)              :: polar        ! Wind in polar form (vel=polar(1), dir=polar(2))
     integer, intent(in), optional   :: interpretation
     
-end function CartesianToPolar
+end function CartesianToPolar2
 ```
 
 and
@@ -536,9 +536,45 @@ The arguments common to the functions have the following meaning:
 * `polar`: 2D vector $$(\rho, \delta)$$.
 * `interpretation`: optional integer constant, with values `WCONV_SAME` (default; designates when both forms share the same wind direction convention), `WCONV_PROVENANCE_TO_FLOW` when wind in provenance convention is converted to flow convention, and `WCONV_FLOW_TO_PROVENANCE` when wind in flow convention is converted to provenance convention.
 
-The conversion functions operate as described mathematically in the sections above. The exception is, when $$\rho \approx 0$$ and $$(u,v) \approx (0,0)$$. In this case the conversion function yield an invalid wind; to place this (mathematically-imposed) rule in due perspective, we should consider that null wind does not exist in Nature - air is constantly moving - and zero wind is an artifact due to instrumental nuisances as finite resolution and activation threshold.
+The conversion functions operate as described mathematically in the sections above. The exception is, when $$[Math Processing Error]\rho \approx 0$$ and $$[Math Processing Error](u,v) \approx (0,0)$$. In this case the conversion function yield an invalid wind; to place this (mathematically-imposed) rule in due perspective, we should consider that null wind does not exist in Nature - air is constantly moving - and zero wind is an artifact due to instrumental and data logger nuisances as finite resolution and activation threshold.
 
 ###### Conversion of 3D wind between Cartesian and polar form
+
+The conversion between Cartesian and polar form of 3D wind is performed through two functions, `CartesianToPolar3` and `PolarToCartesian3`.
+
+The interface of these functions are
+
+```
+function CartesianToPolar3(cartesian, interpretation) result(polar)
+	
+    ! Routine arguments
+    real, dimension(3), intent(in)  :: cartesian    ! Wind in cartesian form (u=cartesian(1), v=cartesian(2), w=cartesian(3))
+    real, dimension(3)              :: polar        ! Wind in polar form (vel=polar(1), dir=polar(2), w=polar(3))
+    integer, intent(in), optional   :: interpretation
+    
+end function CartesianToPolar3
+```
+
+and
+
+```
+function PolarToCartesian3(polar, interpretation) result(cartesian)
+	
+    ! Routine arguments
+    real, dimension(3), intent(in)  :: polar      ! Wind in polar form (vel=polar(1), dir=polar(2), w=polar(3))
+    real, dimension(3)              :: cartesian  ! Wind in cartesian form (u=cartesian(1), v=cartesian(2), w=cartesian(3))
+    integer, intent(in), optional   :: interpretation
+
+end function PolarToCartesian2
+```
+
+The arguments common to the functions have the following meaning:
+
+- `cartesian`: 2D vector $$(u,v)$$.
+- `polar`: 2D vector $$(\rho, \delta)$$.
+- `interpretation`: optional integer constant, with values `WCONV_SAME` (default; designates when both forms share the same wind direction convention), `WCONV_PROVENANCE_TO_FLOW` when wind in provenance convention is converted to flow convention, and `WCONV_FLOW_TO_PROVENANCE` when wind in flow convention is converted to provenance convention.
+
+The conversion functions operate as described mathematically in the sections above. The exception is, when $$[Math Processing Error]\rho \approx 0$$ and $$[Math Processing Error](u,v) \approx (0,0)$$. In this case the conversion function yield an invalid wind; to place this (mathematically-imposed) rule in due perspective, we should consider that null wind does not exist in Nature - air is constantly moving - and zero wind is an artifact due to instrumental and data logger nuisances as finite resolution and activation threshold.
 
 
 
