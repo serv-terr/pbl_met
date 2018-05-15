@@ -329,6 +329,24 @@ contains
 		end do
 		print *
 		
+		! Test 2, normal condition, scrambled class limits
+		! (as expected, empty classes may result: it is then better,
+		! although not mandatory, that class limits are sorted in
+		! ascending order)
+		print *, "Test 2 - Check ClassVelVector under scrambled class limits"
+		print *, 'Vel, Class'
+		ivClass = ClassVel(rvVel, [1.,2.,7.,5.,3.])
+		do i = 1, size(rvVel)
+			print *, rvVel(i), ivClass(i)
+		end do
+		print *
+		print *, 'Vel, Class'
+		ivClass = ClassVel(rvVel, [1.,2.,5.,4.,7.])
+		do i = 1, size(rvVel)
+			print *, rvVel(i), ivClass(i)
+		end do
+		print *
+		
 	end subroutine tst_classwindVector
 
 end program t_pbl_wind
