@@ -102,8 +102,8 @@ contains
 	function PolarToCartesian3(polar, interpretation) result(cartesian)
 	
 		! Routine arguments
-		real, dimension(3), intent(in)	:: polar				! Wind in polar form (vel=polar(1), dir=polar(2))
-		real, dimension(3)				:: cartesian			! Wind in cartesian form (u=cartesian(1), v=cartesian(2))
+		real, dimension(3), intent(in)	:: polar				! Wind in polar form (vel=polar(1), dir=polar(2), w=polar(3))
+		real, dimension(3)				:: cartesian			! Wind in cartesian form (u=cartesian(1), v=cartesian(2), w=cartesian(3))
 		integer, intent(in), optional	:: interpretation
 		
 		! Locals
@@ -138,8 +138,8 @@ contains
 	function CartesianToPolar2(cartesian, interpretation) result(polar)
 	
 		! Routine arguments
-		real, dimension(2), intent(in)	:: cartesian			! Wind in cartesian form (u=cartesian(1), v=cartesian(2), w=cartesian(3))
-		real, dimension(2)				:: polar				! Wind in polar form (vel=polar(1), dir=polar(2), w=polar(3))
+		real, dimension(2), intent(in)	:: cartesian			! Wind in cartesian form (u=cartesian(1), v=cartesian(2))
+		real, dimension(2)				:: polar				! Wind in polar form (vel=polar(1), dir=polar(2))
 		integer, intent(in), optional	:: interpretation
 		
 		! Locals
