@@ -216,6 +216,16 @@ contains
 		integer		:: n
 		integer		:: i
 		
+		! Check class limit validity
+		if(size(rvVel) <= 0.) then
+			iClass = -9999
+			return
+		end if
+		if(all(.invalid.rvVel)) then
+			iClass = -9999
+			return
+		end if
+		
 		! Check something is to be made: leave, if not
 		if(.invalid.vel) then
 			iClass = -9999
@@ -253,6 +263,16 @@ contains
 		! Locals
 		integer		:: n
 		integer		:: i, j
+		
+		! Check class limit validity
+		if(size(rvVel) <= 0.) then
+			ivClass = -9999
+			return
+		end if
+		if(all(.invalid.rvVel)) then
+			ivClass = -9999
+			return
+		end if
 		
 		! Main loop: iterate over speed values
 		do j = 1, size(vel)
