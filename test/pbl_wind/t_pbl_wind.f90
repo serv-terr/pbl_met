@@ -349,7 +349,7 @@ contains
 		
 		! Test 3, boundary condition
 		! (As expected, one class is not represented)
-		print *, "Test 3 - Check ClassVelScalar under one invalid class limit"
+		print *, "Test 3 - Check ClassVelVector under one invalid class limit"
 		print *, 'Vel, Class'
 		ivClass = ClassVel(rvVel, [1.,2.,NaN,5.,7.])
 		do i = 1, size(rvVel)
@@ -359,13 +359,27 @@ contains
 		
 		! Test 4, boundary condition
 		! (As expected, one class is not represented)
-		print *, "Test 4 - Check ClassVelScalar under all invalid class limits"
+		print *, "Test 4 - Check ClassVelVector under all invalid class limits"
 		print *, 'Vel, Class'
 		ivClass = ClassVel(rvVel, [NaN,NaN,NaN,NaN,NaN])
 		do i = 1, size(rvVel)
 			print *, rvVel(i), ivClass(i)
 		end do
 		print *
+		
+		! Test 5, boundary condition
+		! (As expected, one class is not represented)
+		print *, "Test 5 - Check ClassVelVector under empty limits vector"
+		allocate(rvVelClass(0))
+		ivClass = ClassVel(rvVel, rvVelClass)
+		print *, 'Vel, Class'
+		do i = 1, size(rvVel)
+			print *, rvVel(i), ivClass(i)
+		end do
+		print *
+		
+		! Leave
+		deallocate(rvVelClass)
 		
 	end subroutine tst_classwindVector
 
