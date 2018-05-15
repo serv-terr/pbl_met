@@ -245,7 +245,7 @@ contains
 		print *, "Test 1 - Check ClassVelScalar under normal conditions"
 		print *, 'Vel, Class'
 		do i = 1, size(rvVel)
-			iClass = ClassVel(rvVel(i), [0.,1.,2.,3.,5.,7.])
+			iClass = ClassVel(rvVel(i), [1.,2.,3.,5.,7.])
 			print *, rvVel(i), iClass
 		end do
 		print *
