@@ -23,6 +23,7 @@ module pbl_stat
     public	:: Mean
     public	:: StdDev
     public  :: Cov
+    public	:: Quantile
     ! 3. Autocovariance, autocorrelation and related
     public	:: AutoCov
     public	:: AutoCorr
@@ -45,6 +46,16 @@ module pbl_stat
     public	:: FUN_STDEV
     public	:: FUN_MIN
     public	:: FUN_MAX
+    public	:: QUANT_POPULATION	! Population quantile
+    public	:: QUANT_1			! Sample quantile type 1 (R-1, SAS-3, Maple-1; inverse of edf)
+    public	:: QUANT_2			! Sample quantile type 2 (R-2, SAS-5, Maple-2; same as R-1, with averaging at discontinuities)
+    public	:: QUANT_3			! Sample quantile type 3 (R-3, SAS-2; Closest observation)
+    public	:: QUANT_4			! Sample quantile type 4 (R-4, SAS-1, Maple-3; Linear interpolation of edf)
+    public	:: QUANT_5			! Sample quantile type 5 (R-5, Maple-4; piecewise linear function with nodes at midway of edf values)
+    public	:: QUANT_6			! Sample quantile type 6 (R-6, SAS-4, Maple-5, Excel; Linear interpolation of order statistics for uniform distribution on [0,1])
+    public	:: QUANT_7			! Sample quantile type 7 (R-7, Maple-6, Excel, NumPy; Linear interpolation of the modes of the order statistics for uniform distribution on [0,1])
+    public	:: QUANT_8			! Sample quantile type 8 (R-8, Maple-7; ***DEFAULT***; Linear interpolation of approximate medians of order statistics; Distribution-independent)
+    public	:: QUANT_9			! Sample quantile type 9 (R-9, Maple-8; Defined so that the resulting quantile estimates are approximately unbiased for the expected order statistics; Valid if data are normally distributed)
     
     ! Data types
     
@@ -98,6 +109,23 @@ module pbl_stat
     integer, parameter	:: FUN_STDEV         =     1
     integer, parameter	:: FUN_MIN           =     2
     integer, parameter	:: FUN_MAX           =     3
+    integer, parameter	:: QUANT_POPULATION  =     0
+    integer, parameter	:: QUANT_1           =     1
+    integer, parameter	:: QUANT_2           =     2
+    integer, parameter	:: QUANT_3           =     3
+    integer, parameter	:: QUANT_4           =     4
+    integer, parameter	:: QUANT_5           =     5
+    integer, parameter	:: QUANT_6           =     6
+    integer, parameter	:: QUANT_7           =     7
+    integer, parameter	:: QUANT_8           =     8
+    integer, parameter	:: QUANT_9           =     9
+    
+    ! Polymorphic interfaces
+    
+    interface Quantile
+    	module procedure	:: QuantileScalar
+    	module procedure	:: QuantileVector
+    end interface Quantile
     
 contains
 
@@ -333,6 +361,277 @@ contains
 		rCov = rSumXY/(n-1) - (rSumX/n)*(rSumY/n)*(float(n)/(n-1))
 		
 	end function Cov
+	
+	
+	function QuantileScalar(rvX, rQuantile, iType) result(rQvalue)
+	
+		! Routine argument
+		real, dimension(:), intent(in)	:: rvX			! Data vector
+		real, intent(in)				:: rQuantile	! Quantile fraction (in [0.,1.] interval, inclusive)
+		integer, intent(in), optional	:: iType		! Quantile type (QUANT_POPULATION, QUANT_1, ..., QUANT_9; see constant declaration for meaning)
+		real							:: rQvalue		! Quantile value
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvXsorted
+		integer							:: iQuantileType
+		real							:: h
+		
+		! Check something is to be made
+		if(size(rvX) == 1) then
+			rQvalue = rvX(1)
+			return
+		elseif(size(rvX) < 1) then
+			rQvalue = NaN
+			return
+		end if
+		if(all(.invalid.rvX)) then
+			rQvalue = NaN
+			return
+		end if
+		
+		! Answer for trivial cases
+		if(rQuantile <= 0.) then
+			rQvalue = minval(rvX, mask=.valid.rvX)
+			return
+		elseif(rQuantile >= 1.) then
+			rQvalue = maxval(rvX, mask=.valid.rvX)
+			return
+		end if
+		
+		! Contract data vector to valid data only, and sort it
+		rvXsorted = GetValidOnly(rvX)
+		if(size(rvXsorted) == 1) then
+			rQvalue = rvXsorted(1)
+			return
+		elseif(size(rvXsorted) < 1) then
+			rQvalue = NaN
+			return
+		end if
+		call quicksort(rvXsorted)
+		
+		! Assign actual quantile type
+		if(present(iType)) then
+			iQuantileType = iType
+			if(iQuantileType == QUANT_POPULATION .and. size(rvXsorted) < size(rvx)) iQuantileType = QUANT_8
+		else
+			iQuantileType = QUANT_8
+		end if
+		
+		! Compute the value of h
+		select case(iQuantileType)
+		case(QUANT_POPULATION)
+			h = size(rvXsorted) * rQuantile
+			if(floor(h) == ceiling(h)) then
+				! h is integer
+				rQvalue = 0.5*(rvXsorted(floor(h)) + rvXsorted(floor(h) + 1))
+			else
+				! h is not integer
+				rQvalue = rvXsorted(ceiling(h))
+			end if
+		case(QUANT_1)
+			h = size(rvXsorted) * rQuantile + 0.5
+			rQvalue = rvXsorted(ceiling(h-0.5))
+		case(QUANT_2)
+			h = size(rvXsorted) * rQuantile + 0.5
+			rQvalue = (rvXsorted(ceiling(h-0.5)) + rvXsorted(ceiling(h+0.5))) / 2.
+		case(QUANT_3)
+			if(rQuantile <= 0.5/size(rvXsorted)) then
+				rQvalue = rvXsorted(1)
+			else
+				h = size(rvXsorted) * rQuantile
+				rQvalue = rvXsorted(nint(h))
+			end if
+		case(QUANT_4)
+			if(rQuantile < 1./size(rvXsorted)) then
+				rQvalue = rvXsorted(1)
+			else
+				h = size(rvXsorted) * rQuantile
+				rQvalue = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+			end if
+		case(QUANT_5)
+			if(rQuantile <= 0.5/size(rvXsorted)) then
+				rQvalue = rvXsorted(1)
+			elseif(rQuantile >= (size(rvXsorted) - 0.5)/size(rvXsorted)) then
+				rQvalue = rvXsorted(size(rvXsorted))
+			else
+				h = size(rvXsorted) * rQuantile + 0.5
+				rQvalue = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+			end if
+		case(QUANT_6)
+			if(rQuantile <= 1./(size(rvXsorted)+1)) then
+				rQvalue = rvXsorted(1)
+			elseif(rQuantile >= size(rvXsorted)/(size(rvXsorted)+1.)) then
+				rQvalue = rvXsorted(size(rvXsorted))
+			else
+				h = (size(rvXsorted)+1) * rQuantile
+				rQvalue = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+			end if
+		case(QUANT_7)
+			h = (size(rvXsorted)-1) * rQuantile + 1.
+			rQvalue = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+		case(QUANT_8)
+			if(rQuantile <= (2./3.)/(size(rvXsorted)+1./3.)) then
+				rQvalue = rvXsorted(1)
+			elseif(rQuantile >= (size(rvXsorted)-1./3.)/(size(rvXsorted)+1./3.)) then
+				rQvalue = rvXsorted(size(rvXsorted))
+			else
+				h = (size(rvXsorted)+1./3.) * rQuantile + 1./3.
+				rQvalue = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+			end if
+		case(QUANT_9)
+			if(rQuantile <= (5./8.)/(size(rvXsorted)+1./4.)) then
+				rQvalue = rvXsorted(1)
+			elseif(rQuantile >= (size(rvXsorted)-3./8.)/(size(rvXsorted)+1./4.)) then
+				rQvalue = rvXsorted(size(rvXsorted))
+			else
+				h = (size(rvXsorted)+1./4.) * rQuantile + 3./8.
+				rQvalue = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+			end if
+		case default
+			rQvalue = NaN
+		end select
+		
+	end function QuantileScalar
+	
+	
+	function QuantileVector(rvX, rvQuantile, iType) result(rvQvalue)
+	
+		! Routine argument
+		real, dimension(:), intent(in)		:: rvX			! Data vector
+		real, dimension(:), intent(in)		:: rvQuantile	! Quantile fraction (in [0.,1.] interval, inclusive)
+		integer, intent(in), optional		:: iType		! Quantile type (QUANT_POPULATION, QUANT_1, ..., QUANT_9; see constant declaration for meaning)
+		real, dimension(size(rvQuantile))	:: rvQvalue		! Quantile value
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvXsorted
+		integer							:: iQuantileType
+		real							:: h
+		integer							:: iQuantile
+		
+		! Check something is to be made
+		if(size(rvQuantile) <= 0) then
+			return	! No defined return value can be assigned here - rvQvalue does not exist
+		end if
+		if(size(rvX) == 1) then
+			rvQvalue = rvX(1)
+			return
+		elseif(size(rvX) < 1) then
+			rvQvalue = NaN
+			return
+		end if
+		if(all(.invalid.rvX)) then
+			rvQvalue = NaN
+			return
+		end if
+		
+		! Contract data vector to valid data only, and sort it
+		rvXsorted = GetValidOnly(rvX)
+		if(size(rvXsorted) == 1) then
+			rvQvalue = rvXsorted(1)
+			return
+		elseif(size(rvXsorted) < 1) then
+			rvQvalue = NaN
+			return
+		end if
+		call quicksort(rvXsorted)
+		
+		! Assign actual quantile type
+		if(present(iType)) then
+			iQuantileType = iType
+			if(iQuantileType == QUANT_POPULATION .and. size(rvXsorted) < size(rvX)) iQuantileType = QUANT_8
+		else
+			iQuantileType = QUANT_8
+		end if
+		
+		! Main loop: iterate over quantiles
+		do iQuantile = 1, size(rvQuantile)
+		
+			! Answer for trivial cases
+			if(rvQuantile(iQuantile) <= 0.) then
+				rvQvalue(iQuantile) = minval(rvX, mask=.valid.rvX)
+				return
+			elseif(rvQuantile(iQuantile) >= 1.) then
+				rvQvalue(iQuantile) = maxval(rvX, mask=.valid.rvX)
+				return
+			end if
+		
+			! Compute the value of h
+			select case(iQuantileType)
+			case(QUANT_POPULATION)
+				h = size(rvXsorted) * rvQuantile(iQuantile)
+				if(floor(h) == ceiling(h)) then
+					! h is integer
+					rvQvalue(iQuantile) = 0.5*(rvXsorted(floor(h)) + rvXsorted(floor(h) + 1))
+				else
+					! h is not integer
+					rvQvalue(iQuantile) = rvXsorted(ceiling(h))
+				end if
+			case(QUANT_1)
+				h = size(rvXsorted) * rvQuantile(iQuantile) + 0.5
+				rvQvalue(iQuantile) = rvXsorted(ceiling(h-0.5))
+			case(QUANT_2)
+				h = size(rvXsorted) * rvQuantile(iQuantile) + 0.5
+				rvQvalue(iQuantile) = (rvXsorted(ceiling(h-0.5)) + rvXsorted(ceiling(h+0.5))) / 2.
+			case(QUANT_3)
+				if(rvQuantile(iQuantile) <= 0.5/size(rvXsorted)) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					h = size(rvXsorted) * rvQuantile(iQuantile)
+					rvQvalue(iQuantile) = rvXsorted(nint(h))
+				end if
+			case(QUANT_4)
+				if(rvQuantile(iQuantile) < 1./size(rvXsorted)) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					h = size(rvXsorted) * rvQuantile(iQuantile)
+					rvQvalue(iQuantile) = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+				end if
+			case(QUANT_5)
+				if(rvQuantile(iQuantile) <= 0.5/size(rvXsorted)) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				elseif(rvQuantile(iQuantile) >= (size(rvXsorted) - 0.5)/size(rvXsorted)) then
+					rvQvalue(iQuantile) = rvXsorted(size(rvXsorted))
+				else
+					h = size(rvXsorted) * rvQuantile(iQuantile) + 0.5
+					rvQvalue(iQuantile) = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+				end if
+			case(QUANT_6)
+				if(rvQuantile(iQuantile) <= 1./(size(rvXsorted)+1)) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				elseif(rvQuantile(iQuantile) >= size(rvXsorted)/(size(rvXsorted)+1.)) then
+					rvQvalue(iQuantile) = rvXsorted(size(rvXsorted))
+				else
+					h = (size(rvXsorted)+1) * rvQuantile(iQuantile)
+					rvQvalue(iQuantile) = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+				end if
+			case(QUANT_7)
+				h = (size(rvXsorted)-1) * rvQuantile(iQuantile) + 1.
+				rvQvalue(iQuantile) = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+			case(QUANT_8)
+				if(rvQuantile(iQuantile) <= (2./3.)/(size(rvXsorted)+1./3.)) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				elseif(rvQuantile(iQuantile) >= (size(rvXsorted)-1./3.)/(size(rvXsorted)+1./3.)) then
+					rvQvalue(iQuantile) = rvXsorted(size(rvXsorted))
+				else
+					h = (size(rvXsorted)+1./3.) * rvQuantile(iQuantile) + 1./3.
+					rvQvalue(iQuantile) = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+				end if
+			case(QUANT_9)
+				if(rvQuantile(iQuantile) <= (5./8.)/(size(rvXsorted)+1./4.)) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				elseif(rvQuantile(iQuantile) >= (size(rvXsorted)-3./8.)/(size(rvXsorted)+1./4.)) then
+					rvQvalue(iQuantile) = rvXsorted(size(rvXsorted))
+				else
+					h = (size(rvXsorted)+1./4.) * rvQuantile(iQuantile) + 3./8.
+					rvQvalue(iQuantile) = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+				end if
+			case default
+				rvQvalue(iQuantile) = NaN
+			end select
+		
+		end do
+		
+	end function QuantileVector
 	
 	
 	! Compute the autocovariance of a signal up the specified number of lags,
@@ -2267,5 +2566,51 @@ contains
 		deallocate(ivNumData, rvMin, rvMax, rvStDev, ivTimeIndex)
 		
 	end function tsAggregatePeriodic
+	
+	! *********************
+	! * Internal routines *
+	! *********************
+	
+	! quicksort.f -*-f90-*-
+	! Author: t-nissie, some tweaks by 1AdAstra1, and some others by Mauri Favaron
+	! License: GPLv3
+	! Gist: https://gist.github.com/t-nissie/479f0f16966925fa29ea
+	!
+	recursive subroutine quicksort(a)
+	
+		! Routine arguments
+		real, dimension(:), intent(inout)	:: a
+		
+		! Locals
+		real	:: x, t
+		integer :: first = 1, last
+		integer :: i, j
+	
+		! Initialization
+		last = size(a)
+		if(last <= 1) return	! Nothing to do
+		x = a( (first+last) / 2 )
+		i = first
+		j = last
+		
+		! Exploration phase
+		do
+			do while (a(i) < x)
+				i=i+1
+			end do
+			do while (x < a(j))
+				j=j-1
+			end do
+			if (i >= j) exit
+			t = a(i);  a(i) = a(j);  a(j) = t
+			i=i+1
+			j=j-1
+		end do
+		
+		! Recursion phase
+		if (first < i - 1) call quicksort(a(first : i - 1))
+		if (j + 1 < last)  call quicksort(a(j + 1 : last))
+		
+	end subroutine quicksort
 	
 end module pbl_stat
