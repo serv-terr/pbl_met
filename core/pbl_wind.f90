@@ -258,7 +258,7 @@ contains
 		do j = 1, size(vel)
 		
 			! Check class can be assigned
-			if(isnan(vel(j))) then
+			if(.invalid.vel(j)) then
 				ivClass(j) = -9999
 			else
 			
