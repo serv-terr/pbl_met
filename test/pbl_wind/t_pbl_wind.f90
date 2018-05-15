@@ -234,6 +234,7 @@ contains
 	
 		! Locals
 		real, dimension(:), allocatable		:: rvVel
+		real, dimension(:), allocatable		:: rvVelClass
 		integer								:: i
 		integer								:: iClass
 		
@@ -278,9 +279,9 @@ contains
 		end do
 		print *
 		
-		! Test 3, boundary condition
+		! Test 4, boundary condition
 		! (As expected, one class is not represented)
-		print *, "Test 3 - Check ClassVelScalar under all invalid class limits"
+		print *, "Test 4 - Check ClassVelScalar under all invalid class limits"
 		print *, 'Vel, Class'
 		do i = 1, size(rvVel)
 			iClass = ClassVel(rvVel(i), [NaN,NaN,NaN,NaN,NaN])
@@ -288,7 +289,19 @@ contains
 		end do
 		print *
 		
+		! Test 5, boundary condition
+		! (As expected, one class is not represented)
+		print *, "Test 5 - Check ClassVelScalar under empty limits vector"
+		allocate(rvVelClass(0))
+		print *, 'Vel, Class'
+		do i = 1, size(rvVel)
+			iClass = ClassVel(rvVel(i), rvVelClass)
+			print *, rvVel(i), iClass
+		end do
+		print *
+		
 		! Leave
+		deallocate(rvVelClass)
 		deallocate(rvVel)
 		
 	end subroutine tst_classwindscalar
