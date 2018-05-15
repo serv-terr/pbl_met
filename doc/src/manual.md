@@ -493,10 +493,18 @@ In mathematics, a 2D vector expressed in polar form yields no ambiguity on the m
 
 This is not the same with wind direction in meteorology. Historically, the first systematic observations of wind direction were made by mechanical sensors, whose secondary transducer was a potentiometer yielding a resistance proportional to the azimuth corresponding to the direction _from which_ wind is blowing. To be fair, in meteorology some people use the provenance convention so far described; some other people use the flow convention however, and a way must exist to convert from on to the other.
 
-If $$\delta_p$$ designates the provenance direction and $$\delta_f$$ the flow direction, then
+If $$\delta_{p}$$ designates the provenance direction and $$\delta_{f}$$ the flow direction, then
 $$
-\delta_p = \delta_f \pm 180°
+\delta_{p} = \delta_{f} \pm 180°
 $$
+
+The plus and minus sign applied to the half angle is consequence of the angle ambiguity in modular arithmetics, and one can use the one more in line with personal taste.
+
+The previous relation may be inverted, to yield
+$$
+\delta_{f} = \delta_{p} \mp 180°
+$$
+and here we see that it is not the specific input and output conventions, but rather whether they are opposite, or same.
 
 ##### Wind related functions
 
@@ -576,7 +584,49 @@ The arguments common to the functions have the following meaning:
 
 The conversion functions operate as described mathematically in the sections above. The exception is, when $$[Math Processing Error]\rho \approx 0$$ and $$[Math Processing Error](u,v) \approx (0,0)$$. In this case the conversion function yield an invalid wind; to place this (mathematically-imposed) rule in due perspective, we should consider that null wind does not exist in Nature - air is constantly moving - and zero wind is an artifact due to instrumental and data logger nuisances as finite resolution and activation threshold.
 
+###### Classifying horizontal wind by speed
 
+By "classifying wind by speed" we mean assigning one or more wind speed readings to speed classes, based on a table containing upper class limits $$L = \left\lbrace l_{1},l_{2},\ldots,l_{n} \right\rbrace$$ with $$l_{i} < l_{i+1}$$ for $$1 \le i \le n-1$$. A first implied class is $$l_{0}=0$$, and class index $$i$$ is assigned to speed $$U$$ whenever $$l_{i-1} < U \le l_{i}$$.
+
+This rule is easy to implement algorithmically as a table search, starting to compare $$U$$ with $$l_{1}$$, proceding sequentially for increasing limit index, and stopping as soon as $$U \le l_{i}$$. If no $$l_{i}$$ is found larger or equal to $$U$$, then class $$n+1$$ is conventionally assigned.
+
+Of course, this search procedure is "inefficient" in abstract terms: if, as we assumed, the $$l_{i}$$ form an ordered sequence, then a binary search could be worth. In practice however, for a "small" $$n$$ (in the order of 32 or less), the index manipulation overhead makes the linear search more advantageous; in addition, the straight linear search depicted here is simpler to figure out, and a good model of searching.
+
+An example of wind classification by speed is when constructing wind speed histogram, in which case the count of values having the same class index yields the frequency of the corresponding class. In this case, the number of class limits is typically a very small number (say 5 or 6 in most cases).
+
+In _pbl_met_ the original classification is extended by allowing an explicit zero limit to be specified (useful when counting the number of wind speed which are exactly equal to zero); allowing one or more class limits to be invalid (that is, `NaN`), in which case their index is ignored; and last, assuming the vector of class limits to be not ordered increasingly, in which case the corresponding classes are once again not considered.
+
+Also, the special case when the speed class vector $$L$$ has zero length, or all its components are `NaN`, is allowed, in which case the conventional "invalid class" -9999 is assigned.
+
+The classification function exists in two forms, namely a _scalar_ and a _vector_ one. The former has interface
+
+```
+function ClassVel(vel, rvLimitVel) result(iClass)
+    real, intent(in)                :: vel        ! A scalar vaue representing
+                                                  ! wind speed (m/s)
+    real, dimension(:), intent(in)  :: rvLimitVel ! The class limit vector (m/s)
+    integer                         :: iClass     ! The speed class assigned
+                                                  ! (-9999 if invalid or not found)
+end function ClassVel
+```
+
+The latter has the following interface:
+
+```
+function ClassVel(vel, rvLimitVel) result(iClass)
+    real, dimension(:), intent(in)  :: rvVel      ! A vector representing
+                                                  ! wind speed values (m/s)
+    real, dimension(:), intent(in)  :: rvLimitVel ! The class limit vector (m/s)
+    integer, dimension(size(rvVel)) :: ivClass    ! The speed classes assigned
+                                                  ! (-9999 if invalid or not found)
+end function ClassVel
+```
+
+Setting `ivClass` size to a length at least equal (and possibly exactly so) to the length of `rvVel` it is the User responsibility.
+
+If `vel` is `NaN`, then `iClass=-9999` (integer numbers don't allow their own `NaN` value, so the special value -9999 -or less!- is used to indicate an invalid value). In the same way, if an `rvVel` value is `NaN` then its corresponding class is -9999. That is, the class of an invalid speed is itself invalid.
+
+Use of the vector or scalar form is left to the user taste: the two form are computationally equivalent. The vector form is slightly faster than a `DO` cycle incorporating many scalar calls, but the difference of execution time might well be small to non-existent is compiler optimizations are allowed.
 
 ### `pbl_turb`: Turbulence indicators from measured data and elements of eddy covariance
 
