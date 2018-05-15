@@ -347,6 +347,16 @@ contains
 		end do
 		print *
 		
+		! Test 3, boundary condition
+		! (As expected, one class is not represented)
+		print *, "Test 3 - Check ClassVelScalar under one invalid class limit"
+		print *, 'Vel, Class'
+		ivClass = ClassVel(rvVel, [1.,2.,NaN,5.,7.])
+		do i = 1, size(rvVel)
+			print *, rvVel(i), ivClass(i)
+		end do
+		print *
+		
 	end subroutine tst_classwindVector
 
 end program t_pbl_wind
