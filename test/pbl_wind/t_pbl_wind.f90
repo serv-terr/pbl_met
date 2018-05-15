@@ -269,11 +269,21 @@ contains
 		print *
 		
 		! Test 3, boundary condition
-		(As expected, one class is not represented)
+		! (As expected, one class is not represented)
 		print *, "Test 3 - Check ClassVelScalar under one invalid class limit"
 		print *, 'Vel, Class'
 		do i = 1, size(rvVel)
 			iClass = ClassVel(rvVel(i), [1.,2.,NaN,5.,7.])
+			print *, rvVel(i), iClass
+		end do
+		print *
+		
+		! Test 3, boundary condition
+		! (As expected, one class is not represented)
+		print *, "Test 3 - Check ClassVelScalar under all invalid class limits"
+		print *, 'Vel, Class'
+		do i = 1, size(rvVel)
+			iClass = ClassVel(rvVel(i), [NaN,NaN,NaN,NaN,NaN])
 			print *, rvVel(i), iClass
 		end do
 		print *
