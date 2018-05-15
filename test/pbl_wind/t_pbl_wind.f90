@@ -323,7 +323,7 @@ contains
 		! Test 1, normal condition
 		print *, "Test 1 - Check ClassVelVector under normal conditions"
 		print *, 'Vel, Class'
-		ivClass = ClassVel(rvVel(i), [1.,2.,3.,5.,7.])
+		ivClass = ClassVel(rvVel, [1.,2.,3.,5.,7.])
 		do i = 1, size(rvVel)
 			print *, rvVel(i), ivClass(i)
 		end do
