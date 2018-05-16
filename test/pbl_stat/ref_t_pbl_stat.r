@@ -114,3 +114,53 @@ test.eulerian.time <- function() {
   print(summary(l))
   return(l)
 }
+
+######################################
+# Test case for quantile computation #
+######################################
+
+q.test <- function() {
+  x <- runif(32, 0, 1)
+  write.csv(x, file="quantile.test.csv", row.names=FALSE)
+  q.min  <- numeric(9)
+  q.0001 <- numeric(9)
+  q.0010 <- numeric(9)
+  q.0100 <- numeric(9)
+  q.1000 <- numeric(9)
+  q.5000 <- numeric(9)
+  q.7500 <- numeric(9)
+  q.9000 <- numeric(9)
+  q.9500 <- numeric(9)
+  q.9980 <- numeric(9)
+  q.9999 <- numeric(9)
+  q.max  <- numeric(9)
+  for(t in 1:9) {
+    q.min[t]  <- quantile(x, probs=0.0000, type=t)
+    q.0001[t] <- quantile(x, probs=0.0001, type=t)
+    q.0010[t] <- quantile(x, probs=0.0010, type=t)
+    q.0100[t] <- quantile(x, probs=0.0100, type=t)
+    q.1000[t] <- quantile(x, probs=0.1000, type=t)
+    q.5000[t] <- quantile(x, probs=0.5000, type=t)
+    q.7500[t] <- quantile(x, probs=0.7500, type=t)
+    q.9000[t] <- quantile(x, probs=0.9000, type=t)
+    q.9500[t] <- quantile(x, probs=0.9500, type=t)
+    q.9980[t] <- quantile(x, probs=0.9980, type=t)
+    q.9999[t] <- quantile(x, probs=0.9999, type=t)
+    q.max[t]  <- quantile(x, probs=1.0000, type=t)
+  }
+  q <- data.frame(
+    q.min  = q.min,
+    q.0001 = q.0001,
+    q.0010 = q.0010,
+    q.0100 = q.0100,
+    q.1000 = q.1000,
+    q.5000 = q.5000,
+    q.7500 = q.7500,
+    q.9000 = q.9000,
+    q.9500 = q.9500,
+    q.9980 = q.9980,
+    q.9999 = q.9999,
+    q.max  = q.max
+  )
+  write.csv(q, file="quantile.result.csv", row.names=FALSE)
+}
