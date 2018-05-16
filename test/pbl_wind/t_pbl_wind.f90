@@ -358,7 +358,7 @@ contains
 		print *
 		
 		! Test 4, boundary condition
-		! (As expected, one class is not represented)
+		! (As expected, no class is represented)
 		print *, "Test 4 - Check ClassVelVector under all invalid class limits"
 		print *, 'Vel, Class'
 		ivClass = ClassVel(rvVel, [NaN,NaN,NaN,NaN,NaN])
@@ -368,13 +368,23 @@ contains
 		print *
 		
 		! Test 5, boundary condition
-		! (As expected, one class is not represented)
+		! (As expected, no class is represented)
 		print *, "Test 5 - Check ClassVelVector under empty limits vector"
 		allocate(rvVelClass(0))
 		ivClass = ClassVel(rvVel, rvVelClass)
 		print *, 'Vel, Class'
 		do i = 1, size(rvVel)
 			print *, rvVel(i), ivClass(i)
+		end do
+		print *
+		
+		! Test 6, boundary condition
+		! (As expected, no class is represented)
+		print *, "Test 6 - Check ClassVelVector under empty data vector"
+		ivClass = ClassVel(rvVelClass, [1.,2.,3.,5.,7.])
+		print *, 'Vel, Class - None expected'
+		do i = 1, size(rvVelClass)
+			print *, rvVelClass(i), ivClass(i)
 		end do
 		print *
 		
