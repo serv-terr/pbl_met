@@ -655,6 +655,7 @@ To date this module is a placeholder, still to be filled.
 |                 |                                                              |
 | Geiger, 2003    | R. Geiger, R.H. Aron, P. Todhunter, _The Climate Near the Ground_, 6th edition, Rowman & Littlefield, 2003 |
 | Hardy, 1998     | B. Hardy, *ITS-90 Formulations for Vapor Pressure, Frostpoint Temperature, Dewpoint Temperature, and Enhancement Factors in the Range -100 to +100 C*, report, avaiable at URL https://github.com/serv-terr/pbl_met/tree/master/references/hardy_1998.pdf |
+| Hyndman, 1996          | R.J. Hyndman, Y. Fan, "Sample Quantiles in Statistical Packages", _The American Statistician_, 50, 4, pp. 361-365, Nov 1996      |
 | Ihaka, web1     | G.R. Ihaka, "Statistics 726, Assignment 2, Solution", https://www.stat.auckland.ac.nz/~ihaka/726/sol02.pdf, section1 on an implementation of Durbin-Levinson algorithm, written in R and producing the same result as R's "acf" function with `type="partial"`. |
 |                 |                                                              |
 |                 |                                                              |
