@@ -433,7 +433,15 @@ contains
 			rQvalue = rvXsorted(ceiling(h-0.5))
 		case(QUANT_2)
 			h = size(rvXsorted) * rQuantile + 0.5
-			rQvalue = (rvXsorted(ceiling(h-0.5)) + rvXsorted(ceiling(h+0.5))) / 2.
+			if(h-0.5 < 1.0) then
+				rQvalue = rvXsorted(1)
+			elseif(ceiling(h+0.5) > size(rvXsorted)) then
+				rQvalue = rvXsorted(ceiling(h-0.5))
+			else
+				rQvalue = (rvXsorted(ceiling(h-0.5)) + rvXsorted(ceiling(h+0.5))) / 2.
+			end if
+			print *,rQuantile,h,ceiling(h-0.5),rvXsorted(1:3),rQvalue
+			print *,rvXsorted
 		case(QUANT_3)
 			if(rQuantile <= 0.5/size(rvXsorted)) then
 				rQvalue = rvXsorted(1)
