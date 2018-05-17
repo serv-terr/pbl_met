@@ -121,7 +121,7 @@ test.eulerian.time <- function() {
 
 q.test <- function() {
   x <- runif(32, 0, 1)
-  write.csv(x, file="quantile.test.csv", row.names=FALSE)
+  write.csv(x, file="quantile.test.csv", row.names=FALSE, header=FALSE)
   q.min  <- numeric(9)
   q.0001 <- numeric(9)
   q.0010 <- numeric(9)
@@ -163,4 +163,29 @@ q.test <- function() {
     q.max  = q.max
   )
   write.csv(q, file="quantile.result.csv", row.names=FALSE)
+}
+
+q.type2.test <- function() {
+  
+  x <- read.csv("quantile.test.csv", header=FALSE)
+  names(x) <- c("X")
+  probs <- c(0.0000, 0.0001, 0.0010, 0.0100, 0.1000, 0.5000, 0.7500, 0.9000, 0.9500, 0.9980, 0.9999, 1.0000)
+  
+  # Assign type 2 specific quantities (see [Hyndman, 1996])
+  n <- length(x$X)
+  m <- 0
+  p <- probs
+  j <- floor(n*p + m)
+  g <- n*p + m - j
+  gamma <- ifelse(g > 0, 1, 0.5)
+  
+  # Compose result data
+  d <- data.frame(
+    p = p,
+    j = j,
+    g = g,
+    gamma = gamma
+  )
+  return(d)
+
 }
