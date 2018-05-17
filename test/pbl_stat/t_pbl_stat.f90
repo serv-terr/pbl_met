@@ -29,6 +29,7 @@ program test_pbl_stat
 	call testEulerianTime()
 	call testRemoveLinearTrend()
 	call testTimeSeries()
+	call testQuantile()
 	
 contains
 
@@ -1193,5 +1194,76 @@ contains
 		deallocate(rvTimeStamp, rvValue)
 		
 	end subroutine testTimeSeries
+	
+	
+	subroutine testQuantile()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		integer					:: i, j
+		real, dimension(32)		:: rvX
+		real, dimension(9,12)	:: rmQtest, rmQref
+		character(len=128)		:: sBuffer
+		
+		! Constants
+		real, dimension(12), parameter	:: rvProb = [ &
+			0.0000, 0.0001, 0.0010, 0.0100, 0.1000, &
+			0.5000, 0.7500, 0.9000, 0.9500, 0.9980, &
+			0.9999, 1.0000                          &
+		]
+		
+		! Read data files
+		open(10, file="quantile.test.csv", status='old', action='read')
+		do i = 1, 32
+			read(10, *) rvX(i)
+		end do
+		close(10)
+		open(10, file="quantile.result.csv", status='old', action='read')
+		read(10, "(a)") sBuffer
+		do i = 1, 9
+			read(10, *) (rmQref(i,j),j=1,12)
+		end do
+		close(10)
+		
+		! Test 1: Compute quantiles according to the existing methods; scalar form
+		do i = 1, 9
+			do j = 1, 12
+				rmQtest(i,j) = Quantile(rvX, rvProb(j), i)
+			end do
+		end do
+		print *, "Quantile - Test 1 - Test against R precomputed results - Scalar version"
+		print *, "Type, Mean abs diff, Max abs diff"
+		do i = 1, 9
+			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:))), &
+				maxloc(abs(rmQtest(i,:) - rmQref(i,:)))
+		end do
+		open(10, file="quantile.pblmet.1.csv", status='unknown', action='write')
+		write(10, "(a)") trim(sBuffer)
+		do i = 1, 9
+			write(10, "(f11.9,11(',',f11.9))") (rmQtest(i,j), j = 1, 12)
+		end do
+		close(10)
+		print *
+		
+		! Test 2: Compute quantiles according to the existing methods: vector form
+		do i = 1, 9
+			rmQtest(i,:) = Quantile(rvX, rvProb, i)
+		end do
+		print *, "Quantile - Test 2 - Test against R precomputed results - Vector version"
+		print *, "Type, Mean abs diff, Max abs diff"
+		do i = 1, 9
+			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:)))
+		end do
+		open(10, file="quantile.pblmet.2.csv", status='unknown', action='write')
+		write(10, "(a)") trim(sBuffer)
+		do i = 1, 9
+			write(10, "(f11.9,11(',',f11.9))") (rmQtest(i,j), j = 1, 12)
+		end do
+		close(10)
+		print *
+		
+	end subroutine testQuantile
 	
 end program test_pbl_stat
