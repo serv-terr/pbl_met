@@ -535,13 +535,16 @@ contains
 				rQvalue = rvXsorted(n)
 			end if
 		case(QUANT_8)
-			if(rQuantile <= (2./3.)/(size(rvXsorted)+1./3.)) then
+			m = 1./3.
+			j = floor((n+1./3.)*p + m)
+			if(j >= 1 .and. j < n) then
+				g = (n+1./3.)*p + m - j
+				gamma = g
+				rQvalue = (1.-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+			elseif(j < 1) then
 				rQvalue = rvXsorted(1)
-			elseif(rQuantile >= (size(rvXsorted)-1./3.)/(size(rvXsorted)+1./3.)) then
-				rQvalue = rvXsorted(size(rvXsorted))
 			else
-				h = (size(rvXsorted)+1./3.) * rQuantile + 1./3.
-				rQvalue = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+				rQvalue = rvXsorted(n)
 			end if
 		case(QUANT_9)
 			if(rQuantile <= (5./8.)/(size(rvXsorted)+1./4.)) then
