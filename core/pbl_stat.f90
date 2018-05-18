@@ -376,6 +376,13 @@ contains
 		integer							:: iQuantileType
 		real							:: h
 		
+		real							:: m
+		integer							:: n
+		real							:: p
+		integer							:: j
+		real							:: g
+		real							:: gamma
+		
 		! Check something is to be made
 		if(size(rvX) == 1) then
 			rQvalue = rvX(1)
@@ -417,7 +424,10 @@ contains
 			iQuantileType = QUANT_8
 		end if
 		
-		! Compute the value of h
+		! Compute the quantile value
+		n = size(rvXsorted)
+		p = rQuantile
+		
 		select case(iQuantileType)
 		case(QUANT_POPULATION)
 			h = size(rvXsorted) * rQuantile
@@ -432,16 +442,21 @@ contains
 			h = size(rvXsorted) * rQuantile + 0.5
 			rQvalue = rvXsorted(ceiling(h-0.5))
 		case(QUANT_2)
-			h = size(rvXsorted) * rQuantile + 0.5
-			if(h-0.5 < 1.0) then
+			m = 0.
+			j = floor(n*p + m)
+			if(j >= 1 .and. j < n) then
+				g = n*p + m - j
+				if(g>1.e-6) then
+					gamma = 1.
+				else
+					gamma = 0.5
+				end if
+				rQvalue = (1.-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+			elseif(j < 1) then
 				rQvalue = rvXsorted(1)
-			elseif(ceiling(h+0.5) > size(rvXsorted)) then
-				rQvalue = rvXsorted(ceiling(h-0.5))
 			else
-				rQvalue = (rvXsorted(ceiling(h-0.5)) + rvXsorted(ceiling(h+0.5))) / 2.
+				rQvalue = rvXsorted(n)
 			end if
-			print *,rQuantile,h,ceiling(h-0.5),rvXsorted(1:3),rQvalue
-			print *,rvXsorted
 		case(QUANT_3)
 			if(rQuantile <= 0.5/size(rvXsorted)) then
 				rQvalue = rvXsorted(1)
