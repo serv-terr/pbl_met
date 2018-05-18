@@ -49,7 +49,9 @@ module pbl_stat
     public	:: QUANT_POPULATION	! Population quantile
     public	:: QUANT_1			! Sample quantile type 1 (R-1, SAS-3, Maple-1; inverse of edf)
     public	:: QUANT_2			! Sample quantile type 2 (R-2, SAS-5, Maple-2; same as R-1, with averaging at discontinuities)
-    public	:: QUANT_3			! Sample quantile type 3 (R-3, SAS-2; Closest observation)
+    public	:: QUANT_3			! Sample quantile type 3 (R-3, Closest observation)
+    public	:: QUANT_3_R		! Synonym of QUANT_3
+    public	:: QUANT_3_SAS		! Sample quantile type 3 (SAS-2; Closest observation, but with an own definition of "closest integer")
     public	:: QUANT_4			! Sample quantile type 4 (R-4, SAS-1, Maple-3; Linear interpolation of edf)
     public	:: QUANT_5			! Sample quantile type 5 (R-5, Maple-4; piecewise linear function with nodes at midway of edf values)
     public	:: QUANT_6			! Sample quantile type 6 (R-6, SAS-4, Maple-5, Excel; Linear interpolation of order statistics for uniform distribution on [0,1])
@@ -113,6 +115,8 @@ module pbl_stat
     integer, parameter	:: QUANT_1           =     1
     integer, parameter	:: QUANT_2           =     2
     integer, parameter	:: QUANT_3           =     3
+    integer, parameter	:: QUANT_3_R         =     QUANT_3
+    integer, parameter	:: QUANT_3_SAS       =    10
     integer, parameter	:: QUANT_4           =     4
     integer, parameter	:: QUANT_5           =     5
     integer, parameter	:: QUANT_6           =     6
@@ -458,11 +462,29 @@ contains
 				rQvalue = rvXsorted(n)
 			end if
 		case(QUANT_3)
-			if(rQuantile <= 0.5/size(rvXsorted)) then
+			j = nint(n * p)
+			if(j < 1) then
+				rQvalue = rvXsorted(1)
+			elseif(j > n) then
+				rQvalue = rvXsorted(n)
+			else
+				rQvalue = rvXsorted(j)
+			end if
+		case(QUANT_3_SAS)
+			m = -0.5
+			j = floor(n*p + m)
+			if(j >= 1 .and. j < n) then
+				g = n*p + m - j
+				if(g<1.e-6 .and. mod(j,2)==0) then
+					gamma = 1.
+				else
+					gamma = 0.
+				end if
+				rQvalue = (1.-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+			elseif(j < 1) then
 				rQvalue = rvXsorted(1)
 			else
-				h = size(rvXsorted) * rQuantile
-				rQvalue = rvXsorted(nint(h))
+				rQvalue = rvXsorted(n)
 			end if
 		case(QUANT_4)
 			if(rQuantile < 1./size(rvXsorted)) then
