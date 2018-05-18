@@ -547,13 +547,16 @@ contains
 				rQvalue = rvXsorted(n)
 			end if
 		case(QUANT_9)
-			if(rQuantile <= (5./8.)/(size(rvXsorted)+1./4.)) then
+			m = 3./8.
+			j = floor((n+1./4.)*p + m)
+			if(j >= 1 .and. j < n) then
+				g = (n+1./4.)*p + m - j
+				gamma = g
+				rQvalue = (1.-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+			elseif(j < 1) then
 				rQvalue = rvXsorted(1)
-			elseif(rQuantile >= (size(rvXsorted)-3./8.)/(size(rvXsorted)+1./4.)) then
-				rQvalue = rvXsorted(size(rvXsorted))
 			else
-				h = (size(rvXsorted)+1./4.) * rQuantile + 3./8.
-				rQvalue = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+				rQvalue = rvXsorted(n)
 			end if
 		case default
 			rQvalue = NaN
