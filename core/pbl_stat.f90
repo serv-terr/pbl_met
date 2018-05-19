@@ -708,13 +708,42 @@ contains
 					rvQvalue(iQuantile) = rvXsorted(n)
 				end if
 			case(QUANT_3)
-				if(rvQuantile(iQuantile) <= 0.5/size(rvXsorted)) then
+				j = nint(n * p)
+				if(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				elseif(j > n) then
+					rvQvalue(iQuantile) = rvXsorted(n)
+				else
+					rvQvalue(iQuantile) = rvXsorted(j)
+				end if
+			case(QUANT_3_SAS)
+				m = -0.5
+				j = floor(n*p + m)
+				if(j >= 1 .and. j < n) then
+					g = n*p + m - j
+					if(g<1.e-6 .and. mod(j,2)==0) then
+						gamma = 1.
+					else
+						gamma = 0.
+					end if
+					rvQvalue(iQuantile) = (1.-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
 					rvQvalue(iQuantile) = rvXsorted(1)
 				else
-					h = size(rvXsorted) * rvQuantile(iQuantile)
-					rvQvalue(iQuantile) = rvXsorted(nint(h))
+					rvQvalue(iQuantile) = rvXsorted(n)
 				end if
 			case(QUANT_4)
+				m = 0.
+				j = floor(n*p + m)
+				if(j >= 1 .and. j < n) then
+					g = n*p + m - j
+					gamma = g
+					rvQvalue(iQuantile) = (1.-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					rvQvalue(iQuantile) = rvXsorted(n)
+				end if
 				if(rvQuantile(iQuantile) < 1./size(rvXsorted)) then
 					rvQvalue(iQuantile) = rvXsorted(1)
 				else
