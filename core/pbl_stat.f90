@@ -799,13 +799,16 @@ contains
 					rvQvalue(iQuantile) = rvXsorted(n)
 				end if
 			case(QUANT_9)
-				if(rvQuantile(iQuantile) <= (5./8.)/(size(rvXsorted)+1./4.)) then
+				m = 3./8.
+				j = floor((n+1./4.)*p + m)
+				if(j >= 1 .and. j < n) then
+					g = (n+1./4.)*p + m - j
+					gamma = g
+					rvQvalue(iQuantile) = (1.-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
 					rvQvalue(iQuantile) = rvXsorted(1)
-				elseif(rvQuantile(iQuantile) >= (size(rvXsorted)-3./8.)/(size(rvXsorted)+1./4.)) then
-					rvQvalue(iQuantile) = rvXsorted(size(rvXsorted))
 				else
-					h = (size(rvXsorted)+1./4.) * rvQuantile(iQuantile) + 3./8.
-					rvQvalue(iQuantile) = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+					rvQvalue(iQuantile) = rvXsorted(n)
 				end if
 			case default
 				rvQvalue(iQuantile) = NaN
