@@ -379,7 +379,6 @@ contains
 		real, dimension(:), allocatable	:: rvXsorted
 		integer							:: iQuantileType
 		real							:: h
-		
 		real							:: m
 		integer							:: n
 		real							:: p
@@ -434,17 +433,38 @@ contains
 		
 		select case(iQuantileType)
 		case(QUANT_POPULATION)
-			h = size(rvXsorted) * rQuantile
+			h = n * p
 			if(floor(h) == ceiling(h)) then
 				! h is integer
-				rQvalue = 0.5*(rvXsorted(floor(h)) + rvXsorted(floor(h) + 1))
+				j = floor(h)
+				if(j < 1) then
+					rQvalue = rvXsorted(1)
+				elseif(j >= n) then
+					rQvalue = rvXsorted(n)
+				else
+					rQvalue = 0.5*(rvXsorted(j) + rvXsorted(j + 1))
+				end if
 			else
 				! h is not integer
-				rQvalue = rvXsorted(ceiling(h))
+				j = ceiling(h)
+				if(j < 1) then
+					rQvalue = rvXsorted(1)
+				elseif(j >= n) then
+					rQvalue = rvXsorted(n)
+				else
+					rQvalue = rvXsorted(j)
+				end if
 			end if
 		case(QUANT_1)
-			h = size(rvXsorted) * rQuantile + 0.5
-			rQvalue = rvXsorted(ceiling(h-0.5))
+			h = n * p
+			j = ceiling(h)
+			if(j < 1) then
+				rQvalue = rvXsorted(1)
+			elseif(j > n) then
+				rQvalue = rvXsorted(n)
+			else
+				rQvalue = rvXsorted(ceiling(h))
+			end if
 		case(QUANT_2)
 			m = 0.
 			j = floor(n*p + m)
@@ -578,6 +598,12 @@ contains
 		integer							:: iQuantileType
 		real							:: h
 		integer							:: iQuantile
+		real							:: m
+		integer							:: n
+		real							:: p
+		integer							:: j
+		real							:: g
+		real							:: gamma
 		
 		! Check something is to be made
 		if(size(rvQuantile) <= 0) then
@@ -620,29 +646,67 @@ contains
 			! Answer for trivial cases
 			if(rvQuantile(iQuantile) <= 0.) then
 				rvQvalue(iQuantile) = minval(rvX, mask=.valid.rvX)
-				return
+				cycle
 			elseif(rvQuantile(iQuantile) >= 1.) then
 				rvQvalue(iQuantile) = maxval(rvX, mask=.valid.rvX)
-				return
+				cycle
 			end if
+		
+			! Compute the quantile value
+			n = size(rvXsorted)
+			p = rvQuantile(iQuantile)
 		
 			! Compute the value of h
 			select case(iQuantileType)
 			case(QUANT_POPULATION)
-				h = size(rvXsorted) * rvQuantile(iQuantile)
+				h = n * p
 				if(floor(h) == ceiling(h)) then
 					! h is integer
-					rvQvalue(iQuantile) = 0.5*(rvXsorted(floor(h)) + rvXsorted(floor(h) + 1))
+					j = floor(h)
+					if(j < 1) then
+						rvQvalue(iQuantile) = rvXsorted(1)
+					elseif(j >= n) then
+						rvQvalue(iQuantile) = rvXsorted(n)
+					else
+						rvQvalue(iQuantile) = 0.5*(rvXsorted(j) + rvXsorted(j + 1))
+					end if
 				else
 					! h is not integer
-					rvQvalue(iQuantile) = rvXsorted(ceiling(h))
+					j = ceiling(h)
+					if(j < 1) then
+						rvQvalue(iQuantile) = rvXsorted(1)
+					elseif(j >= n) then
+						rvQvalue(iQuantile) = rvXsorted(n)
+					else
+						rvQvalue(iQuantile) = rvXsorted(j)
+					end if
 				end if
 			case(QUANT_1)
-				h = size(rvXsorted) * rvQuantile(iQuantile) + 0.5
-				rvQvalue(iQuantile) = rvXsorted(ceiling(h-0.5))
+				h = n * p
+				j = ceiling(h)
+				if(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				elseif(j > n) then
+					rvQvalue(iQuantile) = rvXsorted(n)
+				else
+					rvQvalue(iQuantile) = rvXsorted(j)
+				end if
 			case(QUANT_2)
-				h = size(rvXsorted) * rvQuantile(iQuantile) + 0.5
-				rvQvalue(iQuantile) = (rvXsorted(ceiling(h-0.5)) + rvXsorted(ceiling(h+0.5))) / 2.
+				m = 0.
+				j = floor(n*p + m)
+				if(j >= 1 .and. j < n) then
+					g = n*p + m - j
+					if(g>1.e-6) then
+						gamma = 1.
+					else
+						gamma = 0.5
+					end if
+					rvQvalue(iQuantile) = (1.-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					rvQvalue(iQuantile) = rvXsorted(n)
+				end if
 			case(QUANT_3)
 				if(rvQuantile(iQuantile) <= 0.5/size(rvXsorted)) then
 					rvQvalue(iQuantile) = rvXsorted(1)
