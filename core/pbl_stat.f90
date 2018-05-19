@@ -775,8 +775,17 @@ contains
 					rvQvalue(iQuantile) = rvXsorted(n)
 				end if
 			case(QUANT_7)
-				h = (size(rvXsorted)-1) * rvQuantile(iQuantile) + 1.
-				rvQvalue(iQuantile) = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+				m = 1.
+				j = floor((n-1)*p + m)
+				if(j >= 1 .and. j < n) then
+					g = (n-1)*p + m - j
+					gamma = g
+					rvQvalue(iQuantile) = (1.-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					rvQvalue(iQuantile) = rvXsorted(n)
+				end if
 			case(QUANT_8)
 				if(rvQuantile(iQuantile) <= (2./3.)/(size(rvXsorted)+1./3.)) then
 					rvQvalue(iQuantile) = rvXsorted(1)
