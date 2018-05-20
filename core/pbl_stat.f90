@@ -398,6 +398,10 @@ contains
 			rQvalue = NaN
 			return
 		end if
+		if(.invalid.rQuantile) then
+			rQvalue = NaN
+			return
+		end if
 		
 		! Answer for trivial cases
 		if(rQuantile <= 0.) then
