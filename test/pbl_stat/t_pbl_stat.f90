@@ -1206,6 +1206,7 @@ contains
 		real, dimension(32)		:: rvX
 		real, dimension(9,12)	:: rmQtest, rmQref
 		character(len=128)		:: sBuffer
+		real					:: rQtest
 		
 		! Constants
 		real, dimension(12), parameter	:: rvProb = [ &
@@ -1247,11 +1248,17 @@ contains
 		close(10)
 		print *
 		
-		! Test 2: Compute quantiles according to the existing methods: vector form
+		! Test 2: boundary - Invalid quantile level
+		rQtest = Quantile(rvX, NaN)
+		print *, "Quantile - Test 2 - Test against invalid quantile level; test also default type - Scalar"
+		print *, "Quantile = ", rQtest, "  (expected: NaN)"
+		print *
+		
+		! Test 3: Compute quantiles according to the existing methods: vector form
 		do i = 1, 9
 			rmQtest(i,:) = Quantile(rvX, rvProb, i)
 		end do
-		print *, "Quantile - Test 2 - Test against R precomputed results - Vector version"
+		print *, "Quantile - Test 3 - Test against R precomputed results - Vector version"
 		print *, "Type, Mean abs diff, Max abs diff"
 		do i = 1, 9
 			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:)))
