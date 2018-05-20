@@ -1214,6 +1214,16 @@ contains
 			0.5000, 0.7500, 0.9000, 0.9500, 0.9980, &
 			0.9999, 1.0000                          &
 		]
+		real, dimension(12), parameter	:: rvProb2 = [ &
+			0.0000, 0.0001, NaN,    0.0100, 0.1000, &
+			0.5000, 0.7500, 0.9000, 0.9500, 0.9980, &
+			0.9999, 1.0000                          &
+		]
+		real, dimension(12), parameter	:: rvProb3 = [ &
+			NaN,    NaN,    NaN,    NaN,    NaN, &
+			NaN,    NaN,    NaN,    NaN,    NaN, &
+			NaN,    NaN &
+		]
 		
 		! Read data files
 		open(10, file="quantile.test.csv", status='old', action='read')
@@ -1269,6 +1279,12 @@ contains
 			write(10, "(f11.9,11(',',f11.9))") (rmQtest(i,j), j = 1, 12)
 		end do
 		close(10)
+		print *
+		
+		! Test 4: boundary - Invalid quantile level
+		rmQtest(8,:) = Quantile(rvX, rvProb2)
+		print *, "Quantile - Test 4 - Test against onr invalid quantile level; test also default type - vector"
+		print *, "Quantile = ", rmQtest(8,:), "  (expected: third quantile value in vector is NaN)"
 		print *
 		
 	end subroutine testQuantile
