@@ -647,6 +647,12 @@ contains
 		! Main loop: iterate over quantiles
 		do iQuantile = 1, size(rvQuantile)
 		
+			! Check something is to be made
+			if(.invalid.rvQuantile(iQuantile)) then
+				rvQvalue(iQuantile) = NaN
+				cycle
+			end if
+		
 			! Answer for trivial cases
 			if(rvQuantile(iQuantile) <= 0.) then
 				rvQvalue(iQuantile) = minval(rvX, mask=.valid.rvX)
