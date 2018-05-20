@@ -1204,6 +1204,7 @@ contains
 		! Locals
 		integer					:: i, j
 		real, dimension(32)		:: rvX
+		real, dimension(32)		:: rvY
 		real, dimension(9,12)	:: rmQtest, rmQref
 		character(len=128)		:: sBuffer
 		real					:: rQtest
@@ -1291,6 +1292,23 @@ contains
 		rmQtest(8,:) = Quantile(rvX, rvProb3)
 		print *, "Quantile - Test 5 - Test against all invalid quantile levels; test also default type - vector"
 		print *, "Quantile = ", rmQtest(8,:), "  (expected: all NaN)"
+		print *
+		
+		! Test 6: Normal: One data value is invalid, scalar case
+		rvY = rvX
+		rvY(13) = NaN
+		do i = 1, 9
+			do j = 1, 12
+				rmQtest(i,j) = Quantile(rvY, rvProb(j), i)
+			end do
+		end do
+		print *, "Quantile - Test 6 - Test against R precomputed results - Scalar version, one NaN"
+		print *, " - Expected: *differs* from ideal case, but no NaNs"
+		print *, "Type, Mean abs diff, Max abs diff"
+		do i = 1, 9
+			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:))), &
+				maxloc(abs(rmQtest(i,:) - rmQref(i,:)))
+		end do
 		print *
 		
 	end subroutine testQuantile
