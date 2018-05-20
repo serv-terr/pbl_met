@@ -1283,8 +1283,14 @@ contains
 		
 		! Test 4: boundary - Invalid quantile level
 		rmQtest(8,:) = Quantile(rvX, rvProb2)
-		print *, "Quantile - Test 4 - Test against onr invalid quantile level; test also default type - vector"
+		print *, "Quantile - Test 4 - Test against one invalid quantile level; test also default type - vector"
 		print *, "Quantile = ", rmQtest(8,:), "  (expected: third quantile value in vector is NaN)"
+		print *
+		
+		! Test 5: boundary - All quantile levels invalid
+		rmQtest(8,:) = Quantile(rvX, rvProb3)
+		print *, "Quantile - Test 5 - Test against all invalid quantile levels; test also default type - vector"
+		print *, "Quantile = ", rmQtest(8,:), "  (expected: all NaN)"
 		print *
 		
 	end subroutine testQuantile
