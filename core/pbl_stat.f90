@@ -24,6 +24,7 @@ module pbl_stat
     public	:: StdDev
     public  :: Cov
     public	:: Quantile
+    public	:: Skew
     ! 3. Autocovariance, autocorrelation and related
     public	:: AutoCov
     public	:: AutoCorr
@@ -316,6 +317,65 @@ contains
 		end if
 		
 	end function StdDev
+	
+
+	! Compute the population standard deviation of a signal
+	function Skew(rvX, rMeanIn, rStdDevIn, rValidFraction) result(rSkewness)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvX				! Signal, whose standard deviation is needed
+		real, intent(in), optional		:: rMeanIn			! Mean value, as computed by "Mean" function (optional, recomputed if missing)
+		real, intent(in), optional		:: rStdDevIn		! Standard deviation, as computed by "StdDev" function (optional, recomputed if missing)
+		real, intent(out), optional		:: rValidFraction	! Fraction of valid to total signal data (optional)
+		real							:: rSkewness
+		
+		! Locals
+		integer	:: n
+		real	:: rMean
+		real	:: rStdDev
+		real	:: m3
+		
+		! Check something is to be made
+		if(size(rvX) <= 0) then
+			rMean = NaN
+			return
+		end if
+		
+		! Compute the arithmetic mean, if missing; or, get its value
+		n = count(.valid.rvX)
+		if(present(rMeanIn)) then
+			rMean = rMeanIn
+		else
+			if(n > 0) then
+				rMean = sum(rvX, mask = .valid.rvX) / n
+			else
+				rMean = NaN
+			end if
+		end if
+		if(present(rStdDevIn)) then
+			rStdDev = rStdDevIn
+		else
+			if(n > 0) then
+				rStdDev = sqrt(sum((rvX - rMean)**2, mask = .valid.rvX) / n)
+			else
+				rStdDev = NaN
+			end if
+		end if
+		
+		! Compute the skewness
+		if(n > 0) then
+			m3        = sum((rvX - rMean)**3, mask = .valid.rvX) / n
+			rSkewness = m3 / rStdDev**3
+		else
+			rSkewness = NaN
+		end if
+		
+		! Compute diagnostic quantities, if present
+		if(present(rValidFraction)) then
+			rValidFraction = float(n) / size(rvX)
+		end if
+		
+	end function Skew
 	
 
     ! Compute the sampling covariance between two signal samples; these samples should
