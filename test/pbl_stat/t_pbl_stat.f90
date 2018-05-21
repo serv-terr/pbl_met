@@ -30,6 +30,7 @@ program test_pbl_stat
 	call testRemoveLinearTrend()
 	call testTimeSeries()
 	call testQuantile()
+	call testSkewness()
 	
 contains
 
@@ -1322,5 +1323,27 @@ contains
 		end do
 		
 	end subroutine testQuantile
+	
+	
+	subroutine testSkewness()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real, dimension(16)	:: rvX, rvY
+		integer				:: i
+		
+		! Assign test values
+		rvX = [(float(i), i = 1, 16)]
+		rvY = (rvX - 8.)**2
+		
+		! Test 1: Normal: Skewness, against R values
+		print *, "Skewness - Test 1 - X and Y cases, compared to R result"
+		print *, "  Skewness(X) = ", Skew(rvX), "  (expected: 0)"
+		print *, "  Skewness(Y) = ", Skew(rvY), "  (expected: 0.7002017)"
+		print *
+		
+	end subroutine testSkewness
 	
 end program test_pbl_stat
