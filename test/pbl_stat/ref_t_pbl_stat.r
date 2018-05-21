@@ -1,3 +1,5 @@
+library(moments)
+
 ##################################
 # Reference cases for covariance #
 ##################################
@@ -189,3 +191,17 @@ q.type2.test <- function() {
   return(d)
 
 }
+
+##########################
+# Test case for skewness #
+##########################
+
+test.skew <- function() {
+  x <- 1:16
+  y <- (x-8)^2
+  d <- data.frame(x, y)
+  s.x <- skewness(x)
+  s.y <- skewness(y)
+  return(list(s.x=s.x, s.y=s.y))
+}
+
