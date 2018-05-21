@@ -1311,6 +1311,16 @@ contains
 		end do
 		print *
 		
+		! Test 7: Normal: One data value is invalid, scalar case
+		do i = 1, 9
+			rmQtest(i,:) = Quantile(rvY, rvProb, i)
+		end do
+		print *, "Quantile - Test 7 - Test against R precomputed results - Vector version, one NaN"
+		print *, "Type, Mean abs diff, Max abs diff"
+		do i = 1, 9
+			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:)))
+		end do
+		
 	end subroutine testQuantile
 	
 end program test_pbl_stat
