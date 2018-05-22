@@ -1385,6 +1385,13 @@ contains
 		print *, "  Kurtosis(Y) = ", Kurt(rvY), "  (expected: -0.684658)"
 		print *
 		
+		! Test 2: Normal: Kurtosis with mean, stdev and both
+		print *, "Kurtosis - Test 1 - Y case, with external mean and stddev"
+		print *, "  Kurtosis(Y, Mean(Y)) = ", Kurt(rvY, rMeanIn=Mean(rvY)), "  (expected: -0.684658)"
+		print *, "  Kurtosis(Y, Stddev(Y)) = ", Kurt(rvY, rStdDevIn=StdDev(rvY)), "  (expected: -0.684658)"
+		print *, "  Kurtosis(Y, Mean(Y), Stddev(Y)) = ", Kurt(rvY, rMeanIn=Mean(rvY), rStdDevIn=StdDev(rvY)), &
+			"  (expected: -0.684658)"
+			
 	end subroutine testKurtosis
 	
 end program test_pbl_stat
