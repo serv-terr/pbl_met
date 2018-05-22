@@ -1350,6 +1350,18 @@ contains
 		print *, "  Skewness(Y, Stddev(Y)) = ", Skew(rvY, rStdDevIn=StdDev(rvY)), "  (expected: 0.7002017)"
 		print *, "  Skewness(Y, Mean(Y), Stddev(Y)) = ", Skew(rvY, rMeanIn=Mean(rvY), rStdDevIn=StdDev(rvY)), &
 			"  (expected: 0.7002017)"
+			
+		! Test 3: Normal: One NaN in data vector
+		rvY(1) = NaN
+		print *, "Skewness - Test 3 - Y case, one NaN"
+		print *, "  Skewness(Y) = ", Skew(rvY), "  (expected: anything but 0.7002017)"
+		print *
+		
+		! Test 4: Boundary: All NaN in data vector
+		rvY = NaN
+		print *, "Skewness - Test 4 - Y case, all NaN"
+		print *, "  Skewness(Y) = ", Skew(rvY), "  (expected: NaN)"
+		print *
 		
 	end subroutine testSkewness
 	
