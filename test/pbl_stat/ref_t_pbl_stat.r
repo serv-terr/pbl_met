@@ -213,8 +213,8 @@ test.kurt <- function() {
   x <- 1:16
   y <- (x-8)^2
   d <- data.frame(x, y)
-  s.x <- kurtosis(x)
-  s.y <- kurtosis(y)
+  s.x <- kurtosis(x) - 3.
+  s.y <- kurtosis(y) - 3.
   return(list(s.x=s.x, s.y=s.y))
 }
 
