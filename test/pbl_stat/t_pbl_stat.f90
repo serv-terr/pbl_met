@@ -31,6 +31,7 @@ program test_pbl_stat
 	call testTimeSeries()
 	call testQuantile()
 	call testSkewness()
+	call testKurtosis()
 	
 contains
 
@@ -1364,5 +1365,26 @@ contains
 		print *
 		
 	end subroutine testSkewness
+	
+	subroutine testKurtosis()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real, dimension(16)	:: rvX, rvY
+		integer				:: i
+		
+		! Assign test values
+		rvX = [(float(i), i = 1, 16)]
+		rvY = (rvX - 8.)**2
+		
+		! Test 1: Normal: Kurtosis, against R values
+		print *, "Kurtosis - Test 1 - X and Y cases, compared to R result"
+		print *, "  Kurtosis(X) = ", Kurt(rvX), "  (expected: -1.209412)"
+		print *, "  Kurtosis(Y) = ", Kurt(rvY), "  (expected: -0.684658)"
+		print *
+		
+	end subroutine testKurtosis
 	
 end program test_pbl_stat
