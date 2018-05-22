@@ -1433,6 +1433,19 @@ contains
 		print *,"Data after:        ", rvValue
 		print *
 		
+		print *, "Test 13 - reorder time stamp values - All NaN times"
+		rvTimeStamp = [NaN_8, NaN_8, NaN_8, NaN_8, NaN_8]
+		rvValue = [2., 4., 6., 8., 10.]
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		print *,"Time stamps before: ", rvTimeStamp
+		print *,"Data before:        ", rvValue
+		call ts % timeReorder()
+		iRetCode = ts % getTimeStamp(rvTimeStamp)
+		iRetCode = ts % getValues(rvValue)
+		print *,"Time stamps after: ", rvTimeStamp
+		print *,"Data after:        ", rvValue
+		print *
+		
 		! Leave
 		deallocate(rvTimeStamp, rvValue)
 		
