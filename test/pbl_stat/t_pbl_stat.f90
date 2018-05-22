@@ -1392,6 +1392,18 @@ contains
 		print *, "  Kurtosis(Y, Mean(Y), Stddev(Y)) = ", Kurt(rvY, rMeanIn=Mean(rvY), rStdDevIn=StdDev(rvY)), &
 			"  (expected: -0.684658)"
 			
+		! Test 3: Normal: One NaN in data vector
+		rvY(1) = NaN
+		print *, "Kurtosis - Test 3 - Y case, one NaN"
+		print *, "  Kurtosis(Y) = ", Kurt(rvY), "  (expected: anything but -0.684658)"
+		print *
+		
+		! Test 4: Boundary: All NaN in data vector
+		rvY = NaN
+		print *, "Kurtosis - Test 4 - Y case, all NaN"
+		print *, "  Kurtosis(Y) = ", Kurt(rvY), "  (expected: NaN)"
+		print *
+		
 	end subroutine testKurtosis
 	
 end program test_pbl_stat
