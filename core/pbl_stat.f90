@@ -2111,8 +2111,8 @@ contains
 				rMean            = sum(this % rvValue, mask = .valid. this % rvValue) / iNumValues
 				rStdDev          = sqrt(sum((this % rvValue - rMean)**2, mask = .valid. this % rvValue) / iNumValues)
 				rMax             = maxval(this % rvValue, mask = .valid. this % rvValue)
-				if(present(rSkew)) rSkew = Skew(this % rvValue)
-				if(present(rKurt)) rKurt = Kurt(this % rvValue)
+				if(present(rSkew)) rSkew = Skew(this % rvValue, rMeanIn=rMean, rStdDevIn=rStdDev)
+				if(present(rKurt)) rKurt = Kurt(this % rvValue, rMeanIn=rMean, rStdDevIn=rStdDev)
 			else
 				rValidPercentage = 0.
 				rMin             = NaN
