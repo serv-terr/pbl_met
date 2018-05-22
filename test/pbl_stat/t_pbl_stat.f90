@@ -28,10 +28,10 @@ program test_pbl_stat
 	call testCrossCorr()
 	call testEulerianTime()
 	call testRemoveLinearTrend()
-	call testTimeSeries()
 	call testQuantile()
 	call testSkewness()
 	call testKurtosis()
+	call testTimeSeries()
 	
 contains
 
@@ -872,6 +872,215 @@ contains
 	end subroutine testRemoveLinearTrend
 	
 	
+	subroutine testQuantile()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		integer					:: i, j
+		real, dimension(32)		:: rvX
+		real, dimension(32)		:: rvY
+		real, dimension(9,12)	:: rmQtest, rmQref
+		character(len=128)		:: sBuffer
+		real					:: rQtest
+		
+		! Constants
+		real, dimension(12), parameter	:: rvProb = [ &
+			0.0000, 0.0001, 0.0010, 0.0100, 0.1000, &
+			0.5000, 0.7500, 0.9000, 0.9500, 0.9980, &
+			0.9999, 1.0000                          &
+		]
+		real, dimension(12), parameter	:: rvProb2 = [ &
+			0.0000, 0.0001, NaN,    0.0100, 0.1000, &
+			0.5000, 0.7500, 0.9000, 0.9500, 0.9980, &
+			0.9999, 1.0000                          &
+		]
+		real, dimension(12), parameter	:: rvProb3 = [ &
+			NaN,    NaN,    NaN,    NaN,    NaN, &
+			NaN,    NaN,    NaN,    NaN,    NaN, &
+			NaN,    NaN &
+		]
+		
+		! Read data files
+		open(10, file="quantile.test.csv", status='old', action='read')
+		do i = 1, 32
+			read(10, *) rvX(i)
+		end do
+		close(10)
+		open(10, file="quantile.result.csv", status='old', action='read')
+		read(10, "(a)") sBuffer
+		do i = 1, 9
+			read(10, *) (rmQref(i,j),j=1,12)
+		end do
+		close(10)
+		
+		! Test 1: Compute quantiles according to the existing methods; scalar form
+		do i = 1, 9
+			do j = 1, 12
+				rmQtest(i,j) = Quantile(rvX, rvProb(j), i)
+			end do
+		end do
+		print *, "Quantile - Test 1 - Test against R precomputed results - Scalar version"
+		print *, "Type, Mean abs diff, Max abs diff"
+		do i = 1, 9
+			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:))), &
+				maxloc(abs(rmQtest(i,:) - rmQref(i,:)))
+		end do
+		open(10, file="quantile.pblmet.1.csv", status='unknown', action='write')
+		write(10, "(a)") trim(sBuffer)
+		do i = 1, 9
+			write(10, "(f11.9,11(',',f11.9))") (rmQtest(i,j), j = 1, 12)
+		end do
+		close(10)
+		print *
+		
+		! Test 2: boundary - Invalid quantile level
+		rQtest = Quantile(rvX, NaN)
+		print *, "Quantile - Test 2 - Test against invalid quantile level; test also default type - Scalar"
+		print *, "Quantile = ", rQtest, "  (expected: NaN)"
+		print *
+		
+		! Test 3: Compute quantiles according to the existing methods: vector form
+		do i = 1, 9
+			rmQtest(i,:) = Quantile(rvX, rvProb, i)
+		end do
+		print *, "Quantile - Test 3 - Test against R precomputed results - Vector version"
+		print *, "Type, Mean abs diff, Max abs diff"
+		do i = 1, 9
+			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:)))
+		end do
+		open(10, file="quantile.pblmet.2.csv", status='unknown', action='write')
+		write(10, "(a)") trim(sBuffer)
+		do i = 1, 9
+			write(10, "(f11.9,11(',',f11.9))") (rmQtest(i,j), j = 1, 12)
+		end do
+		close(10)
+		print *
+		
+		! Test 4: boundary - Invalid quantile level
+		rmQtest(8,:) = Quantile(rvX, rvProb2)
+		print *, "Quantile - Test 4 - Test against one invalid quantile level; test also default type - vector"
+		print *, "Quantile = ", rmQtest(8,:), "  (expected: third quantile value in vector is NaN)"
+		print *
+		
+		! Test 5: boundary - All quantile levels invalid
+		rmQtest(8,:) = Quantile(rvX, rvProb3)
+		print *, "Quantile - Test 5 - Test against all invalid quantile levels; test also default type - vector"
+		print *, "Quantile = ", rmQtest(8,:), "  (expected: all NaN)"
+		print *
+		
+		! Test 6: Normal: One data value is invalid, scalar case
+		rvY = rvX
+		rvY(13) = NaN
+		do i = 1, 9
+			do j = 1, 12
+				rmQtest(i,j) = Quantile(rvY, rvProb(j), i)
+			end do
+		end do
+		print *, "Quantile - Test 6 - Test against R precomputed results - Scalar version, one NaN"
+		print *, " - Expected: *differs* from ideal case, but no NaNs"
+		print *, "Type, Mean abs diff, Max abs diff"
+		do i = 1, 9
+			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:))), &
+				maxloc(abs(rmQtest(i,:) - rmQref(i,:)))
+		end do
+		print *
+		
+		! Test 7: Normal: One data value is invalid, scalar case
+		do i = 1, 9
+			rmQtest(i,:) = Quantile(rvY, rvProb, i)
+		end do
+		print *, "Quantile - Test 7 - Test against R precomputed results - Vector version, one NaN"
+		print *, "Type, Mean abs diff, Max abs diff"
+		do i = 1, 9
+			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:)))
+		end do
+		
+	end subroutine testQuantile
+	
+	
+	subroutine testSkewness()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real, dimension(16)	:: rvX, rvY
+		integer				:: i
+		
+		! Assign test values
+		rvX = [(float(i), i = 1, 16)]
+		rvY = (rvX - 8.)**2
+		
+		! Test 1: Normal: Skewness, against R values
+		print *, "Skewness - Test 1 - X and Y cases, compared to R result"
+		print *, "  Skewness(X) = ", Skew(rvX), "  (expected: 0)"
+		print *, "  Skewness(Y) = ", Skew(rvY), "  (expected: 0.7002017)"
+		print *
+		
+		! Test 2: Normal: Skewness with mean, stdev and both
+		print *, "Skewness - Test 1 - Y case, with external mean and stddev"
+		print *, "  Skewness(Y, Mean(Y)) = ", Skew(rvY, rMeanIn=Mean(rvY)), "  (expected: 0.7002017)"
+		print *, "  Skewness(Y, Stddev(Y)) = ", Skew(rvY, rStdDevIn=StdDev(rvY)), "  (expected: 0.7002017)"
+		print *, "  Skewness(Y, Mean(Y), Stddev(Y)) = ", Skew(rvY, rMeanIn=Mean(rvY), rStdDevIn=StdDev(rvY)), &
+			"  (expected: 0.7002017)"
+			
+		! Test 3: Normal: One NaN in data vector
+		rvY(1) = NaN
+		print *, "Skewness - Test 3 - Y case, one NaN"
+		print *, "  Skewness(Y) = ", Skew(rvY), "  (expected: anything but 0.7002017)"
+		print *
+		
+		! Test 4: Boundary: All NaN in data vector
+		rvY = NaN
+		print *, "Skewness - Test 4 - Y case, all NaN"
+		print *, "  Skewness(Y) = ", Skew(rvY), "  (expected: NaN)"
+		print *
+		
+	end subroutine testSkewness
+	
+	subroutine testKurtosis()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real, dimension(16)	:: rvX, rvY
+		integer				:: i
+		
+		! Assign test values
+		rvX = [(float(i), i = 1, 16)]
+		rvY = (rvX - 8.)**2
+		
+		! Test 1: Normal: Kurtosis, against R values
+		print *, "Kurtosis - Test 1 - X and Y cases, compared to R result"
+		print *, "  Kurtosis(X) = ", Kurt(rvX), "  (expected: -1.209412)"
+		print *, "  Kurtosis(Y) = ", Kurt(rvY), "  (expected: -0.684658)"
+		print *
+		
+		! Test 2: Normal: Kurtosis with mean, stdev and both
+		print *, "Kurtosis - Test 1 - Y case, with external mean and stddev"
+		print *, "  Kurtosis(Y, Mean(Y)) = ", Kurt(rvY, rMeanIn=Mean(rvY)), "  (expected: -0.684658)"
+		print *, "  Kurtosis(Y, Stddev(Y)) = ", Kurt(rvY, rStdDevIn=StdDev(rvY)), "  (expected: -0.684658)"
+		print *, "  Kurtosis(Y, Mean(Y), Stddev(Y)) = ", Kurt(rvY, rMeanIn=Mean(rvY), rStdDevIn=StdDev(rvY)), &
+			"  (expected: -0.684658)"
+			
+		! Test 3: Normal: One NaN in data vector
+		rvY(1) = NaN
+		print *, "Kurtosis - Test 3 - Y case, one NaN"
+		print *, "  Kurtosis(Y) = ", Kurt(rvY), "  (expected: anything but -0.684658)"
+		print *
+		
+		! Test 4: Boundary: All NaN in data vector
+		rvY = NaN
+		print *, "Kurtosis - Test 4 - Y case, all NaN"
+		print *, "  Kurtosis(Y) = ", Kurt(rvY), "  (expected: NaN)"
+		print *
+		
+	end subroutine testKurtosis
+	
+	
 	subroutine testTimeSeries()
 	
 		! Routine arguments
@@ -882,7 +1091,7 @@ contains
 		character(len=256)	:: sInputFile
 		type(TimeSeries)	:: ts, tsCopy, tsReduced
 		type(DateTime)		:: tm
-		real				:: rValid, rMin, rMean, rStdDev, rMax
+		real				:: rValid, rMin, rMean, rStdDev, rMax, rSkew, rKurt
 		integer				:: i
 		integer				:: iNumData
 		integer				:: iNumLines
@@ -970,7 +1179,7 @@ contains
 		call ts % rangeInvalidate(-40., +60.)
 		
 		! Compute and print a short summary on values
-		call ts % summary(iNumData, rValid, rMin, rMean, rStdDev, rMax)
+		call ts % summary(iNumData, rValid, rMin, rMean, rStdDev, rMax, rSkew, rKurt)
 		print *,"Summary on data values"
 		print *,"======================"
 		print *
@@ -980,6 +1189,8 @@ contains
 		print *,"Mean                               = ", rMean
 		print *,"Standard deviation                 = ", rStdDev
 		print *,"Maximum                            = ", rMax
+		print *,"Skewness                           = ", rSkew
+		print *,"Kurtosis                           = ", rKurt
 		print *
 		
 		! Check time is monotonic
@@ -1196,214 +1407,5 @@ contains
 		deallocate(rvTimeStamp, rvValue)
 		
 	end subroutine testTimeSeries
-	
-	
-	subroutine testQuantile()
-	
-		! Routine arguments
-		! -none-
-		
-		! Locals
-		integer					:: i, j
-		real, dimension(32)		:: rvX
-		real, dimension(32)		:: rvY
-		real, dimension(9,12)	:: rmQtest, rmQref
-		character(len=128)		:: sBuffer
-		real					:: rQtest
-		
-		! Constants
-		real, dimension(12), parameter	:: rvProb = [ &
-			0.0000, 0.0001, 0.0010, 0.0100, 0.1000, &
-			0.5000, 0.7500, 0.9000, 0.9500, 0.9980, &
-			0.9999, 1.0000                          &
-		]
-		real, dimension(12), parameter	:: rvProb2 = [ &
-			0.0000, 0.0001, NaN,    0.0100, 0.1000, &
-			0.5000, 0.7500, 0.9000, 0.9500, 0.9980, &
-			0.9999, 1.0000                          &
-		]
-		real, dimension(12), parameter	:: rvProb3 = [ &
-			NaN,    NaN,    NaN,    NaN,    NaN, &
-			NaN,    NaN,    NaN,    NaN,    NaN, &
-			NaN,    NaN &
-		]
-		
-		! Read data files
-		open(10, file="quantile.test.csv", status='old', action='read')
-		do i = 1, 32
-			read(10, *) rvX(i)
-		end do
-		close(10)
-		open(10, file="quantile.result.csv", status='old', action='read')
-		read(10, "(a)") sBuffer
-		do i = 1, 9
-			read(10, *) (rmQref(i,j),j=1,12)
-		end do
-		close(10)
-		
-		! Test 1: Compute quantiles according to the existing methods; scalar form
-		do i = 1, 9
-			do j = 1, 12
-				rmQtest(i,j) = Quantile(rvX, rvProb(j), i)
-			end do
-		end do
-		print *, "Quantile - Test 1 - Test against R precomputed results - Scalar version"
-		print *, "Type, Mean abs diff, Max abs diff"
-		do i = 1, 9
-			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:))), &
-				maxloc(abs(rmQtest(i,:) - rmQref(i,:)))
-		end do
-		open(10, file="quantile.pblmet.1.csv", status='unknown', action='write')
-		write(10, "(a)") trim(sBuffer)
-		do i = 1, 9
-			write(10, "(f11.9,11(',',f11.9))") (rmQtest(i,j), j = 1, 12)
-		end do
-		close(10)
-		print *
-		
-		! Test 2: boundary - Invalid quantile level
-		rQtest = Quantile(rvX, NaN)
-		print *, "Quantile - Test 2 - Test against invalid quantile level; test also default type - Scalar"
-		print *, "Quantile = ", rQtest, "  (expected: NaN)"
-		print *
-		
-		! Test 3: Compute quantiles according to the existing methods: vector form
-		do i = 1, 9
-			rmQtest(i,:) = Quantile(rvX, rvProb, i)
-		end do
-		print *, "Quantile - Test 3 - Test against R precomputed results - Vector version"
-		print *, "Type, Mean abs diff, Max abs diff"
-		do i = 1, 9
-			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:)))
-		end do
-		open(10, file="quantile.pblmet.2.csv", status='unknown', action='write')
-		write(10, "(a)") trim(sBuffer)
-		do i = 1, 9
-			write(10, "(f11.9,11(',',f11.9))") (rmQtest(i,j), j = 1, 12)
-		end do
-		close(10)
-		print *
-		
-		! Test 4: boundary - Invalid quantile level
-		rmQtest(8,:) = Quantile(rvX, rvProb2)
-		print *, "Quantile - Test 4 - Test against one invalid quantile level; test also default type - vector"
-		print *, "Quantile = ", rmQtest(8,:), "  (expected: third quantile value in vector is NaN)"
-		print *
-		
-		! Test 5: boundary - All quantile levels invalid
-		rmQtest(8,:) = Quantile(rvX, rvProb3)
-		print *, "Quantile - Test 5 - Test against all invalid quantile levels; test also default type - vector"
-		print *, "Quantile = ", rmQtest(8,:), "  (expected: all NaN)"
-		print *
-		
-		! Test 6: Normal: One data value is invalid, scalar case
-		rvY = rvX
-		rvY(13) = NaN
-		do i = 1, 9
-			do j = 1, 12
-				rmQtest(i,j) = Quantile(rvY, rvProb(j), i)
-			end do
-		end do
-		print *, "Quantile - Test 6 - Test against R precomputed results - Scalar version, one NaN"
-		print *, " - Expected: *differs* from ideal case, but no NaNs"
-		print *, "Type, Mean abs diff, Max abs diff"
-		do i = 1, 9
-			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:))), &
-				maxloc(abs(rmQtest(i,:) - rmQref(i,:)))
-		end do
-		print *
-		
-		! Test 7: Normal: One data value is invalid, scalar case
-		do i = 1, 9
-			rmQtest(i,:) = Quantile(rvY, rvProb, i)
-		end do
-		print *, "Quantile - Test 7 - Test against R precomputed results - Vector version, one NaN"
-		print *, "Type, Mean abs diff, Max abs diff"
-		do i = 1, 9
-			print *, i, sum(abs(rmQtest(i,:) - rmQref(i,:))) / 12, maxval(abs(rmQtest(i,:) - rmQref(i,:)))
-		end do
-		
-	end subroutine testQuantile
-	
-	
-	subroutine testSkewness()
-	
-		! Routine arguments
-		! --none--
-		
-		! Locals
-		real, dimension(16)	:: rvX, rvY
-		integer				:: i
-		
-		! Assign test values
-		rvX = [(float(i), i = 1, 16)]
-		rvY = (rvX - 8.)**2
-		
-		! Test 1: Normal: Skewness, against R values
-		print *, "Skewness - Test 1 - X and Y cases, compared to R result"
-		print *, "  Skewness(X) = ", Skew(rvX), "  (expected: 0)"
-		print *, "  Skewness(Y) = ", Skew(rvY), "  (expected: 0.7002017)"
-		print *
-		
-		! Test 2: Normal: Skewness with mean, stdev and both
-		print *, "Skewness - Test 1 - Y case, with external mean and stddev"
-		print *, "  Skewness(Y, Mean(Y)) = ", Skew(rvY, rMeanIn=Mean(rvY)), "  (expected: 0.7002017)"
-		print *, "  Skewness(Y, Stddev(Y)) = ", Skew(rvY, rStdDevIn=StdDev(rvY)), "  (expected: 0.7002017)"
-		print *, "  Skewness(Y, Mean(Y), Stddev(Y)) = ", Skew(rvY, rMeanIn=Mean(rvY), rStdDevIn=StdDev(rvY)), &
-			"  (expected: 0.7002017)"
-			
-		! Test 3: Normal: One NaN in data vector
-		rvY(1) = NaN
-		print *, "Skewness - Test 3 - Y case, one NaN"
-		print *, "  Skewness(Y) = ", Skew(rvY), "  (expected: anything but 0.7002017)"
-		print *
-		
-		! Test 4: Boundary: All NaN in data vector
-		rvY = NaN
-		print *, "Skewness - Test 4 - Y case, all NaN"
-		print *, "  Skewness(Y) = ", Skew(rvY), "  (expected: NaN)"
-		print *
-		
-	end subroutine testSkewness
-	
-	subroutine testKurtosis()
-	
-		! Routine arguments
-		! --none--
-		
-		! Locals
-		real, dimension(16)	:: rvX, rvY
-		integer				:: i
-		
-		! Assign test values
-		rvX = [(float(i), i = 1, 16)]
-		rvY = (rvX - 8.)**2
-		
-		! Test 1: Normal: Kurtosis, against R values
-		print *, "Kurtosis - Test 1 - X and Y cases, compared to R result"
-		print *, "  Kurtosis(X) = ", Kurt(rvX), "  (expected: -1.209412)"
-		print *, "  Kurtosis(Y) = ", Kurt(rvY), "  (expected: -0.684658)"
-		print *
-		
-		! Test 2: Normal: Kurtosis with mean, stdev and both
-		print *, "Kurtosis - Test 1 - Y case, with external mean and stddev"
-		print *, "  Kurtosis(Y, Mean(Y)) = ", Kurt(rvY, rMeanIn=Mean(rvY)), "  (expected: -0.684658)"
-		print *, "  Kurtosis(Y, Stddev(Y)) = ", Kurt(rvY, rStdDevIn=StdDev(rvY)), "  (expected: -0.684658)"
-		print *, "  Kurtosis(Y, Mean(Y), Stddev(Y)) = ", Kurt(rvY, rMeanIn=Mean(rvY), rStdDevIn=StdDev(rvY)), &
-			"  (expected: -0.684658)"
-			
-		! Test 3: Normal: One NaN in data vector
-		rvY(1) = NaN
-		print *, "Kurtosis - Test 3 - Y case, one NaN"
-		print *, "  Kurtosis(Y) = ", Kurt(rvY), "  (expected: anything but -0.684658)"
-		print *
-		
-		! Test 4: Boundary: All NaN in data vector
-		rvY = NaN
-		print *, "Kurtosis - Test 4 - Y case, all NaN"
-		print *, "  Kurtosis(Y) = ", Kurt(rvY), "  (expected: NaN)"
-		print *
-		
-	end subroutine testKurtosis
 	
 end program test_pbl_stat
