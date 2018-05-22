@@ -77,6 +77,7 @@ module pbl_stat
     	procedure, public	:: populateFromTimeAndDataVectors	=> tsCreateFromTimeAndDataVectors
     	procedure, public	:: rangeInvalidate					=> tsRangeInvalidate
     	procedure, public	:: timeShift						=> tsTimeShift
+    	procedure, public	:: timeReorder						=> tsTimeReorder
     	! Selectors
     	procedure, public	:: getSingleItem					=> tsGetSingleItem
     	procedure, public	:: getTimeStamp						=> tsGetTimeStamp
@@ -1756,6 +1757,34 @@ contains
 	end subroutine tsTimeShift
 	
 	
+	! Reorder time stamp increasing, sorting values in the meanwhile
+	subroutine tsTimeReorder(this)
+	
+		! Routine arguments
+		class(TimeSeries), intent(inout)	:: this
+		
+		! Locals
+		integer								:: n, i
+		integer, dimension(:), allocatable	:: ivIdx
+		real, dimension(:), allocatable		:: rvValue2
+		
+		! Check something is to be made
+		n = size(this % rvTimeStamp)
+		if(n <= 1) return	! Do nothing for empty time stamp vector
+		
+		! Reindex time stamp vector while sorting it
+		allocate(ivIdx(n), rvValue2(n))
+		ivIdx = [(i, i=1, n)]
+		call quicksort_idx_8(this % rvTimeStamp, ivIdx)
+		do i = 1, n
+			rvValue2(i) = this % rvValue(ivIdx(i))
+		end do
+		this % rvValue = rvValue2
+		deallocate(ivIdx, rvValue2)
+		
+	end subroutine tsTimeReorder
+	
+	
 	function tsGetSingleItem(this, iItemIdx, rTimeStamp, rValue) result(iRetCode)
 	
 		! Routine arguments
@@ -2935,5 +2964,89 @@ contains
 		if (j + 1 < last)  call quicksort(a(j + 1 : last))
 		
 	end subroutine quicksort
+	
+	
+	! Computes the rank index of an array
+	recursive subroutine quicksort_idx_4(a, idx)
+	
+		! Routine arguments
+		real, dimension(:), intent(inout)		:: a	! On entry the vector to sort
+		integer, dimension(:), intent(inout)	:: idx	! On entry, the identity permutation denoted as [1, 2, 3, ..., n]
+		
+		! Locals
+		real	:: x, t
+		integer :: first = 1, last
+		integer :: i, j
+		integer	:: iHold
+	
+		! Initialization
+		last = size(a)
+		if(last <= 1) return	! Nothing to do
+		x = a( (first+last) / 2 )
+		i = first
+		j = last
+		
+		! Exploration phase
+		do
+			do while (a(i) < x)
+				i=i+1
+			end do
+			do while (x < a(j))
+				j=j-1
+			end do
+			if (i >= j) exit
+			t = a(i);  a(i) = a(j);  a(j) = t
+			iHold = idx(i); idx(i) = idx(j); idx(j) = iHold
+			i=i+1
+			j=j-1
+		end do
+		
+		! Recursion phase
+		if (first < i - 1) call quicksort_idx_4(a(first : i - 1), idx(first : i - 1))
+		if (j + 1 < last)  call quicksort_idx_4(a(j + 1 : last), idx(j + 1 : last))
+		
+	end subroutine quicksort_idx_4
+	
+	
+	! Computes the rank index of an array
+	recursive subroutine quicksort_idx_8(a, idx)
+	
+		! Routine arguments
+		real(8), dimension(:), intent(inout)	:: a	! On entry the vector to sort
+		integer, dimension(:), intent(inout)	:: idx	! On entry, the identity permutation denoted as [1, 2, 3, ..., n]
+		
+		! Locals
+		real(8)	:: x, t
+		integer :: first = 1, last
+		integer :: i, j
+		integer	:: iHold
+	
+		! Initialization
+		last = size(a)
+		if(last <= 1) return	! Nothing to do
+		x = a( (first+last) / 2 )
+		i = first
+		j = last
+		
+		! Exploration phase
+		do
+			do while (a(i) < x)
+				i=i+1
+			end do
+			do while (x < a(j))
+				j=j-1
+			end do
+			if (i >= j) exit
+			t = a(i);  a(i) = a(j);  a(j) = t
+			iHold = idx(i); idx(i) = idx(j); idx(j) = iHold
+			i=i+1
+			j=j-1
+		end do
+		
+		! Recursion phase
+		if (first < i - 1) call quicksort_idx_8(a(first : i - 1), idx(first : i - 1))
+		if (j + 1 < last)  call quicksort_idx_8(a(j + 1 : last), idx(j + 1 : last))
+		
+	end subroutine quicksort_idx_8
 	
 end module pbl_stat
