@@ -2077,7 +2077,7 @@ contains
 	end function tsSize
 	
 	
-	subroutine tsSummary(this, iNumValues, rValidPercentage, rMin, rMean, rStdDev, rMax)
+	subroutine tsSummary(this, iNumValues, rValidPercentage, rMin, rMean, rStdDev, rMax, rSkew, rKurt)
 	
 		! Routine arguments
 		class(TimeSeries), intent(in)	:: this
@@ -2087,6 +2087,8 @@ contains
 		real, intent(out)				:: rMean
 		real, intent(out)				:: rStdDev
 		real, intent(out)				:: rMax
+		real, intent(out), optional		:: rSkew
+		real, intent(out), optional		:: rKurt
 		
 		! Locals
 		! -none-
@@ -2099,6 +2101,8 @@ contains
 			rMean            = NaN
 			rStdDev          = NaN
 			rMax             = NaN
+			if(present(rSkew)) rSkew = NaN
+			if(present(rKurt)) rKurt = NaN
 		else
 			iNumValues = size(this % rvValue)
 			if(iNumValues > 0) then
@@ -2107,12 +2111,16 @@ contains
 				rMean            = sum(this % rvValue, mask = .valid. this % rvValue) / iNumValues
 				rStdDev          = sqrt(sum((this % rvValue - rMean)**2, mask = .valid. this % rvValue) / iNumValues)
 				rMax             = maxval(this % rvValue, mask = .valid. this % rvValue)
+				if(present(rSkew)) rSkew = Skew(this % rvValue)
+				if(present(rKurt)) rKurt = Kurt(this % rvValue)
 			else
 				rValidPercentage = 0.
 				rMin             = NaN
 				rMean            = NaN
 				rStdDev          = NaN
 				rMax             = NaN
+				if(present(rSkew)) rSkew = NaN
+				if(present(rKurt)) rKurt = NaN
 			end if
 		end if
 		
