@@ -1344,6 +1344,13 @@ contains
 		print *, "  Skewness(Y) = ", Skew(rvY), "  (expected: 0.7002017)"
 		print *
 		
+		! Test 2: Normal: Skewness with mean, stdev and both
+		print *, "Skewness - Test 1 - Y case, with external mean and stddev"
+		print *, "  Skewness(Y, Mean(Y)) = ", Skew(rvY, rMeanIn=Mean(rvY)), "  (expected: 0.7002017)"
+		print *, "  Skewness(Y, Stddev(Y)) = ", Skew(rvY, rStdDevIn=StdDev(rvY)), "  (expected: 0.7002017)"
+		print *, "  Skewness(Y, Mean(Y), Stddev(Y)) = ", Skew(rvY, rMeanIn=Mean(rvY), rStdDevIn=StdDev(rvY)), &
+			"  (expected: 0.7002017)"
+		
 	end subroutine testSkewness
 	
 end program test_pbl_stat
