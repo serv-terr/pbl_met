@@ -1562,47 +1562,158 @@ contains
 	
 	
 	! Copy constructor, creates a duplicate of current time series
-	function tsCreateFromTimeSeries(this, ts) result(iRetCode)
+	function tsCreateFromTimeSeries(this, ts, lForceWellSpacedMonotonic) result(iRetCode)
 	
 		! Routine arguments
 		class(TimeSeries), intent(out)		:: this
 		type(TimeSeries), intent(in)		:: ts
+		logical, intent(in), optional		:: lForceWellSpacedMonotonic	! If .false. (default) just copy the series as it is. If .true., rearrange the original series so that time stamps form a type-0 well spaced sequence
 		integer								:: iRetCode
 		
 		! Locals
+		integer	:: i
 		integer	:: n
+		integer	:: m
+		integer	:: idx
 		integer	:: iErrCode
+		real(8)	:: rDeltaTime
+		real(8)	:: rMinTimeStamp
+		real(8)	:: rMaxTimeStamp
+		integer	:: iWellSpaced
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		real(4), dimension(:), allocatable	:: rvValues
+		logical								:: lTimeExpand
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
-		! Reserve workspace in copy, based on original
+		! Decide which type of processing to do
+		if(present(lForceWellSpacedMonotonic)) then
+			lTimeExpand = lForceWellSpacedMonotonic
+		else
+			lTimeExpand = .false.
+		end if
+
+		! Check there is something to copy (leave current series unchanged if not)
 		n = ts % size()
 		if(n <= 0) then
 			iRetCode = 1
 			return
 		end if
+			
+		! Dispatch processing according to type
 		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
 		if(allocated(this % rvValue)) deallocate(this % rvValue)
-		allocate(this % rvTimeStamp(n), stat = iErrCode)
-		if(iErrCode /= 0) then
-			iRetCode = 2
-			return
-		end if
-		allocate(this % rvValue(n), stat = iErrCode)
-		if(iErrCode /= 0) then
-			deallocate(this % rvTimeStamp)
-			iRetCode = 2
-			return
-		end if
+		if(lTimeExpand) then
 		
-		! Fill with appropriate initial values
-		iRetCode           = ts % getTimeStamp(rvTimeStamp)
-		this % rvTimeStamp = rvTimeStamp
-		iRetCode           = ts % getValues(rvValues)
-		this % rvValue     = rvValues
+			! Check conditions on time stamp (in particular, well-spacedness) to be
+			! true enough for the expansion-while-copy to occur
+			iWellSpaced = ts % timeIsWellSpaced(rDeltaTime)
+			select case(iWellSpaced)
+			
+			case(0)	! Well-spaced, no gaps: just copy (no reordering made)
+			
+				! Reserve workspace in copy, based on original
+				allocate(this % rvTimeStamp(n), stat = iErrCode)
+				if(iErrCode /= 0) then
+					iRetCode = 2
+					return
+				end if
+				allocate(this % rvValue(n), stat = iErrCode)
+				if(iErrCode /= 0) then
+					deallocate(this % rvTimeStamp)
+					iRetCode = 2
+					return
+				end if
+				
+				! Fill with appropriate initial values
+				iRetCode           = ts % getTimeStamp(rvTimeStamp)
+				this % rvTimeStamp = rvTimeStamp
+				iRetCode           = ts % getValues(rvValues)
+				this % rvValue     = rvValues
+			
+			case(1)	! Well-spaced, but with at least one gap: time-expand (incidentally, result is monotonic)
+			
+				! Make resulting series time-regular
+				iRetCode = ts % getTimeStamp(rvTimeStamp)
+				if(iRetCode /= 0) then
+					iRetCode = 3
+					return
+				end if
+				iRetCode = ts % getValues(rvValues)
+				if(iRetCode /= 0) then
+					iRetCode = 3
+					return
+				end if
+				rMinTimeStamp = minval(rvTimeStamp, mask=.valid.rvTimeStamp)
+				rMaxTimeStamp = maxval(rvTimeStamp, mask=.valid.rvTimeStamp)
+				if(.invalid.rMinTimeStamp .or. .invalid.rMaxTimeStamp) then
+					iRetCode = 4
+					return
+				end if
+				
+				! Count time-expanded size, and reserve workspace based on it
+				m = nint((rMaxTimeStamp - rMinTimeStamp) / rDeltaTime) + 1
+				if(m <= 0) then
+					iRetCode = 5
+					return
+				end if
+				allocate(this % rvTimeStamp(m), stat = iErrCode)
+				if(iErrCode /= 0) then
+					iRetCode = 2
+					return
+				end if
+				allocate(this % rvValue(m), stat = iErrCode)
+				if(iErrCode /= 0) then
+					deallocate(this % rvTimeStamp)
+					iRetCode = 2
+					return
+				end if
+				
+				! Initialize value vector to invalid, so that any non-filled value will make self-evident as a gap
+				this % rvValue = NaN
+				
+				! Transfer data by their time index
+				do i = 1, n
+					idx = nint((rvTimeStamp(i) - rMinTimeStamp) / rDeltaTime) + 1
+					if(idx < 1 .or. idx > m) cycle
+					this % rvValue(idx) = rvValues(i)
+				end do
+				
+				! Build time stamp vector
+				this % rvTimeStamp = [(rMinTimeStamp + rDeltaTime*(i-1), i = 1, m)]
+				
+			case default	! -1 and 2 cases: no time regularity, abandon match
+			
+				iRetCode = 4
+				return
+				
+			end select
+			
+		else
+		
+			! Just-copy-it path
+		
+			! Reserve workspace in copy, based on original
+			allocate(this % rvTimeStamp(n), stat = iErrCode)
+			if(iErrCode /= 0) then
+				iRetCode = 2
+				return
+			end if
+			allocate(this % rvValue(n), stat = iErrCode)
+			if(iErrCode /= 0) then
+				deallocate(this % rvTimeStamp)
+				iRetCode = 2
+				return
+			end if
+			
+			! Fill with appropriate initial values
+			iRetCode           = ts % getTimeStamp(rvTimeStamp)
+			this % rvTimeStamp = rvTimeStamp
+			iRetCode           = ts % getValues(rvValues)
+			this % rvValue     = rvValues
+			
+		end if
 		
 	end function tsCreateFromTimeSeries
 	
