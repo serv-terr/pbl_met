@@ -1483,6 +1483,21 @@ contains
 			print *, rvTimeStamp(i), ',', rvValue(i)
 		end do
 		print *
+		print *, "Non well-spaced, random, monotonic: should do nothing (with error return)"
+		call random_number(rvTimeStamp)
+		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		call ts % timeReorder()
+		iRetCode = tsCopy % createFromTimeSeries(ts, .true.)
+		print *, "Return code from copy: ", iRetCode, "  (expected: any non-zero; execution stops here in case)"
+		print *
+		print *, "Non well-spaced, random, non-monotonic: should do nothing (with error return)"
+		call random_number(rvTimeStamp)
+		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = tsCopy % createFromTimeSeries(ts, .true.)
+		print *, "Return code from copy: ", iRetCode, "  (expected: any non-zero; execution stops here in case)"
+		print *
 		
 		! Leave
 		deallocate(rvTimeStamp, rvValue)
