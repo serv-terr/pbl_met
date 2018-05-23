@@ -1466,7 +1466,23 @@ contains
 			print *, rvTimeStamp(i), ',', rvValue(i)
 		end do
 		print *
-		
+		print *, "Well-spaced, two gaps case: should expand the time base"
+		rvTimeStamp = [1.d0, 2.d0, 5.d0, 6.d0, 7.d0]	! Well-spaced, but with two gaps at 3. and 4.
+		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = tsCopy % createFromTimeSeries(ts, .true.)
+		print *, "Return code from copy: ", iRetCode
+		print *, "Expected time stamp, Expected value"
+		do i = 1, size(rvValue)
+			print *, rvTimeStamp(i), ',', rvValue(i)
+		end do
+		iRetCode = tsCopy % getTimeStamp(rvTimeStamp)
+		iRetCode = tsCopy % getValues(rvValue)
+		print *, "Actual time stamp, Actual value"
+		do i = 1, size(rvValue)
+			print *, rvTimeStamp(i), ',', rvValue(i)
+		end do
+		print *
 		
 		! Leave
 		deallocate(rvTimeStamp, rvValue)
