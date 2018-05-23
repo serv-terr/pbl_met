@@ -1446,6 +1446,28 @@ contains
 		print *,"Data after:        ", rvValue
 		print *
 		
+		! Check copy constructor in time expansion mode
+		print *, "Test 14 - Exercise the copy constructor in time expansion mode"
+		print *
+		print *, "Well-spaced, no gaps case: should just act as a copy constructor"
+		rvTimeStamp = [1.d0, 2.d0, 3.d0, 4.d0, 5.d0]	! Perfect: well-spaced, no gaps
+		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = tsCopy % createFromTimeSeries(ts, .true.)
+		print *, "Return code from copy: ", iRetCode
+		print *, "Expected time stamp, Expected value"
+		do i = 1, size(rvValue)
+			print *, rvTimeStamp(i), ',', rvValue(i)
+		end do
+		iRetCode = tsCopy % getTimeStamp(rvTimeStamp)
+		iRetCode = tsCopy % getValues(rvValue)
+		print *, "Actual time stamp, Actual value"
+		do i = 1, size(rvValue)
+			print *, rvTimeStamp(i), ',', rvValue(i)
+		end do
+		print *
+		
+		
 		! Leave
 		deallocate(rvTimeStamp, rvValue)
 		
