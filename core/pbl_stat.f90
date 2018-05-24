@@ -2230,6 +2230,7 @@ contains
 		
 		! Locals
 		integer								:: iErrCode
+		integer								:: i
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		
 		! Get the information desired
@@ -2248,7 +2249,10 @@ contains
 			if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
 			return
 		end if
-		lTimesAreSame = all(rvTimeStamp == this % rvTimeStamp)
+		lTimesAreSame = .true.
+		do i = 1, size(rvTimeStamp)
+			lTimesAreSame = lTimesAreSame .and. (abs(rvTimeStamp(i) - this % rvTimeStamp(i)) < 4.*epsilon(rvTimeStamp(i)))
+		end do
 		
 	end function tsIsSameTimes
 	
