@@ -88,6 +88,7 @@ module pbl_stat
     	procedure, public	:: putSingleItem					=> tsPutSingleItem
     	! Summary generators
     	procedure, public	:: size								=> tsSize
+    	procedure, public	:: isSameTimes						=> tsIsSameTimes
     	procedure, public	:: summary							=> tsSummary
     	procedure, public	:: getTimeSpan						=> tsGetTimeSpan
     	! State interrogations
@@ -2215,6 +2216,41 @@ contains
 		end if
 		
 	end function tsSize
+	
+	
+	! Check the current time series has the same time stamps of another, in the very
+	! same order. If the answer is .true., the two series are non-empty, their time stamps
+	! are always valid, and may be thought as components of a larger multivariate series.
+	function tsIsSameTimes(this, ts) result(lTimesAreSame)
+	
+		! Routine arguments
+		class(TimeSeries), intent(in)	:: this
+		type(TimeSeries), intent(in)	:: ts
+		logical							:: lTimesAreSame
+		
+		! Locals
+		integer								:: iErrCode
+		real(8), dimension(:), allocatable	:: rvTimeStamp
+		
+		! Get the information desired
+		if(this % isEmpty() .or. ts % isEmpty()) then
+			lTimesAreSame = .false.
+			return
+		end if
+		iErrCode = ts % getTimeStamp(rvTimeStamp)
+		if(iErrCode /= 0) then
+			lTimesAreSame = .false.
+			if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
+			return
+		end if
+		if(any(.invalid.rvTimeStamp) .or. any(.invalid.this % rvTimeStamp)) then
+			lTimesAreSame = .false.
+			if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
+			return
+		end if
+		lTimesAreSame = all(rvTimeStamp == this % rvTimeStamp)
+		
+	end function tsIsSameTimes
 	
 	
 	subroutine tsSummary(this, iNumValues, rValidPercentage, rMin, rMean, rStdDev, rMax, rSkew, rKurt)
