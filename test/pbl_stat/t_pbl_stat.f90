@@ -1089,7 +1089,7 @@ contains
 		! Locals
 		integer				:: iRetCode
 		character(len=256)	:: sInputFile
-		type(TimeSeries)	:: ts, tsCopy, tsReduced
+		type(TimeSeries)	:: ts, tsCopy, tsReduced, tsOther
 		type(DateTime)		:: tm
 		real				:: rValid, rMin, rMean, rStdDev, rMax, rSkew, rKurt
 		integer				:: i
@@ -1498,6 +1498,16 @@ contains
 		iRetCode = tsCopy % createFromTimeSeries(ts, .true.)
 		print *, "Return code from copy: ", iRetCode, "  (expected: any non-zero; execution stops here in case)"
 		print *
+		
+		! Test 15: test time stamps to be the same
+		print *, "Test 15: check two time series have valid and same time stamps"
+		print *
+		print *, "Case 1: same time stamps, all valid"
+		rvTimeStamp = [1.d0, 2.d0, 3.d0, 4.d0, 5.d0]
+		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = tsOther % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		print *, "Found: ", ts % isSameTimes(tsOther), "Expected: T"
 		
 		! Leave
 		deallocate(rvTimeStamp, rvValue)
