@@ -1096,6 +1096,7 @@ contains
 		integer				:: iNumData
 		integer				:: iNumLines
 		integer				:: iLine
+		logical				:: lSame
 		character(len=128)	:: sBuffer
 		real(8)				:: rMinDelta, rDelta, rMaxDelta
 		real(8)				:: hold8_1
@@ -1503,11 +1504,15 @@ contains
 		print *, "Test 15: check two time series have valid and same time stamps"
 		print *
 		print *, "Case 1: same time stamps, all valid"
+		deallocate(rvTimeStamp, rvValue)
+		allocate(rvTimeStamp(5), rvValue(5))
 		rvTimeStamp = [1.d0, 2.d0, 3.d0, 4.d0, 5.d0]
 		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
 		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
 		iRetCode = tsOther % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
-		print *, "Found: ", ts % isSameTimes(tsOther), "Expected: T"
+		lSame = ts % isSameTimes(tsOther)
+		print *, "Found: ", lSame, "Expected: T"
+		print *
 		
 		! Leave
 		deallocate(rvTimeStamp, rvValue)
