@@ -1523,6 +1523,20 @@ contains
 		lSame = ts % isSameTimes(tsOther)
 		print *, "Found: ", lSame, "Expected: F"
 		print *
+		print *, "Case 3: different length time stamps, all valid"
+		deallocate(rvTimeStamp, rvValue)
+		allocate(rvTimeStamp(5), rvValue(5))
+		rvTimeStamp = [1.d0, 2.d0, NaN_8, 4.d0, 5.d0]
+		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		deallocate(rvTimeStamp, rvValue)
+		allocate(rvTimeStamp(6), rvValue(6))
+		rvTimeStamp = [1.d0, 2.d0, 3.d0, 4.d0, 5.d0, 6.d0]
+		rvValue     = 1.	! Any value would be also good: we're looking to time now, not value
+		iRetCode = tsOther % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		lSame = ts % isSameTimes(tsOther)
+		print *, "Found: ", lSame, "Expected: F"
+		print *
 		
 		! Leave
 		deallocate(rvTimeStamp, rvValue)
