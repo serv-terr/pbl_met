@@ -290,6 +290,14 @@ Using a time stamp vector allows time stamps to be irregularly spaced (as they c
 
 This permissive approach is complemented by the existence of quite a number of member functions whose task is to test the time stamps of a specific time series possess some desirable properties, like being equally-spaced, containing no gaps or invalid times, and more. _pbl_met_ users  may then choose which actual properties to check (and then ensure) prior to perform their application-specific processing.
 
+###### What about _multivariate_ time series?
+
+The `TimeSeries`data type is by its very nature _univariate_. Many real-world time series, however, constitute _multivariate_ time series - think for example to the many measurements taken simultaneously by a meteorological station equipped with many instruments.
+
+Treating multivariate time series is possible in _pbl_met_, but a bit indirectly.
+
+First of all, for two univariate time series to be treated as parts of a larger multivariate time series, their time stamp vectors must contain all valid value, and be component wise identical (up to 4 times the machine epsilon for double precision variables). The truth of this condition can be tested with a specific member function, `isSameTimes`. This granted, _and_ if the time stamp vector common to the two time series is well-spaces, it makes sense to compute cross-quantities (like cross-covariances, cross-correlations), with lags having a precise time meaning.
+
 ###### Member procedures
 
 
