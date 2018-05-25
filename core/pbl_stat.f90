@@ -60,6 +60,8 @@ module pbl_stat
     public	:: QUANT_7			! Sample quantile type 7 (R-7, Maple-6, Excel, NumPy; Linear interpolation of the modes of the order statistics for uniform distribution on [0,1])
     public	:: QUANT_8			! Sample quantile type 8 (R-8, Maple-7; ***DEFAULT***; Linear interpolation of approximate medians of order statistics; Distribution-independent)
     public	:: QUANT_9			! Sample quantile type 9 (R-9, Maple-8; Defined so that the resulting quantile estimates are approximately unbiased for the expected order statistics; Valid if data are normally distributed)
+    public	:: MA_ALLDATA		! Use all available data when computing centered moving averages
+    public	:: MA_STRICT		! Discard incomplete upper and lower time tails when computing centered moving averages
     
     ! Data types
     
@@ -101,6 +103,8 @@ module pbl_stat
     	procedure, public	:: aggregateLinear					=> tsAggregateLinear
     	procedure, public	:: aggregateLinear2					=> tsAggregateLinear2
     	procedure, public	:: aggregatePeriodic				=> tsAggregatePeriodic
+    	! Smoothers
+    	procedure, public	:: movingAverage					=> tsMovingAverage
     end type TimeSeries
     
     ! Constants
@@ -127,6 +131,8 @@ module pbl_stat
     integer, parameter	:: QUANT_7           =     7
     integer, parameter	:: QUANT_8           =     8
     integer, parameter	:: QUANT_9           =     9
+    integer, parameter	:: MA_ALLDATA        =     0
+    integer, parameter	:: MA_STRICT         =     1
     
     ! Polymorphic interfaces
     
@@ -1612,7 +1618,7 @@ contains
 			iWellSpaced = ts % timeIsWellSpaced(rDeltaTime)
 			select case(iWellSpaced)
 			
-			case(0)	! Well-spaced, no gaps: just copy (no reordering made)
+			case(0)	! Well-spaced, no gaps: just copy (reordering made)
 			
 				! Reserve workspace in copy, based on original
 				allocate(this % rvTimeStamp(n), stat = iErrCode)
@@ -1632,7 +1638,11 @@ contains
 				this % rvTimeStamp = rvTimeStamp
 				iRetCode           = ts % getValues(rvValues)
 				this % rvValue     = rvValues
-			
+				
+				! Reorder with respect to time, to make sure of quasi-monotonicity (which becomes monotonicity, if
+				! well-spacing with a positive delta time is guaranteed
+				call this % timeReorder()
+				
 			case(1)	! Well-spaced, but with at least one gap: time-expand (incidentally, result is monotonic)
 			
 				! Make resulting series time-regular
@@ -2433,6 +2443,7 @@ contains
 	end function tsTimeGapless
 	
 	
+	! Note: Time well-spacing implies strict monotonicity by construction
 	function tsTimeWellSpaced(this, rTimeStep, iNumGaps) result(iWellSpacingType)
 	
 		! Routine arguments
@@ -2467,21 +2478,21 @@ contains
 			return
 		end if
 		
-		! First pass: find the minimum non-zero difference between any two consecutive time stamps
+		! First pass: find the minimum positive difference between any two consecutive time stamps
 		! (zero differences are allowed to occur, due to coarse-grained resolution of some
 		! data acquisition timing systems; an example of data sets for which zero time differences
 		! are allowed to occur is the SonicLib format
 		rMinDelta = huge(rMinDelta)
 		do i = 2, n
-			rDelta = abs(this % rvTimeStamp(i) - this % rvTimeStamp(i-1))
+			rDelta = this % rvTimeStamp(i) - this % rvTimeStamp(i-1)
 			if(rDelta > 0.d0) rMinDelta = min(rDelta, rMinDelta)
 		end do
 		
-		! Second pass: check all the non-zero time differences are integer multiples of the minimum
+		! Second pass: check all the positive time differences are integer multiples of the minimum
 		! delta
 		iNumGapsFound = 0
 		do i = 2, n
-			rDelta = abs(this % rvTimeStamp(i) - this % rvTimeStamp(i-1))
+			rDelta = this % rvTimeStamp(i) - this % rvTimeStamp(i-1)
 			rQuotient = rDelta / rMinDelta
 			iQuotient = floor(rQuotient)
 			if(rQuotient - iQuotient <= 10.0*epsilon(rQuotient)) then
@@ -3069,6 +3080,147 @@ contains
 		deallocate(ivNumData, rvMin, rvMax, rvStDev, ivTimeIndex)
 		
 	end function tsAggregatePeriodic
+	
+	
+	! Create a new time series which is the moving-averaged version of another
+	function tsMovingAverage(this, ts, rTimeWidth, iMode) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(out)	:: this
+		type(TimeSeries), intent(in)	:: ts
+		real(8), intent(in)				:: rTimeWidth
+		integer, intent(in), optional	:: iMode
+		integer							:: iRetCode
+		
+		! Locals
+		real(8)								:: rDeltaTime
+		real(8), dimension(:), allocatable	:: rvTimeStamp
+		real, dimension(:), allocatable		:: rvValue
+		real, dimension(:), allocatable		:: rvMeanValue
+		integer, dimension(:), allocatable	:: ivNumValid
+		integer								:: iFirst, iLast
+		integer								:: iFrom, iTo
+		integer								:: iNumValues
+		integer								:: n, i, j
+		integer								:: iWellSpaced
+		integer								:: iErrCode
+		type(TimeSeries)					:: ts1
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(rTimeWidth <= 0.d0) then
+			iRetCode = 1
+			return
+		end if
+		
+		! First of all, check the input time series is well spaced; if it is, but with
+		! hidden gaps, make them evident
+		iWellSpaced = ts % timeIsWellSpaced(rDeltaTime)
+		if(iWellSpaced == 0) then
+			iErrCode = ts % getTimeStamp(rvTimeStamp)
+			if(iErrCode /= 0) then
+				iRetCode = 3
+				return
+			end if
+			iErrCode = ts % getValues(rvValue)
+			if(iErrCode /= 0) then
+				iRetCode = 4
+				return
+			end if
+		elseif(iWellSpaced == 1) then
+			iErrCode = ts1 % CreateFromTimeSeries(ts, .true.)
+			if(iErrCode /= 0) then
+				iRetCode = 2
+				return
+			end if
+			iErrCode = ts1 % getTimeStamp(rvTimeStamp)
+			if(iErrCode /= 0) then
+				iRetCode = 3
+				return
+			end if
+			iErrCode = ts1 % getValues(rvValue)
+			if(iErrCode /= 0) then
+				iRetCode = 4
+				return
+			end if
+		elseif(iWellSpaced < 0 .or. iWellSpaced > 1) then
+			iRetCode = 5
+			return
+		end if
+		if(size(rvTimeStamp) < 1) then
+			iRetCode = 6
+			deallocate(rvTimeStamp, rvValue)
+			return
+		end if
+		! Post-condition: rvTimeStamp and rvValue both allocated, and with at least one element;
+		!                 additionally, rvTimeStamp is well-spaced and monotonic, and the rvValue
+		! vector "may" contain gaps.
+		
+		! Convert time width in the number of items to take before and after the current
+		! time series element. If it is zero or less, copy the input series as it is
+		n = size(rvTimeStamp)
+		iNumValues = (nint(rTimeWidth / rDeltaTime) - 1) / 2
+		if(iNumValues < 1) then
+			if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+			if(allocated(this % rvValue))     deallocate(this % rvValue)
+			allocate(this % rvTimeStamp(size(rvTimeStamp)))
+			allocate(this % rvValue(size(rvValue)))
+			this % rvTimeStamp = rvTimeStamp
+			this % rvValue     = rvValue
+			deallocate(rvTimeStamp, rvValue)
+			return
+		end if
+		
+		! Set initial and final indices to consider
+		if(present(iMode)) then
+			if(iMode == MA_STRICT) then
+				iFirst = 1 + iNumValues
+				iLast  = n - iNumValues
+				if(iFirst >= iLast) then
+					iRetCode = 7
+					deallocate(rvTimeStamp, rvValue)
+					return
+				end if
+			elseif(iMode == MA_ALLDATA) then
+				iFirst = 1
+				iLast  = n
+			else
+				iRetCode = 7
+				deallocate(rvTimeStamp, rvValue)
+				return
+			end if
+		else	! Default: MA_ALLDATA
+			iFirst = 1
+			iLast  = n
+		end if
+		
+		! Compute the desired time series, taking into account
+		! the number of valid values in averaging
+		allocate(ivNumValid(iLast-iFirst+1), rvMeanValue(iLast-iFirst+1))
+		j = 1
+		do i = iFirst, iLast
+			iFrom = max(i - iNumValues, 1)
+			iTo   = min(i + iNumValues, n)
+			ivNumValid(j) = count(.valid.rvValue(iFrom:iTo))
+			if(ivNumValid(j) > 0) then
+				rvMeanValue(j) = sum(rvValue(iFrom:iTo), mask = .valid.rvValue(iFrom:iTo)) / ivNumValid(j)
+			else
+				rvMeanValue(j) = NaN
+			end if
+			j = j + 1
+		end do
+		
+		! Fill current series with new averaged values
+		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(allocated(this % rvValue))     deallocate(this % rvValue)
+		allocate(this % rvTimeStamp(size(rvTimeStamp)))
+		allocate(this % rvValue(size(rvValue)))
+		this % rvTimeStamp = rvTimeStamp(iFirst:iLast)
+		this % rvValue     = rvMeanValue
+
+	end function tsMovingAverage
 	
 	! *********************
 	! * Internal routines *
