@@ -1545,10 +1545,10 @@ contains
 		print *, "Case 1: Normal with MA_ALLDATA"
 		deallocate(rvTimeStamp, rvValue)
 		allocate(rvTimeStamp(11), rvValue(11), rvExpValue(11))
-		rvTimeStamp = [(dble(i), i = 1, 10)]
+		rvTimeStamp = [(dble(i-1), i = 1, 11)]
 		rvValue     = [1.,2.,3.,4.,NaN,5.,5.,4.,3.,2.,1.]
 		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
-		iRetCode = tsOther % movingAverage(ts, 2.d0, MA_ALLDATA)
+		iRetCode = tsOther % movingAverage(ts, 4.d0, MA_ALLDATA)
 		print *, "Return code = ", iRetCode
 		iRetCode = tsOther % getTimeStamp(rvTimeStamp)
 		iRetCode = tsOther % getValues(rvValue)
