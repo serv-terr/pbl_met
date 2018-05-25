@@ -1112,6 +1112,7 @@ contains
 		integer				:: iYear, iMonth, iDay, iHour, iMinute, iSecond
 		character(len=23)	:: sTimeStamp
 		real(8), dimension(:), allocatable	:: rvTimeStamp
+		real(8), dimension(:), allocatable	:: rvExpValue
 		real, dimension(:), allocatable		:: rvValue
 		real, dimension(:), allocatable		:: rvMean
 		real, dimension(:), allocatable		:: rvStDev
@@ -1536,6 +1537,26 @@ contains
 		iRetCode = tsOther % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
 		lSame = ts % isSameTimes(tsOther)
 		print *, "Found: ", lSame, "Expected: F"
+		print *
+		
+		! Test 16: moving average
+		print *, "Test 16 - TimeSeries % movingAverage"
+		print *
+		print *, "Case 1: Normal with MA_ALLDATA"
+		deallocate(rvTimeStamp, rvValue)
+		allocate(rvTimeStamp(11), rvValue(11), rvExpValue(11))
+		rvTimeStamp = [(dble(i), i = 1, 10)]
+		rvValue     = [1.,2.,3.,4.,NaN,5.,5.,4.,3.,2.,1.]
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = tsOther % movingAverage(ts, 2.d0, MA_ALLDATA)
+		print *, "Return code = ", iRetCode
+		iRetCode = tsOther % getTimeStamp(rvTimeStamp)
+		iRetCode = tsOther % getValues(rvValue)
+		rvExpValue     = [2.,2.5,2.5,3.5,4.25,4.5,4.25,3.8,3.0,2.5,2.0]
+		print *, "Time.Stamp, Expected.Value, Computed.Value"
+		do i = 1, 11
+			print "(f4.0,',',f4.2,',',f4.2)", rvTimeStamp(i), rvExpValue(i), rvValue(i)
+		end do
 		print *
 		
 		! Leave
