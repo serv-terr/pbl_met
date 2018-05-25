@@ -3086,10 +3086,10 @@ contains
 	function tsMovingAverage(this, ts, rTimeWidth, iMode) result(iRetCode)
 	
 		! Routine arguments
-		class(TimeSeries), intent(out)	:: this
-		type(TimeSeries), intent(in)	:: ts
-		real(8), intent(in)				:: rTimeWidth
-		integer, intent(in), optional	:: iMode
+		class(TimeSeries), intent(out)	:: this			! The time series we want to build
+		type(TimeSeries), intent(in)	:: ts			! Time series containing the original data
+		real(8), intent(in)				:: rTimeWidth	! Width of the entire time span desired (s)
+		integer, intent(in), optional	:: iMode		! MA_ALLDATA (default): use all data; MA_STRICT: use only data with whole left and right sub-intervals
 		integer							:: iRetCode
 		
 		! Locals
@@ -3161,7 +3161,7 @@ contains
 		! Convert time width in the number of items to take before and after the current
 		! time series element. If it is zero or less, copy the input series as it is
 		n = size(rvTimeStamp)
-		iNumValues = (nint(rTimeWidth / rDeltaTime) - 1) / 2
+		iNumValues = floor(rTimeWidth / (2.*rDeltaTime))
 		if(iNumValues < 1) then
 			if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
 			if(allocated(this % rvValue))     deallocate(this % rvValue)
