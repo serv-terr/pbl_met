@@ -1112,7 +1112,7 @@ contains
 		integer				:: iYear, iMonth, iDay, iHour, iMinute, iSecond
 		character(len=23)	:: sTimeStamp
 		real(8), dimension(:), allocatable	:: rvTimeStamp
-		real(8), dimension(:), allocatable	:: rvExpValue
+		real(4), dimension(:), allocatable	:: rvExpValue
 		real, dimension(:), allocatable		:: rvValue
 		real, dimension(:), allocatable		:: rvMean
 		real, dimension(:), allocatable		:: rvStDev
@@ -1625,6 +1625,22 @@ contains
 				print "(f4.0,',',f4.2)", rvTimeStamp(i), rvValue(i)
 			end do
 		end if
+		print *
+		print *, "Case 6: Normal with MA_ALLDATA and averaging time so small that copy is made"
+		deallocate(rvTimeStamp, rvValue, rvExpValue)
+		allocate(rvTimeStamp(11), rvValue(11), rvExpValue(11))
+		rvTimeStamp = [(dble(i-1), i = 1, 11)]
+		rvValue     = [1.,2.,3.,4.,NaN,5.,5.,4.,3.,2.,1.]
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = tsOther % movingAverage(ts, 1.d0, MA_ALLDATA)
+		print *, "Return code = ", iRetCode
+		iRetCode = tsOther % getTimeStamp(rvTimeStamp)
+		iRetCode = tsOther % getValues(rvValue)
+		rvExpValue     = [1.,2.,3.,4.,NaN,5.,5.,4.,3.,2.,1.]
+		print *, "Time.Stamp, Expected.Value, Computed.Value"
+		do i = 1, size(rvTimeStamp)
+			print "(f4.0,',',f4.2,',',f4.2)", rvTimeStamp(i), rvExpValue(i), rvValue(i)
+		end do
 		print *
 		
 		! Leave
