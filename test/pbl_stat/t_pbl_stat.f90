@@ -1591,6 +1591,25 @@ contains
 			print "(f4.0,',',f4.2)", rvTimeStamp(i), rvValue(i)
 		end do
 		print *
+		print *, "Case 4: Boundary with MA_ALLDATA and all NaN values"
+		deallocate(rvTimeStamp, rvValue, rvExpValue)
+		allocate(rvTimeStamp(11), rvValue(11), rvExpValue(11))
+		rvTimeStamp = [(dble(i-1), i = 1, 11)]
+		rvValue     = NaN
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = tsOther % movingAverage(ts, 4.d0, MA_ALLDATA)
+		print *, "Return code = ", iRetCode
+		if(iRetCode <= 0) then
+			iRetCode = tsOther % getTimeStamp(rvTimeStamp)
+			iRetCode = tsOther % getValues(rvValue)
+			rvExpValue     = [2.5,3.5,4.25,4.5,4.25,3.8,3.0]
+			print *, "Expected: all values NaN"
+			print *, "Time.Stamp, Computed.Value"
+			do i = 1, size(rvTimeStamp)
+				print "(f4.0,',',f4.2)", rvTimeStamp(i), rvValue(i)
+			end do
+		end if
+		print *
 		
 		! Leave
 		deallocate(rvTimeStamp, rvValue)
