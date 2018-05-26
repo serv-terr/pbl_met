@@ -1558,6 +1558,22 @@ contains
 			print "(f4.0,',',f4.2,',',f4.2)", rvTimeStamp(i), rvExpValue(i), rvValue(i)
 		end do
 		print *
+		print *, "Case 1: Normal with MA_STRICT"
+		deallocate(rvTimeStamp, rvValue, rvExpValue)
+		allocate(rvTimeStamp(11), rvValue(11), rvExpValue(11))
+		rvTimeStamp = [(dble(i-1), i = 1, 11)]
+		rvValue     = [1.,2.,3.,4.,NaN,5.,5.,4.,3.,2.,1.]
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = tsOther % movingAverage(ts, 4.d0, MA_STRICT)
+		print *, "Return code = ", iRetCode
+		iRetCode = tsOther % getTimeStamp(rvTimeStamp)
+		iRetCode = tsOther % getValues(rvValue)
+		rvExpValue     = [2.5,3.5,4.25,4.5,4.25,3.8,3.0]
+		print *, "Time.Stamp, Expected.Value, Computed.Value"
+		do i = 1, size(rvTimeStamp)
+			print "(f4.0,',',f4.2,',',f4.2)", rvTimeStamp(i), rvExpValue(i), rvValue(i)
+		end do
+		print *
 		
 		! Leave
 		deallocate(rvTimeStamp, rvValue)
