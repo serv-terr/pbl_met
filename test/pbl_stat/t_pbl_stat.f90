@@ -1610,6 +1610,22 @@ contains
 			end do
 		end if
 		print *
+		print *, "Case 5: Boundary with MA_ALLDATA and empty time series"
+		deallocate(rvTimeStamp, rvValue, rvExpValue)
+		allocate(rvTimeStamp(0), rvValue(0), rvExpValue(0))
+		iRetCode = ts % createFromTimeAndDataVectors(rvTimeStamp, rvValue)
+		iRetCode = tsOther % movingAverage(ts, 4.d0, MA_ALLDATA)
+		print *, "Return code = ", iRetCode
+		if(iRetCode <= 0) then
+			iRetCode = tsOther % getTimeStamp(rvTimeStamp)
+			iRetCode = tsOther % getValues(rvValue)
+			print *, "Expected: all values NaN"
+			print *, "Time.Stamp, Computed.Value"
+			do i = 1, size(rvTimeStamp)
+				print "(f4.0,',',f4.2)", rvTimeStamp(i), rvValue(i)
+			end do
+		end if
+		print *
 		
 		! Leave
 		deallocate(rvTimeStamp, rvValue)
