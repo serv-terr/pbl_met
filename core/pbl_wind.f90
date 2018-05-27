@@ -302,19 +302,27 @@ contains
 	function ClassDirScalar(dir, iNumClasses, iClassType) result(iClass)
 	
 		! Routine arguments
-		real, intent(in)	:: dir				! Wind direction to classify (°)
-		integer, intent(in)	:: iNumClasses		! Number of desired classes
-		integer, intent(in)	:: iClassType		! Class type (0: first class is zero-centered; 1: first class starts at zero)
-		integer				:: iClass			! Direction class to which the wind belongs (-9999 if no class is assignable)
+		real, intent(in)				:: dir				! Wind direction to classify (°)
+		integer, intent(in)				:: iNumClasses		! Number of desired classes
+		integer, intent(in), optional	:: iClassType		! Class type (WDCLASS_ZERO_CENTERED (default): first class is zero-centered; WDCLASS_ZERO_BASED: first class starts at zero)
+		integer							:: iClass			! Direction class to which the wind belongs (-9999 if no class is assignable)
 		
 		! Locals
 		real	:: classWidth
 		real	:: d
+		integer	:: iClsType
 		
 		! Check something is to be made: leave, if not
 		if(isnan(dir)) then
 			iClass = -9999
 			return
+		end if
+		
+		! If missing 'iClassType' assign default, otherwise get it
+		if(present(iClassType)) then
+			iClsType = iClassType
+		else
+			iClsType = WDCLASS_ZERO_CENTERED
 		end if
 		
 		! Compute the fixed-size class width, and in case of zero-centere classes use it to adjust direction
@@ -324,7 +332,7 @@ contains
 		end if
 		classWidth = 360. / iNumClasses
 		d = dir
-		if(iClassType == WDCLASS_ZERO_CENTERED) d = d + classWidth / 2.
+		if(iClsType == WDCLASS_ZERO_CENTERED) d = d + classWidth / 2.
 		
 		! Adjust wind direction to the range 0-360
 		d = mod(d, 360.)
@@ -341,17 +349,25 @@ contains
 		! Routine arguments
 		real, dimension(:), intent(in)	:: dir				! Wind direction to classify (°)
 		integer, intent(in)				:: iNumClasses		! Number of desired classes
-		integer, intent(in)				:: iClassType		! Class type (0: first class is zero-centered; 1: first class starts at zero)
+		integer, intent(in), optional	:: iClassType		! Class type (WDCLASS_ZERO_CENTERED (default): first class is zero-centered; WDCLASS_ZERO_BASED: first class starts at zero)
 		integer, dimension(size(dir))	:: ivClass			! Direction class to which the wind belongs (-9999 if no class is assignable)
 		
 		! Locals
 		real						:: classWidth
 		real, dimension(size(dir))	:: d
+		integer						:: iClsType
 		
 		! Check something is to be made: leave, if not
 		if(iNumClasses <= 0) then
 			ivClass = -9999
 			return
+		end if
+		
+		! If missing 'iClassType' assign default, otherwise get it
+		if(present(iClassType)) then
+			iClsType = iClassType
+		else
+			iClsType = WDCLASS_ZERO_CENTERED
 		end if
 		
 		! Compute the fixed-size class width, and in case of zero-centere classes use it to adjust direction
