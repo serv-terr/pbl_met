@@ -438,6 +438,17 @@ contains
 		end do
 		print *
 		
+		! Test 4, boundary condition
+		print *, "Test 4 - Check ClassDirScalar under normal conditions - Centered sectors - Dirs < [0,359.9999]"
+		rvDir = [-1., -360.+89., -360.+179., -360.+269.]
+		ivExpectedClass = [1, 5, 9, 13]
+		print *, 'Dir, Class, Expected.Class'
+		do i = 1, size(rvDir)
+			iClass = ClassDir(rvDir(i), 16, WDCLASS_ZERO_CENTERED)
+			print *, rvDir(i), iClass, ivExpectedClass(i)
+		end do
+		print *
+		
 		! Leave
 		deallocate(ivExpectedClass)
 		deallocate(rvDir)
