@@ -490,6 +490,16 @@ contains
 		end do
 		print *
 				
+		! Test 2, normal condition
+		print *, "Test 2 - Check ClassDirVector under normal conditions - Zero-based sectors"
+		ivExpectedClass = [16, 4, 8, 12]
+		print *, 'Dir, Class, Expected.Class'
+		ivClass = ClassDir(rvDir, 16, WDCLASS_ZERO_BASED)
+		do i = 1, size(rvDir)
+			print *, rvDir(i), ivClass(i), ivExpectedClass(i)
+		end do
+		print *
+				
 		! Leave
 		deallocate(ivExpectedClass)
 		deallocate(rvDir)
