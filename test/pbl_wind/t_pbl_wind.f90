@@ -522,6 +522,17 @@ contains
 		end do
 		print *
 		
+		! Test 5, boundary condition
+		print *, "Test 5 - Check ClassDirVector under one NaN direction"
+		rvDir = [359., NaN, 179., 269.]
+		ivExpectedClass = [1, -9999, 9, 13]
+		print *, 'Dir, Class, Expected.Class'
+		ivClass = ClassDir(rvDir, 16)
+		do i = 1, size(rvDir)
+			print *, rvDir(i), ivClass(i), ivExpectedClass(i)
+		end do
+		print *
+				
 		! Leave
 		deallocate(ivExpectedClass)
 		deallocate(rvDir)
