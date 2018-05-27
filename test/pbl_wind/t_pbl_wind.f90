@@ -500,6 +500,17 @@ contains
 		end do
 		print *
 				
+		! Test 3, boundary condition
+		print *, "Test 3 - Check ClassDirVector under boundary conditions - Centered sectors - Dirs > [0,359.9999]"
+		rvDir = [719., 360.+89., 360.+179., 360.+269.]
+		ivExpectedClass = [1, 5, 9, 13]
+		print *, 'Dir, Class, Expected.Class'
+		ivClass = ClassDir(rvDir, 16, WDCLASS_ZERO_CENTERED)
+		do i = 1, size(rvDir)
+			print *, rvDir(i), ivClass(i), ivExpectedClass(i)
+		end do
+		print *
+		
 		! Leave
 		deallocate(ivExpectedClass)
 		deallocate(rvDir)
