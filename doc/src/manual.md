@@ -636,6 +636,64 @@ If `vel` is `NaN`, then `iClass=-9999` (integer numbers don't allow their own `N
 
 Use of the vector or scalar form is left to the user taste: the two form are computationally equivalent. The vector form is slightly faster than a `DO` cycle incorporating many scalar calls, but the difference of execution time might well be small to non-existent is compiler optimizations are allowed.
 
+###### Classifying horizontal wind by direction
+
+Classifying horizontal wind by direction is much the same as classifying by wind speed, with some important differences however:
+
+* Wind direction instead of wind speed is used as classification criterion
+* Wind direction classes are fixed size, instead of chosen size as for wind speed class limits; actual wind direction limits depend on the number of classes in the 0°-360° range, and whether classes are centered to zero, or the first class starts exactly at 0°.
+
+As with `ClassVel` for wind speed, the wind direction classification function `ClassDir`exists in two variants, scalar and vector.
+
+The scalar variant has the following interface:
+
+```
+function ClassDir(dir, iNumClasses, iClassType) result(iClass)
+	
+    ! Routine arguments
+    real, intent(in)                :: dir
+    integer, intent(in)             :: iNumClasses
+    integer, intent(in), optional   :: iClassType
+    integer                         :: iClass
+
+end function ClassDir
+```
+
+And this is the vector variant:
+
+```
+function ClassDir(dir, iNumClasses, iClassType) result(ivClass)
+	
+    ! Routine arguments
+    real, dimension(:), intent(in)  :: dir
+    integer, intent(in)             :: iNumClasses
+    integer, intent(in), optional   :: iClassType
+    integer, dimension(size(dir))   :: ivClass
+
+end function ClassDir
+```
+
+The parameter type selects the variant actually employed. Here is their meaning:
+
+* `dir` is a floating point scalar or vector representing wind direction in ° from North, increasing clockwise. Which convention is used (namely, provenance or flow) is indifferent, and the only requirement is the programmer knows which it is.
+* `iNumClasses` is a positive integer representing the number of direction classes in which wind direction will be classified. Classes do not overlap, so that their width, in degrees, is equal to $$\delta = \frac{360°}{iNumClasses}$$.
+* `iClassType` is an integer flag, indicating how the extrema of each class are defined. The choices are
+  * `WDCLASS_ZERO_CENTERED`, in which the first class has its center angle at 0°, and extrema at $$\gamma_{-} = 0° - \frac{\delta}{2}$$ and $$\gamma_{+} = 0° + \frac{\delta}{2}$$. All other classes follow without gaps, spanning the whole angle.
+  * `WDCLASS_ZERO_BASED`, in which the first class has its lower extremum $$\gamma_{-} = 0°$$, and upper extremum at $$\gamma_{+} = 0° + \delta$$. All other classes follow without gaps, spanning the whole angle.
+* `iClass` (scalar variant) or `ivClass` (vector variant) is the result. As usual, the output of `ClassDir` when an invalid wind direction is passed is -9999.
+
+The classification is made by defining a corrected direction $$d$$, whose value coincides with the direction passed as argument augmented by $$\frac{\delta}{2}$$ if `WDCLASS_ZERO_BASED` is used for `iClassType`, the direction itself otherwise.
+
+The class number is then assigned using an algebraic formula:
+$$
+c = \left \lfloor \frac{d}{\delta} \right \rfloor + 1 
+$$
+The properties of the "floor" function dictate the exact behaviour of `ClassDir` at class extrema, so that a given direction belongs to class $$j$$ if
+$$
+\delta_{-}+(j-1) \delta \le d<\delta_{+}+(j-1) \delta
+$$
+Direction values smaller that 0° or larger than 360° are converted to range $$[0°,360)$$ modularly.
+
 ### `pbl_turb`: Turbulence indicators from measured data and elements of eddy covariance
 
 To date this module is a placeholder, still to be filled.
