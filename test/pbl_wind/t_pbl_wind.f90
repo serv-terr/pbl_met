@@ -21,6 +21,7 @@ program t_pbl_wind
 	call polar_cartesian()
 	call tst_classwindscalar()
 	call tst_classwindVector()
+	call tst_classdirscalar()
 	
 contains
 
@@ -393,4 +394,33 @@ contains
 		
 	end subroutine tst_classwindVector
 
+	
+	subroutine tst_classdirscalar()
+	
+		! Locals
+		real, dimension(:), allocatable		:: rvDir
+		integer, dimension(:), allocatable	:: ivExpectedClass
+		integer								:: i
+		integer								:: iClass
+		
+		! Generate normal test set
+		allocate(rvDir(4), ivExpectedClass(4))
+		rvDir = [359., 89., 179., 269.]
+		
+		! Test 1, normal condition
+		print *, "Test 1 - Check ClassDirScalar under normal conditions - Centered sectors"
+		ivExpectedClass = [1, 5, 9, 13]
+		print *, 'Dir, Class, Expected.Class'
+		do i = 1, size(rvDir)
+			iClass = ClassDir(rvDir(i), 16, WDCLASS_ZERO_CENTERED)
+			print *, rvDir(i), iClass, ivExpectedClass(i)
+		end do
+		print *
+				
+		! Leave
+		deallocate(ivExpectedClass)
+		deallocate(rvDir)
+		
+	end subroutine tst_classdirscalar
+	
 end program t_pbl_wind
