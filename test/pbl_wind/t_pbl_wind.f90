@@ -533,8 +533,19 @@ contains
 		end do
 		print *
 				
-		! Leave
+		! Test 6, boundary condition
+		print *, "Test 6 - Check ClassDirVector under zero-length direction vector"
 		deallocate(ivExpectedClass)
+		deallocate(rvDir)
+		allocate(rvDir(0))
+		print *, 'Dir, Class (expected: none printed)'
+		ivClass = ClassDir(rvDir, 16)
+		do i = 1, size(rvDir)
+			print *, rvDir(i), ivClass(i)
+		end do
+		print *
+				
+		! Leave
 		deallocate(rvDir)
 		
 	end subroutine tst_classdirvector
