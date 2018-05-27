@@ -373,7 +373,7 @@ contains
 		! Compute the fixed-size class width, and in case of zero-centere classes use it to adjust direction
 		classWidth = 360. / iNumClasses
 		d = dir
-		if(iClassType == WDCLASS_ZERO_CENTERED) d = d + classWidth / 2.
+		if(iClsType == WDCLASS_ZERO_CENTERED) d = d + classWidth / 2.
 		where(isnan(d))
 		
 			ivClass = -9999
