@@ -22,6 +22,7 @@ program t_pbl_wind
 	call tst_classwindscalar()
 	call tst_classwindVector()
 	call tst_classdirscalar()
+	call tst_classdirvector()
 	
 contains
 
@@ -449,7 +450,7 @@ contains
 		end do
 		print *
 		
-		! Test 5, normal condition
+		! Test 5, boundary condition
 		print *, "Test 5 - Check ClassDirScalar under one NaN direction"
 		rvDir = [359., NaN, 179., 269.]
 		ivExpectedClass = [1, -9999, 9, 13]
@@ -465,5 +466,34 @@ contains
 		deallocate(rvDir)
 		
 	end subroutine tst_classdirscalar
+	
+	
+	subroutine tst_classdirvector()
+	
+		! Locals
+		real, dimension(:), allocatable		:: rvDir
+		integer, dimension(:), allocatable	:: ivExpectedClass
+		integer								:: i
+		integer, dimension(:), allocatable	:: ivClass
+		
+		! Generate normal test set
+		allocate(rvDir(4), ivExpectedClass(4))
+		rvDir = [359., 89., 179., 269.]
+		
+		! Test 1, normal condition
+		print *, "Test 1 - Check ClassDirVector under normal conditions - Centered sectors"
+		ivExpectedClass = [1, 5, 9, 13]
+		print *, 'Dir, Class, Expected.Class'
+		ivClass = ClassDir(rvDir, 16, WDCLASS_ZERO_CENTERED)
+		do i = 1, size(rvDir)
+			print *, rvDir(i), ivClass(i), ivExpectedClass(i)
+		end do
+		print *
+				
+		! Leave
+		deallocate(ivExpectedClass)
+		deallocate(rvDir)
+		
+	end subroutine tst_classdirvector
 	
 end program t_pbl_wind
