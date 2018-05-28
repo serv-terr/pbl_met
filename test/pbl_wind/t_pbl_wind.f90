@@ -573,6 +573,22 @@ contains
 		print *, "Test 1 - Vector vel and dir from rotating wind"
 		print *, "Vel = ", rVel, "  (expected: 0.)"
 		print *, "Dir = ", rDir, "  (expected: anything)"
+		print *
+		
+		! Test 2 - Normal case - Vector velocity and direction for wind fluctuating around 0°
+		rvVel = 1.
+		call random_number(rvDir)
+		rvDir = rvDir - 0.5
+		where(rvDir < 0.)
+			rvDir = rvDir + 360.
+		end where
+		rvPolar = VectorDirVel(rvVel, rvDir)
+		rVel = rvPolar(1)
+		rDir = rvPolar(2)
+		print *, "Test 2 - Vector vel and dir from wind fluctuating around 0°"
+		print *, "Vel = ", rVel, "  (expected: close to 1.)"
+		print *, "Dir = ", rDir, "  (expected: close to 0. or 360.)"
+		print *
 		
 		! Leave
 		deallocate(rvVel, rvDir)
