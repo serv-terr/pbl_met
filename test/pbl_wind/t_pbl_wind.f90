@@ -623,10 +623,28 @@ contains
 			rScalarVel = ScalarVel(rvVel)
 			print "(f4.0,2(',',f6.4),',',f8.6)", float(i), rVel, rScalarVel, rVel/rScalarVel
 		end do
+		print *
+		
+		! Test 6 - Normal case - Vector velocity and direction for wind fluctuating around 90°
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(32), rvDir(32))
+		rvVel = 1.
+		call random_number(rvDir)
+		rvDir = rvDir - 0.5 + 90.
+		where(rvDir < 0.)
+			rvDir = rvDir + 360.
+		end where
+		rvPolar = VectorDirVel(rvVel, rvDir)
+		rVel = rvPolar(1)
+		rDir = rvPolar(2)
+		print *, "Test 6 - Vector vel and dir from wind fluctuating around 90°"
+		print *, "Vel = ", rVel, "  (expected: close to 1.)"
+		print *, "Dir = ", rDir, "  (expected: close to 90.)"
+		print *
 		
 		! Leave
 		deallocate(rvVel, rvDir)
 		
 	end subroutine tst_windVectorScalar
-
+	
 end program t_pbl_wind
