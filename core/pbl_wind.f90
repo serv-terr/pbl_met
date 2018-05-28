@@ -437,7 +437,7 @@ contains
 	
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvVel
-		real, dimension(2)				:: vel
+		real							:: vel
 		
 		! Locals
 		integer	:: n
