@@ -575,7 +575,13 @@ contains
 		print *, "Dir = ", rDir, "  (expected: anything)"
 		print *
 		
-		! Test 2 - Normal case - Vector velocity and direction for wind fluctuating around 0°
+		! Test 2 - Normal case - Scalar velocity for rotating wind
+		rScalarVel = ScalarVel(rvVel)
+		print *, "Test 2 - Scalar vel from rotating wind"
+		print *, "Scalar.Vel = ", rScalarVel, "  (expected: 1.)"
+		print *
+		
+		! Test 3 - Normal case - Vector velocity and direction for wind fluctuating around 0°
 		rvVel = 1.
 		call random_number(rvDir)
 		rvDir = rvDir - 0.5
@@ -585,7 +591,7 @@ contains
 		rvPolar = VectorDirVel(rvVel, rvDir)
 		rVel = rvPolar(1)
 		rDir = rvPolar(2)
-		print *, "Test 2 - Vector vel and dir from wind fluctuating around 0°"
+		print *, "Test 3 - Vector vel and dir from wind fluctuating around 0°"
 		print *, "Vel = ", rVel, "  (expected: close to 1.)"
 		print *, "Dir = ", rDir, "  (expected: close to 0. or 360.)"
 		print *
