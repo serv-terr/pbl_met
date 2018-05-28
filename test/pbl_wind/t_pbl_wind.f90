@@ -659,6 +659,23 @@ contains
 		print *, "Dir = ", rDir, "  (expected: close to 180.)"
 		print *
 		
+		! Test 8 - Normal case - Vector velocity and direction for wind fluctuating around 270°
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(32), rvDir(32))
+		rvVel = 1.
+		call random_number(rvDir)
+		rvDir = rvDir - 0.5 + 270.
+		where(rvDir < 0.)
+			rvDir = rvDir + 360.
+		end where
+		rvPolar = VectorDirVel(rvVel, rvDir)
+		rVel = rvPolar(1)
+		rDir = rvPolar(2)
+		print *, "Test 8 - Vector vel and dir from wind fluctuating around 270°"
+		print *, "Vel = ", rVel, "  (expected: close to 1.)"
+		print *, "Dir = ", rDir, "  (expected: close to 270.)"
+		print *
+		
 		! Leave
 		deallocate(rvVel, rvDir)
 		
