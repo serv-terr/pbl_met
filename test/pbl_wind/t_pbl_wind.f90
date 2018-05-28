@@ -23,6 +23,7 @@ program t_pbl_wind
 	call tst_classwindVector()
 	call tst_classdirscalar()
 	call tst_classdirvector()
+	call tst_windVectorScalar()
 	
 contains
 
@@ -549,5 +550,34 @@ contains
 		deallocate(rvDir)
 		
 	end subroutine tst_classdirvector
+	
+	
+	subroutine tst_windVectorScalar()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvVel, rvDir
+		real							:: rVel, rDir, rScalarVel
+		real, dimension(2)				:: rvPolar
+		integer							:: i
+		
+		! Test 1 - Normal case - Vector velocity and direction for rotating wind
+		allocate(rvVel(32), rvDir(32))
+		rvVel = 1.
+		rvDir = [(360.0*(i-1)/32., i = 1, 32)]
+		rvPolar = VectorDirVel(rvVel, rvDir)
+		rVel = rvPolar(1)
+		rDir = rvPolar(2)
+		print *, "Test 1 - Vector vel and dir from rotating wind"
+		print *, "Vel = ", rVel, "  (expected: 0.)"
+		print *, "Dir = ", rDir, "  (expected: anything)"
+		
+		! Leave
+		deallocate(rvVel, rvDir)
+		
+	end subroutine tst_windVectorScalar
+
 	
 end program t_pbl_wind
