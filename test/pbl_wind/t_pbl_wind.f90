@@ -596,10 +596,37 @@ contains
 		print *, "Dir = ", rDir, "  (expected: close to 0. or 360.)"
 		print *
 		
+		! Test 4 - Normal case - Scalar velocity for wind fluctuating around 0°
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(2048), rvDir(2048))
+		rScalarVel = ScalarVel(rvVel)
+		print *, "Test 4 - Scalar vel from wind fluctuating around 0°"
+		print *, "Scalar.Vel = ", rScalarVel, "  (expected: 1.)"
+		print *
+		
+		! Test 5 - Normal case - Vector to scalar speed ratio for various span angles
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(2048000), rvDir(2048000))
+		rvVel = 1.
+		print *, "Test 5 - Vector to scalar speed ratio for various span angles"
+		print *, "Span, Vel, Scalar.vel, Vel/Scalar.Vel"
+		do i = 5, 125, 5
+			call random_number(rvDir)
+			rvDir = rvDir - 0.5
+			rvDir = rvDir * i
+			where(rvDir < 0.)
+				rvDir = rvDir + 360.
+			end where
+			rvPolar = VectorDirVel(rvVel, rvDir)
+			rVel = rvPolar(1)
+			rDir = rvPolar(2)
+			rScalarVel = ScalarVel(rvVel)
+			print "(f4.0,2(',',f6.4),',',f8.6)", float(i), rVel, rScalarVel, rVel/rScalarVel
+		end do
+		
 		! Leave
 		deallocate(rvVel, rvDir)
 		
 	end subroutine tst_windVectorScalar
 
-	
 end program t_pbl_wind
