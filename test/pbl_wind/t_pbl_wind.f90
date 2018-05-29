@@ -781,7 +781,15 @@ contains
 		allocate(rvVel(32), rvDir(32))
 		rvVel = NaN
 		rScalarVel = ScalarVel(rvVel)
-		print *, "Test 15 - Scalar vel from wind with one speed NaN"
+		print *, "Test 16 - Scalar vel from wind with all NaN"
+		print *, "S.Vel = ", rScalarVel, "  (expected: NaN)"
+		print *
+		
+		! Test 17 - Boundary case - Scalar speed for zero-length vector
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(0), rvDir(0))
+		rScalarVel = ScalarVel(rvVel)
+		print *, "Test 17 - Scalar vel from null-length vector"
 		print *, "S.Vel = ", rScalarVel, "  (expected: NaN)"
 		print *
 		
