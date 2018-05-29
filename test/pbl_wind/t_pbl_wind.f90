@@ -716,6 +716,20 @@ contains
 		print *, "Dir = ", rDir, "  (expected: close to 270.)"
 		print *
 		
+		! Test 11 - Boundary case - Vector velocity and direction for all direction NaN
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(32), rvDir(32))
+		rvVel = 1.
+		call random_number(rvDir)
+		rvDir = NaN
+		rvPolar = VectorDirVel(rvVel, rvDir)
+		rVel = rvPolar(1)
+		rDir = rvPolar(2)
+		print *, "Test 11 - Vector vel and dir with all direction NaN"
+		print *, "Vel = ", rVel, "  (expected: NaN)"
+		print *, "Dir = ", rDir, "  (expected: NaN)"
+		print *
+		
 		! Leave
 		deallocate(rvVel, rvDir)
 		
