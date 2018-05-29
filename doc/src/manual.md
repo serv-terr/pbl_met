@@ -694,6 +694,31 @@ $$
 $$
 Direction values smaller that 0° or larger than 360° are converted to range $$[0°,360)$$ modularly.
 
+###### Computing mean wind speed and direction from polar form wind data
+
+Averaging a set of wind speed and direction values demands a bit of caution when the "vector" horizontal velocity is desired: just averaging out separately the speed and direction is not the right way of doing, as this would yield the scalar speed and a direction value which is likely wrong if data across North are encountered.
+
+The correct approach is to transform polar wind data to Cartesian form, average the two _components_, and back-transforming to polar. This is the task of the `VectorDirVel` function, with interface
+
+```
+function VectorDirVel(rvVel, rvDir) result(polar)
+
+    ! Routine arguments
+    real, dimension(:), intent(in)   :: rvVel
+    real, dimension(:), intent(in)   :: rvDir
+    real, dimension(2)               :: polar
+		
+end function VectorDirVel
+```
+
+As usual, the `polar` two-component vector contains wind speed in component 1, and direction in component 2.
+
+It is assumed that wind direction conventions are always the same when averaging.
+
+Eventual invalid (`NaN`) values are discarded from the average; if all values are invalid, then `NaN` is returned in both components of `polar`.
+
+If the two vectors have different or zero length then `NaN` is returned in both components of `polar`.
+
 ### `pbl_turb`: Turbulence indicators from measured data and elements of eddy covariance
 
 To date this module is a placeholder, still to be filled.
