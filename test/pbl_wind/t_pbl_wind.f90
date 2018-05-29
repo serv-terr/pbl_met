@@ -680,7 +680,7 @@ contains
 		print *, "Dir = ", rDir, "  (expected: close to 270.)"
 		print *
 		
-		! Test 9 - Normal case - Vector velocity and direction for wind fluctuating around 270°, one NaN value
+		! Test 9 - Normal case - Vector velocity and direction for wind fluctuating around 270°, one direction NaN value
 		deallocate(rvVel, rvDir)
 		allocate(rvVel(32), rvDir(32))
 		rvVel = 1.
@@ -694,6 +694,24 @@ contains
 		rVel = rvPolar(1)
 		rDir = rvPolar(2)
 		print *, "Test 9 - Vector vel and dir from wind fluctuating around 270° with one direction NaN"
+		print *, "Vel = ", rVel, "  (expected: close to 1.)"
+		print *, "Dir = ", rDir, "  (expected: close to 270.)"
+		print *
+		
+		! Test 10 - Normal case - Vector velocity and direction for wind fluctuating around 270° with one speed NaN
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(32), rvDir(32))
+		rvVel = 1.
+		call random_number(rvDir)
+		rvDir = rvDir - 0.5 + 270.
+		where(rvDir < 0.)
+			rvDir = rvDir + 360.
+		end where
+		rvVel(8) = NaN
+		rvPolar = VectorDirVel(rvVel, rvDir)
+		rVel = rvPolar(1)
+		rDir = rvPolar(2)
+		print *, "Test 10 - Vector vel and dir from wind fluctuating around 270° with one speed NaN"
 		print *, "Vel = ", rVel, "  (expected: close to 1.)"
 		print *, "Dir = ", rDir, "  (expected: close to 270.)"
 		print *
