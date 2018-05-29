@@ -742,6 +742,17 @@ contains
 		print *, "Dir = ", rDir, "  (expected: NaN)"
 		print *
 		
+		! Test 13 - Boundary case - Vector velocity and direction for zero-length data vectors
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(0), rvDir(0))
+		rvPolar = VectorDirVel(rvVel, rvDir)
+		rVel = rvPolar(1)
+		rDir = rvPolar(2)
+		print *, "Test 13 - Vector vel and dir with zero-length data vectors"
+		print *, "Vel = ", rVel, "  (expected: NaN)"
+		print *, "Dir = ", rDir, "  (expected: NaN)"
+		print *
+		
 		! Leave
 		deallocate(rvVel, rvDir)
 		
