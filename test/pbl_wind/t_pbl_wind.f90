@@ -776,6 +776,15 @@ contains
 		print *, "S.Vel = ", rScalarVel, "  (expected: 1.)"
 		print *
 		
+		! Test 16 - Boundary case - Scalar speed for wind with all NaN
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(32), rvDir(32))
+		rvVel = NaN
+		rScalarVel = ScalarVel(rvVel)
+		print *, "Test 15 - Scalar vel from wind with one speed NaN"
+		print *, "S.Vel = ", rScalarVel, "  (expected: NaN)"
+		print *
+		
 		! Leave
 		deallocate(rvVel, rvDir)
 		
