@@ -408,6 +408,12 @@ contains
 		real							:: rU
 		real							:: rV
 		
+		! Check input parameters make sense
+		if(size(rvVel) /= size(rvDir)) then
+			polar = [NaN, NaN]
+			return
+		end if
+		
 		! Transform horizontal wind from polar to Cartesian form. In this case
 		! it is irrelevant whether the wind directio interpretation is of
 		! flow or provenance convention: the transformed vectors will be
