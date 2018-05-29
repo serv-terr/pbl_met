@@ -605,24 +605,28 @@ contains
 		print *
 		
 		! Test 5 - Normal case - Vector to scalar speed ratio for various span angles
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(2048000), rvDir(2048000))
-		rvVel = 1.
-		print *, "Test 5 - Vector to scalar speed ratio for various span angles"
-		print *, "Span, Vel, Scalar.vel, Vel/Scalar.Vel"
-		do i = 5, 125, 5
-			call random_number(rvDir)
-			rvDir = rvDir - 0.5
-			rvDir = rvDir * i
-			where(rvDir < 0.)
-				rvDir = rvDir + 360.
-			end where
-			rvPolar = VectorDirVel(rvVel, rvDir)
-			rVel = rvPolar(1)
-			rDir = rvPolar(2)
-			rScalarVel = ScalarVel(rvVel)
-			print "(f4.0,2(',',f6.4),',',f8.6)", float(i), rVel, rScalarVel, rVel/rScalarVel
-		end do
+		if(.false.) then
+			deallocate(rvVel, rvDir)
+			allocate(rvVel(2048000), rvDir(2048000))
+			rvVel = 1.
+			print *, "Test 5 - Vector to scalar speed ratio for various span angles"
+			print *, "Span, Vel, Scalar.vel, Vel/Scalar.Vel"
+			do i = 5, 125, 5
+				call random_number(rvDir)
+				rvDir = rvDir - 0.5
+				rvDir = rvDir * i
+				where(rvDir < 0.)
+					rvDir = rvDir + 360.
+				end where
+				rvPolar = VectorDirVel(rvVel, rvDir)
+				rVel = rvPolar(1)
+				rDir = rvPolar(2)
+				rScalarVel = ScalarVel(rvVel)
+				print "(f4.0,2(',',f6.4),',',f8.6)", float(i), rVel, rScalarVel, rVel/rScalarVel
+			end do
+		else
+			print *, "Omitting slow test 5"
+		end if
 		print *
 		
 		! Test 6 - Normal case - Vector velocity and direction for wind fluctuating around 90°
@@ -672,6 +676,24 @@ contains
 		rVel = rvPolar(1)
 		rDir = rvPolar(2)
 		print *, "Test 8 - Vector vel and dir from wind fluctuating around 270°"
+		print *, "Vel = ", rVel, "  (expected: close to 1.)"
+		print *, "Dir = ", rDir, "  (expected: close to 270.)"
+		print *
+		
+		! Test 9 - Normal case - Vector velocity and direction for wind fluctuating around 270°, one NaN value
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(32), rvDir(32))
+		rvVel = 1.
+		call random_number(rvDir)
+		rvDir = rvDir - 0.5 + 270.
+		where(rvDir < 0.)
+			rvDir = rvDir + 360.
+		end where
+		rvDir(8) = NaN
+		rvPolar = VectorDirVel(rvVel, rvDir)
+		rVel = rvPolar(1)
+		rDir = rvPolar(2)
+		print *, "Test 9 - Vector vel and dir from wind fluctuating around 270° with one direction NaN"
 		print *, "Vel = ", rVel, "  (expected: close to 1.)"
 		print *, "Dir = ", rDir, "  (expected: close to 270.)"
 		print *
