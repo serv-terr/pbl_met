@@ -719,6 +719,26 @@ Eventual invalid (`NaN`) values are discarded from the average; if all values ar
 
 If the two vectors have different or zero length then `NaN` is returned in both components of `polar`.
 
+
+
+###### Computing scalar wind speed from instant speeds
+
+The calculation of scalar wind speed is simpler than what encountered for vector wind speed and direction: scalar speed is "just" the arithmetical mean of measured wind velocities.
+
+To compute the scalar speed the following function is used:
+
+```
+function ScalarVel(rvVel) result(vel)
+
+    ! Routine arguments
+    real, dimension(:), intent(in)   :: rvVel
+    real                             :: vel
+    
+end function ScalarVel
+```
+
+The `rvVel` must have at least one element (possibly `NaN`). In case the `rvVel` vector is zero length, or none of its elements is valid, a `NaN` is returned. In case `rvVel` contains some valid elements, the scalar speed is computed from the valid elements only, discarding  invalid elements if any. 
+
 ### `pbl_turb`: Turbulence indicators from measured data and elements of eddy covariance
 
 To date this module is a placeholder, still to be filled.
