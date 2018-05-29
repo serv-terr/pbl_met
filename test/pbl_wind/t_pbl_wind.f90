@@ -720,12 +720,24 @@ contains
 		deallocate(rvVel, rvDir)
 		allocate(rvVel(32), rvDir(32))
 		rvVel = 1.
-		call random_number(rvDir)
 		rvDir = NaN
 		rvPolar = VectorDirVel(rvVel, rvDir)
 		rVel = rvPolar(1)
 		rDir = rvPolar(2)
 		print *, "Test 11 - Vector vel and dir with all direction NaN"
+		print *, "Vel = ", rVel, "  (expected: NaN)"
+		print *, "Dir = ", rDir, "  (expected: NaN)"
+		print *
+		
+		! Test 12 - Boundary case - Vector velocity and direction for all speed NaN
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(32), rvDir(32))
+		rvVel = NaN
+		rvDir = 0.
+		rvPolar = VectorDirVel(rvVel, rvDir)
+		rVel = rvPolar(1)
+		rDir = rvPolar(2)
+		print *, "Test 12 - Vector vel and dir with all speed NaN"
 		print *, "Vel = ", rVel, "  (expected: NaN)"
 		print *, "Dir = ", rDir, "  (expected: NaN)"
 		print *
