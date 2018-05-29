@@ -761,9 +761,19 @@ contains
 		rvPolar = VectorDirVel(rvVel, rvDir)
 		rVel = rvPolar(1)
 		rDir = rvPolar(2)
-		print *, "Test 13 - Vector vel and dir with zero-length data vectors"
+		print *, "Test 14 - Vector vel and dir with zero-length data vectors"
 		print *, "Vel = ", rVel, "  (expected: NaN)"
 		print *, "Dir = ", rDir, "  (expected: NaN)"
+		print *
+		
+		! Test 15 - Normal case - Scalar speed for wind with one speed NaN
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(32), rvDir(32))
+		rvVel = 1.
+		rvVel(8) = NaN
+		rScalarVel = ScalarVel(rvVel)
+		print *, "Test 15 - Scalar vel from wind with one speed NaN"
+		print *, "S.Vel = ", rScalarVel, "  (expected: 1.)"
 		print *
 		
 		! Leave
