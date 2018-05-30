@@ -493,6 +493,7 @@ contains
 		
 		! Convert the Cartesian average to mean wind in polar form
 		dir = atan2(rU,rV)*ToDeg
+		if(dir < 0.) dir = dir + 360.
 		
 	end function UnitDir
 	
