@@ -739,6 +739,43 @@ end function ScalarVel
 
 The `rvVel` must have at least one element (possibly `NaN`). In case the `rvVel` vector is zero length, or none of its elements is valid, a `NaN` is returned. In case `rvVel` contains some valid elements, the scalar speed is computed from the valid elements only, discarding  invalid elements if any. 
 
+###### Computing unit direction from instant directions
+
+In mainstream practice, and some of the preceding procedures, we already met the mean vector direction, defined by the formula
+$$
+\overline \delta = \arctan \frac{\sum_{i=1}^{n} U_{i} \sin \delta_{i}}{\sum_{i=1}^{n} U_{i} \cos \delta_{i}}
+$$
+in which we can see how the vector direction is a sort of weighted mean, in which instant vectors with higher speed $$U_{i}$$ "count more".
+
+What, in this formula, for individual vectors with $$U_{i}$$ small? The answer is simple: they contribute much less to the vector direction, compared to the higher speed vectors. If, meanwhile, slow wind points in a visually different direction than faster wind, then the picture given by the vector direction is biased in favor of the direction of the faster winds.
+
+In some applications this is not a problem - namely, when we're interested in the overall movement of an air parcel this "biased" speed is exactly what we want, as faster wind vectors contribute more to the overall shift than the slower. In other situations, knowing the contribution to direction from the slower wind is paramount - for example during the management of a toxic release under slow wind conditions.
+
+In these situations, a different definition od wind direction, which is independent on speed, can be used:
+$$
+\overline \delta_{u} = \arctan \frac{\sum_{i=1}^{n} \sin \delta_{i}}{\sum_{i=1}^{n} \cos \delta_{i}}
+$$
+This is _unit (mean) direction_, and its value may differ from ordinary vector direction if the directions of different speed cohorts in wind data differ significantly. Conversely, a unit direction close to vector direction indicates that in the data set considered the directions from different wind speed cohorts are very similar.
+
+May actually happen in Nature to find directions associated to different speed cohorts with significant differences among them? The answer is, yes, it may happen. One example is the very different direction one finds between nocturnal "fast" catabatic wind and "slow" diurnal anabatic wind in fair-weather breeze regime. On a smaller time scale, a difference may be found if the overall flow partitions in a slow en-masse movement superposed on a periodic, faster, fluctuation as happens during wind meandering.
+
+So, unit direction has its importance.
+
+The actual calculation is performed through the ` UnitDir`function, with the following interface:
+
+```
+function UnitDir(rvDir) result(dir)
+
+    ! Routine arguments
+    real, dimension(:), intent(in)  :: rvDir
+    real                            :: dir
+    
+end function UnitDir
+```
+
+Invalid values are discarded from the overall unit direction. If all direction values are invalid, or the length of the direction vector is zero, then an invalid (NaN) value is returned. 
+
+
 ### `pbl_turb`: Turbulence indicators from measured data and elements of eddy covariance
 
 To date this module is a placeholder, still to be filled.
