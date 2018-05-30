@@ -1,4 +1,5 @@
-! t_pbl_wind - Test procedure for pbl_wind sub-library
+! pbl_wind - Fortran module, containing routines related to wind
+!            in the Planetary Boundary Layer.
 !
 ! This module is part of the pbl_met library.
 !
@@ -6,796 +7,714 @@
 !
 ! This is open-source code, covered by the lGPL 3.0 license.
 !
-program t_pbl_wind
+module pbl_wind
 
-	use pbl_met
+	use pbl_base
 	
 	implicit none
 	
-	! Locals
+	private
 	
-	! Constants
-	real, parameter	:: pi = 3.1415927
+	! Public interface
+	! 0. Useful constants and symbols
+	public	:: WCONV_SAME
+	public	:: WCONV_PROVENANCE_TO_FLOW
+	public	:: WCONV_FLOW_TO_PROVENANCE
+	public	:: WDCLASS_ZERO_CENTERED
+	public	:: WDCLASS_ZERO_BASED
+	! 1. Conventions
+	public	:: PolarToCartesian2
+	public	:: PolarToCartesian3
+	public	:: CartesianToPolar2
+	public	:: CartesianToPolar3
+	! 2. Classification
+	public	:: ClassVel
+	public	:: ClassDir
+	! 3. Descriptive statistics
+	public	:: VectorDirVel
+	public	:: ScalarVel
+	public	:: UnitDir
+	public	:: WindRose
+	public	:: VelDirMean
+	public	:: VelMean
+	public	:: DirMean
 	
-	! Perform actual tests
-	call polar_cartesian()
-	call tst_classwindscalar()
-	call tst_classwindVector()
-	call tst_classdirscalar()
-	call tst_classdirvector()
-	call tst_windVectorScalar()
+	! Public constants
+	integer, parameter	:: WCONV_SAME               = 0
+	integer, parameter	:: WCONV_PROVENANCE_TO_FLOW = 1
+	integer, parameter	:: WCONV_FLOW_TO_PROVENANCE = 2
+	integer, parameter	:: WDCLASS_ZERO_CENTERED    = 0
+	integer, parameter	:: WDCLASS_ZERO_BASED       = 1
+	
+	! Internal constants
+	real, parameter		:: Pi = 3.1415927
+	real, parameter		:: ToRad = Pi/180.
+	real, parameter		:: ToDeg = 180./Pi
+	
+	! Polymorphic interfaces
+	
+	interface ClassVel
+		module procedure ClassVelScalar
+		module procedure ClassVelVector
+	end interface ClassVel
+	
+	interface ClassDir
+		module procedure ClassDirScalar
+		module procedure ClassDirVector
+	end interface ClassDir
 	
 contains
 
-	subroutine polar_cartesian()
+	function PolarToCartesian2(polar, interpretation) result(cartesian)
 	
 		! Routine arguments
+		real, dimension(2), intent(in)	:: polar				! Wind in polar form (vel=polar(1), dir=polar(2))
+		real, dimension(2)				:: cartesian			! Wind in cartesian form (u=cartesian(1), v=cartesian(2))
+		integer, intent(in), optional	:: interpretation
+		
+		! Locals
 		! --none--
 		
-		! Locals
-		real, dimension(2)	:: rvCartesian2
-		real, dimension(3)	:: rvCartesian3
-		real, dimension(2)	:: rvPolar2
-		real, dimension(3)	:: rvPolar3
-		integer				:: i
-		real				:: dir
-		real				:: e, n
+		! Convert, taking the desired convention into account
+		if(polar(1) > 1.e-6) then
+			if(present(interpretation)) then
+				if(interpretation == WCONV_SAME) then
+					! Same interpretation for input and output: no sign change
+					call uvWind(polar(1), polar(2), cartesian(1), cartesian(2))
+				elseif(interpretation == WCONV_PROVENANCE_TO_FLOW .or. interpretation == WCONV_FLOW_TO_PROVENANCE) then
+					! Different interpretation for input and output: sign change
+					call uvWind(polar(1), polar(2) - 180., cartesian(1), cartesian(2))
+				else
+					! Wrong convention
+					cartesian = [NaN, NaN]
+				end if
+			else
+				! Same interpretation for input and output: no sign change
+				call uvWind(polar(1), polar(2), cartesian(1), cartesian(2))
+			end if
+		else
+			cartesian = [NaN, NaN]
+		end if
 		
-		print *, "Test 1 - Check Cartesian to Polar conversions - Same convention, speed 1"
-		print *, "Expected.Vel, Expected.Dir, Result.Vel, Result.Dir"
-		do i = 0, 7
-			dir = 360./8. * i
-			e   = sin(dir*pi/180.)
-			n   = cos(dir*pi/180.)
-			rvCartesian2 = [e, n]
-			rvPolar2 = CartesianToPolar2(rvCartesian2, WCONV_SAME)
-			print "('  1.0, ',f4.0,', ',f6.3,', ',f8.3)", &
-				dir, rvPolar2
-		end do
-		print *
-		
-		print *, "Test 2 - Check Flow Cartesian to Provenance Polar conversions - Speed 1"
-		print *, "Expected.Vel, Expected.Dir, Result.Vel, Result.Dir"
-		do i = 0, 7
-			dir = 360./8. * i
-			e   = sin(dir*pi/180.)
-			n   = cos(dir*pi/180.)
-			rvCartesian2 = [e, n]
-			rvPolar2 = CartesianToPolar2(rvCartesian2, WCONV_FLOW_TO_PROVENANCE)
-			dir = dir + 180.0
-			if(dir >= 360.0) dir = dir - 360.0
-			print "('  1.0, ',f4.0,', ',f6.3,', ',f8.3)", &
-				dir, rvPolar2
-		end do
-		print *
-		
-		print *, "Test 3 - Check Provenance Cartesian to Flow Polar conversions - Speed 1"
-		print *, "Expected.Vel, Expected.Dir, Result.Vel, Result.Dir"
-		do i = 0, 7
-			dir = 360./8. * i
-			e   = sin(dir*pi/180.)
-			n   = cos(dir*pi/180.)
-			rvCartesian2 = [e, n]
-			rvPolar2 = CartesianToPolar2(rvCartesian2, WCONV_PROVENANCE_TO_FLOW)
-			dir = dir + 180.0
-			if(dir >= 360.0) dir = dir - 360.0
-			print "('  1.0, ',f4.0,', ',f6.3,', ',f8.3)", &
-				dir, rvPolar2
-		end do
-		print *
-		
-		print *, "Test 4 - Check zero wind - Speed 0"
-		print *, "Expected.Vel, Expected.Dir, Result.Vel, Result.Dir"
-		e   = 0.
-		n   = 0.
-		rvCartesian2 = [e, n]
-		rvPolar2 = CartesianToPolar2(rvCartesian2, WCONV_PROVENANCE_TO_FLOW)
-		print "('  0.0, NaN, ',f6.3,', ',f8.3)", &
-			rvPolar2
-		print *
-		
-		print *, "Test 5 - Check 3D Cartesian to Polar conversions - Same convention, speed 1"
-		print *, "Expected.Vel, Expected.Dir, Result.Vel, Result.Dir"
-		do i = 0, 7
-			dir = 360./8. * i
-			e   = sin(dir*pi/180.)
-			n   = cos(dir*pi/180.)
-			rvCartesian3 = [e, n, 1.]
-			rvPolar3 = CartesianToPolar3(rvCartesian3, WCONV_SAME)
-			print "('  1.0, ',f4.0,',1.0, ',f6.3,', ',f8.3,', ',f8.3)", &
-				dir, rvPolar3
-		end do
-		print *
-		
-		print *, "Test 6 - Check 3D Flow Cartesian to Provenance Polar conversions - Speed 1"
-		print *, "Expected.Vel, Expected.Dir, Z, Result.Vel, Result.Dir"
-		do i = 0, 7
-			dir = 360./8. * i
-			e   = sin(dir*pi/180.)
-			n   = cos(dir*pi/180.)
-			rvCartesian3 = [e, n, 1.]
-			rvPolar3 = CartesianToPolar3(rvCartesian3, WCONV_FLOW_TO_PROVENANCE)
-			dir = dir + 180.0
-			if(dir >= 360.0) dir = dir - 360.0
-			print "('  1.0, ',f4.0,', 1.0, ',f6.3,', ',f8.3,', ',f8.3)", &
-				dir, rvPolar3
-		end do
-		print *
-		
-		print *, "Test 7 - Check Provenance 3D Cartesian to Flow Polar conversions - Speed 1"
-		print *, "Expected.Vel, Expected.Dir, Z, Result.Vel, Result.Dir"
-		do i = 0, 7
-			dir = 360./8. * i
-			e   = sin(dir*pi/180.)
-			n   = cos(dir*pi/180.)
-			rvCartesian3 = [e, n, 1.0]
-			rvPolar3 = CartesianToPolar3(rvCartesian3, WCONV_PROVENANCE_TO_FLOW)
-			dir = dir + 180.0
-			if(dir >= 360.0) dir = dir - 360.0
-			print "('  1.0, ',f4.0,', 1.0, ',f6.3,', ',f8.3,', ',f8.3)", &
-				dir, rvPolar3
-		end do
-		print *
-		
-		print *, "Test 8 - Check 3D zero wind - Speed 0"
-		print *, "Expected.Vel, Expected.Dir, Result.Vel, Result.Dir"
-		e   = 0.
-		n   = 0.
-		rvCartesian3 = [e, n, 1.0]
-		rvPolar3 = CartesianToPolar3(rvCartesian3, WCONV_PROVENANCE_TO_FLOW)
-		print "('  0.0, NaN, 1.0, ',f6.3,', ',f8.3,', ',f8.3)", &
-			rvPolar3
-		print *
-		
-		print *, "Test 9 - Check Polar to Cartesian conversions - Same convention, speed 1"
-		print *, "Vel, Dir, Result.u, Result.v"
-		do i = 0, 7
-			dir = 360./8. * i
-			rvPolar2 = [1.0, dir]
-			rvCartesian2 = PolarToCartesian2(rvPolar2, WCONV_SAME)
-			print "('  1.0, ',f4.0,', ',f6.3,', ',f6.3)", &
-				dir, rvCartesian2
-		end do
-		print *
-		
-		print *, "Test 10 - Check Polar to Cartesian conversions - Flow to provenance, speed 1"
-		print *, "Vel, Dir, Result.u, Result.v"
-		do i = 0, 7
-			dir = 360./8. * i
-			rvPolar2 = [1.0, dir]
-			rvCartesian2 = PolarToCartesian2(rvPolar2, WCONV_FLOW_TO_PROVENANCE)
-			print "('  1.0, ',f4.0,', ',f6.3,', ',f6.3)", &
-				dir, rvCartesian2
-		end do
-		print *
-		
-		print *, "Test 11 - Check Polar to Cartesian conversions - Provenance to flow, speed 1"
-		print *, "Vel, Dir, Result.u, Result.v"
-		do i = 0, 7
-			dir = 360./8. * i
-			rvPolar2 = [1.0, dir]
-			rvCartesian2 = PolarToCartesian2(rvPolar2, WCONV_PROVENANCE_TO_FLOW)
-			print "('  1.0, ',f4.0,', ',f6.3,', ',f6.3)", &
-				dir, rvCartesian2
-		end do
-		print *
-		
-		print *, "Test 12 - Check Polar to Cartesian conversions - Speed 0"
-		print *, "Vel, Dir, Expected.u, Expected.v, Result.u, Result.v"
-		dir = 360./8.
-		rvPolar2 = [0.0, dir]
-		rvCartesian2 = PolarToCartesian2(rvPolar2, WCONV_PROVENANCE_TO_FLOW)
-		print "('  0.0, ',f4.0,', NaN, NaN, ',f6.3,', ',f6.3)", &
-			dir, rvCartesian2
-		print *
-		
-		print *, "Test 13 - Check 3D Polar to Cartesian conversions - Same convention, speed 1"
-		print *, "Vel, Dir, w, Result.u, Result.v, Result.w"
-		do i = 0, 7
-			dir = 360./8. * i
-			rvPolar3 = [1.0, dir, 1.0]
-			rvCartesian3 = PolarToCartesian3(rvPolar3, WCONV_SAME)
-			print "('  1.0, ',f4.0,', 1.0, ',f6.3,', ',f6.3,', ',f6.3)", &
-				dir, rvCartesian3
-		end do
-		print *
-		
-		print *, "Test 14 - Check 3D Polar to Cartesian conversions - Flow to provenance, speed 1"
-		print *, "Vel, Dir, w, Result.u, Result.v, Result.w"
-		do i = 0, 7
-			dir = 360./8. * i
-			rvPolar3 = [1.0, dir, 1.0]
-			rvCartesian3 = PolarToCartesian3(rvPolar3, WCONV_FLOW_TO_PROVENANCE)
-			print "('  1.0, ',f4.0,', 1.0, ',f6.3,', ',f6.3,', ',f6.3)", &
-				dir, rvCartesian3
-		end do
-		print *
-		
-		print *, "Test 15 - Check 3D Polar to Cartesian conversions - Provenance to flow, speed 1"
-		print *, "Vel, Dir, w, Result.u, Result.v"
-		do i = 0, 7
-			dir = 360./8. * i
-			rvPolar3 = [1.0, dir, 1.0]
-			rvCartesian3 = PolarToCartesian3(rvPolar3, WCONV_PROVENANCE_TO_FLOW)
-			print "('  1.0, ',f4.0,', 1.0, ',f6.3,', ',f6.3,', ',f6.3)", &
-				dir, rvCartesian3
-		end do
-		print *
-		
-		print *, "Test 16 - Check 3D Polar to Cartesian conversions - Speed 0"
-		print *, "Vel, Dir, w, Expected.u, Expected.v, Result.u, Result.v, Result.w"
-		dir = 360./8.
-		rvPolar3 = [0.0, dir, 1.0]
-		rvCartesian3 = PolarToCartesian3(rvPolar3, WCONV_PROVENANCE_TO_FLOW)
-		print "('  0.0, ',f4.0,', NaN, NaN, 1.0, ',f6.3,', ',f6.3,', ',f6.3)", &
-			dir, rvCartesian3
-		print *
-		
-	end subroutine polar_cartesian
+	end function PolarToCartesian2
 	
-	
-	subroutine tst_classwindscalar()
-	
-		! Locals
-		real, dimension(:), allocatable		:: rvVel
-		real, dimension(:), allocatable		:: rvVelClass
-		integer								:: i
-		integer								:: iClass
-		
-		! Generate normal test set
-		allocate(rvVel(32))
-		rvVel = [(i/2., i=1, size(rvVel))]
-		
-		! Test 1, normal condition
-		print *, "Test 1 - Check ClassVelScalar under normal conditions"
-		print *, 'Vel, Class'
-		do i = 1, size(rvVel)
-			iClass = ClassVel(rvVel(i), [1.,2.,3.,5.,7.])
-			print *, rvVel(i), iClass
-		end do
-		print *
-		
-		! Test 2, normal condition, scrambled class limits
-		! (as expected, empty classes may result: it is then better,
-		! although not mandatory, that class limits are sorted in
-		! ascending order)
-		print *, "Test 2 - Check ClassVelScalar under scrambled class limits"
-		print *, 'Vel, Class'
-		do i = 1, size(rvVel)
-			iClass = ClassVel(rvVel(i), [1.,2.,7.,5.,3.])
-			print *, rvVel(i), iClass
-		end do
-		print *
-		print *, 'Vel, Class'
-		do i = 1, size(rvVel)
-			iClass = ClassVel(rvVel(i), [1.,2.,5.,4.,7.])
-			print *, rvVel(i), iClass
-		end do
-		print *
-		
-		! Test 3, boundary condition
-		! (As expected, one class is not represented)
-		print *, "Test 3 - Check ClassVelScalar under one invalid class limit"
-		print *, 'Vel, Class'
-		do i = 1, size(rvVel)
-			iClass = ClassVel(rvVel(i), [1.,2.,NaN,5.,7.])
-			print *, rvVel(i), iClass
-		end do
-		print *
-		
-		! Test 4, boundary condition
-		! (As expected, one class is not represented)
-		print *, "Test 4 - Check ClassVelScalar under all invalid class limits"
-		print *, 'Vel, Class'
-		do i = 1, size(rvVel)
-			iClass = ClassVel(rvVel(i), [NaN,NaN,NaN,NaN,NaN])
-			print *, rvVel(i), iClass
-		end do
-		print *
-		
-		! Test 5, boundary condition
-		! (As expected, one class is not represented)
-		print *, "Test 5 - Check ClassVelScalar under empty limits vector"
-		allocate(rvVelClass(0))
-		print *, 'Vel, Class'
-		do i = 1, size(rvVel)
-			iClass = ClassVel(rvVel(i), rvVelClass)
-			print *, rvVel(i), iClass
-		end do
-		print *
-		
-		! Leave
-		deallocate(rvVelClass)
-		deallocate(rvVel)
-		
-	end subroutine tst_classwindscalar
-	
-	
-	subroutine tst_classwindVector()
-	
-		! Locals
-		real, dimension(:), allocatable		:: rvVel
-		real, dimension(:), allocatable		:: rvVelClass
-		integer								:: i
-		integer, dimension(:), allocatable	:: ivClass
-		
-		! Generate normal test set
-		allocate(rvVel(32))
-		rvVel = [(i/2., i=1, size(rvVel))]
-		
-		! Test 1, normal condition
-		print *, "Test 1 - Check ClassVelVector under normal conditions"
-		print *, 'Vel, Class'
-		ivClass = ClassVel(rvVel, [1.,2.,3.,5.,7.])
-		do i = 1, size(rvVel)
-			print *, rvVel(i), ivClass(i)
-		end do
-		print *
-		
-		! Test 2, normal condition, scrambled class limits
-		! (as expected, empty classes may result: it is then better,
-		! although not mandatory, that class limits are sorted in
-		! ascending order)
-		print *, "Test 2 - Check ClassVelVector under scrambled class limits"
-		print *, 'Vel, Class'
-		ivClass = ClassVel(rvVel, [1.,2.,7.,5.,3.])
-		do i = 1, size(rvVel)
-			print *, rvVel(i), ivClass(i)
-		end do
-		print *
-		print *, 'Vel, Class'
-		ivClass = ClassVel(rvVel, [1.,2.,5.,4.,7.])
-		do i = 1, size(rvVel)
-			print *, rvVel(i), ivClass(i)
-		end do
-		print *
-		
-		! Test 3, boundary condition
-		! (As expected, one class is not represented)
-		print *, "Test 3 - Check ClassVelVector under one invalid class limit"
-		print *, 'Vel, Class'
-		ivClass = ClassVel(rvVel, [1.,2.,NaN,5.,7.])
-		do i = 1, size(rvVel)
-			print *, rvVel(i), ivClass(i)
-		end do
-		print *
-		
-		! Test 4, boundary condition
-		! (As expected, no class is represented)
-		print *, "Test 4 - Check ClassVelVector under all invalid class limits"
-		print *, 'Vel, Class'
-		ivClass = ClassVel(rvVel, [NaN,NaN,NaN,NaN,NaN])
-		do i = 1, size(rvVel)
-			print *, rvVel(i), ivClass(i)
-		end do
-		print *
-		
-		! Test 5, boundary condition
-		! (As expected, no class is represented)
-		print *, "Test 5 - Check ClassVelVector under empty limits vector"
-		allocate(rvVelClass(0))
-		ivClass = ClassVel(rvVel, rvVelClass)
-		print *, 'Vel, Class'
-		do i = 1, size(rvVel)
-			print *, rvVel(i), ivClass(i)
-		end do
-		print *
-		
-		! Test 6, boundary condition
-		! (As expected, no class is represented)
-		print *, "Test 6 - Check ClassVelVector under empty data vector"
-		ivClass = ClassVel(rvVelClass, [1.,2.,3.,5.,7.])
-		print *, 'Vel, Class - None expected'
-		do i = 1, size(rvVelClass)
-			print *, rvVelClass(i), ivClass(i)
-		end do
-		print *
-		
-		! Leave
-		deallocate(rvVelClass)
-		
-	end subroutine tst_classwindVector
 
-	
-	subroutine tst_classdirscalar()
-	
-		! Locals
-		real, dimension(:), allocatable		:: rvDir
-		integer, dimension(:), allocatable	:: ivExpectedClass
-		integer								:: i
-		integer								:: iClass
-		
-		! Generate normal test set
-		allocate(rvDir(4), ivExpectedClass(4))
-		rvDir = [359., 89., 179., 269.]
-		
-		! Test 1, normal condition
-		print *, "Test 1 - Check ClassDirScalar under normal conditions - Centered sectors"
-		ivExpectedClass = [1, 5, 9, 13]
-		print *, 'Dir, Class, Expected.Class'
-		do i = 1, size(rvDir)
-			iClass = ClassDir(rvDir(i), 16, WDCLASS_ZERO_CENTERED)
-			print *, rvDir(i), iClass, ivExpectedClass(i)
-		end do
-		print *
-				
-		! Test 2, normal condition
-		print *, "Test 2 - Check ClassDirScalar under normal conditions - Zero-based sectors"
-		ivExpectedClass = [16, 4, 8, 12]
-		print *, 'Dir, Class, Expected.Class'
-		do i = 1, size(rvDir)
-			iClass = ClassDir(rvDir(i), 16, WDCLASS_ZERO_BASED)
-			print *, rvDir(i), iClass, ivExpectedClass(i)
-		end do
-		print *
-				
-		! Test 3, boundary condition
-		print *, "Test 3 - Check ClassDirScalar under boundary conditions - Centered sectors - Dirs > [0,359.9999]"
-		rvDir = [719., 360.+89., 360.+179., 360.+269.]
-		ivExpectedClass = [1, 5, 9, 13]
-		print *, 'Dir, Class, Expected.Class'
-		do i = 1, size(rvDir)
-			iClass = ClassDir(rvDir(i), 16, WDCLASS_ZERO_CENTERED)
-			print *, rvDir(i), iClass, ivExpectedClass(i)
-		end do
-		print *
-		
-		! Test 4, boundary condition
-		print *, "Test 4 - Check ClassDirScalar under boundary conditions - Centered sectors - Dirs < [0,359.9999]"
-		rvDir = [-1., -360.+89., -360.+179., -360.+269.]
-		ivExpectedClass = [1, 5, 9, 13]
-		print *, 'Dir, Class, Expected.Class'
-		do i = 1, size(rvDir)
-			iClass = ClassDir(rvDir(i), 16, WDCLASS_ZERO_CENTERED)
-			print *, rvDir(i), iClass, ivExpectedClass(i)
-		end do
-		print *
-		
-		! Test 5, boundary condition
-		print *, "Test 5 - Check ClassDirScalar under one NaN direction"
-		rvDir = [359., NaN, 179., 269.]
-		ivExpectedClass = [1, -9999, 9, 13]
-		print *, 'Dir, Class, Expected.Class'
-		do i = 1, size(rvDir)
-			iClass = ClassDir(rvDir(i), 16)
-			print *, rvDir(i), iClass, ivExpectedClass(i)
-		end do
-		print *
-				
-		! Leave
-		deallocate(ivExpectedClass)
-		deallocate(rvDir)
-		
-	end subroutine tst_classdirscalar
-	
-	
-	subroutine tst_classdirvector()
-	
-		! Locals
-		real, dimension(:), allocatable		:: rvDir
-		integer, dimension(:), allocatable	:: ivExpectedClass
-		integer								:: i
-		integer, dimension(:), allocatable	:: ivClass
-		
-		! Generate normal test set
-		allocate(rvDir(4), ivExpectedClass(4))
-		rvDir = [359., 89., 179., 269.]
-		
-		! Test 1, normal condition
-		print *, "Test 1 - Check ClassDirVector under normal conditions - Centered sectors"
-		ivExpectedClass = [1, 5, 9, 13]
-		print *, 'Dir, Class, Expected.Class'
-		ivClass = ClassDir(rvDir, 16, WDCLASS_ZERO_CENTERED)
-		do i = 1, size(rvDir)
-			print *, rvDir(i), ivClass(i), ivExpectedClass(i)
-		end do
-		print *
-				
-		! Test 2, normal condition
-		print *, "Test 2 - Check ClassDirVector under normal conditions - Zero-based sectors"
-		ivExpectedClass = [16, 4, 8, 12]
-		print *, 'Dir, Class, Expected.Class'
-		ivClass = ClassDir(rvDir, 16, WDCLASS_ZERO_BASED)
-		do i = 1, size(rvDir)
-			print *, rvDir(i), ivClass(i), ivExpectedClass(i)
-		end do
-		print *
-				
-		! Test 3, boundary condition
-		print *, "Test 3 - Check ClassDirVector under boundary conditions - Centered sectors - Dirs > [0,359.9999]"
-		rvDir = [719., 360.+89., 360.+179., 360.+269.]
-		ivExpectedClass = [1, 5, 9, 13]
-		print *, 'Dir, Class, Expected.Class'
-		ivClass = ClassDir(rvDir, 16, WDCLASS_ZERO_CENTERED)
-		do i = 1, size(rvDir)
-			print *, rvDir(i), ivClass(i), ivExpectedClass(i)
-		end do
-		print *
-		
-		! Test 4, boundary condition
-		print *, "Test 4 - Check ClassDirVector under boundary conditions - Centered sectors - Dirs < [0,359.9999]"
-		rvDir = [-1., -360.+89., -360.+179., -360.+269.]
-		ivExpectedClass = [1, 5, 9, 13]
-		print *, 'Dir, Class, Expected.Class'
-		ivClass = ClassDir(rvDir, 16, WDCLASS_ZERO_CENTERED)
-		do i = 1, size(rvDir)
-			print *, rvDir(i), ivClass(i), ivExpectedClass(i)
-		end do
-		print *
-		
-		! Test 5, boundary condition
-		print *, "Test 5 - Check ClassDirVector under one NaN direction"
-		rvDir = [359., NaN, 179., 269.]
-		ivExpectedClass = [1, -9999, 9, 13]
-		print *, 'Dir, Class, Expected.Class'
-		ivClass = ClassDir(rvDir, 16)
-		do i = 1, size(rvDir)
-			print *, rvDir(i), ivClass(i), ivExpectedClass(i)
-		end do
-		print *
-				
-		! Test 6, boundary condition
-		print *, "Test 6 - Check ClassDirVector under zero-length direction vector"
-		deallocate(ivExpectedClass)
-		deallocate(rvDir)
-		allocate(rvDir(0))
-		print *, 'Dir, Class (expected: none printed)'
-		ivClass = ClassDir(rvDir, 16)
-		do i = 1, size(rvDir)
-			print *, rvDir(i), ivClass(i)
-		end do
-		print *
-				
-		! Leave
-		deallocate(rvDir)
-		
-	end subroutine tst_classdirvector
-	
-	
-	subroutine tst_windVectorScalar()
+	function PolarToCartesian3(polar, interpretation) result(cartesian)
 	
 		! Routine arguments
-		! -none-
+		real, dimension(3), intent(in)	:: polar				! Wind in polar form (vel=polar(1), dir=polar(2), w=polar(3))
+		real, dimension(3)				:: cartesian			! Wind in cartesian form (u=cartesian(1), v=cartesian(2), w=cartesian(3))
+		integer, intent(in), optional	:: interpretation
 		
 		! Locals
-		real, dimension(:), allocatable	:: rvVel, rvDir
-		real							:: rVel, rDir, rScalarVel
-		real, dimension(2)				:: rvPolar
-		integer							:: i
+		! --none--
 		
-		! Test 1 - Normal case - Vector velocity and direction for rotating wind
-		allocate(rvVel(32), rvDir(32))
-		rvVel = 1.
-		rvDir = [(360.0*(i-1)/32., i = 1, 32)]
-		rvPolar = VectorDirVel(rvVel, rvDir)
-		rVel = rvPolar(1)
-		rDir = rvPolar(2)
-		print *, "Test 1 - Vector vel and dir from rotating wind"
-		print *, "Vel = ", rVel, "  (expected: 0.)"
-		print *, "Dir = ", rDir, "  (expected: anything)"
-		print *
-		
-		! Test 2 - Normal case - Scalar velocity for rotating wind
-		rScalarVel = ScalarVel(rvVel)
-		print *, "Test 2 - Scalar vel from rotating wind"
-		print *, "Scalar.Vel = ", rScalarVel, "  (expected: 1.)"
-		print *
-		
-		! Test 3 - Normal case - Vector velocity and direction for wind fluctuating around 0°
-		rvVel = 1.
-		call random_number(rvDir)
-		rvDir = rvDir - 0.5
-		where(rvDir < 0.)
-			rvDir = rvDir + 360.
-		end where
-		rvPolar = VectorDirVel(rvVel, rvDir)
-		rVel = rvPolar(1)
-		rDir = rvPolar(2)
-		print *, "Test 3 - Vector vel and dir from wind fluctuating around 0°"
-		print *, "Vel = ", rVel, "  (expected: close to 1.)"
-		print *, "Dir = ", rDir, "  (expected: close to 0. or 360.)"
-		print *
-		
-		! Test 4 - Normal case - Scalar velocity for wind fluctuating around 0°
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(2048), rvDir(2048))
-		rScalarVel = ScalarVel(rvVel)
-		print *, "Test 4 - Scalar vel from wind fluctuating around 0°"
-		print *, "Scalar.Vel = ", rScalarVel, "  (expected: 1.)"
-		print *
-		
-		! Test 5 - Normal case - Vector to scalar speed ratio for various span angles
-		if(.false.) then
-			deallocate(rvVel, rvDir)
-			allocate(rvVel(2048000), rvDir(2048000))
-			rvVel = 1.
-			print *, "Test 5 - Vector to scalar speed ratio for various span angles"
-			print *, "Span, Vel, Scalar.vel, Vel/Scalar.Vel"
-			do i = 5, 125, 5
-				call random_number(rvDir)
-				rvDir = rvDir - 0.5
-				rvDir = rvDir * i
-				where(rvDir < 0.)
-					rvDir = rvDir + 360.
-				end where
-				rvPolar = VectorDirVel(rvVel, rvDir)
-				rVel = rvPolar(1)
-				rDir = rvPolar(2)
-				rScalarVel = ScalarVel(rvVel)
-				print "(f4.0,2(',',f6.4),',',f8.6)", float(i), rVel, rScalarVel, rVel/rScalarVel
-			end do
+		! Convert, taking the desired convention into account
+		if(polar(1) > 1.e-6) then
+			if(present(interpretation)) then
+				if(interpretation == WCONV_SAME) then
+					! Same interpretation for input and output: no sign change
+					call uvWind(polar(1), polar(2), cartesian(1), cartesian(2))
+					cartesian(3) = polar(3)
+				elseif(interpretation == WCONV_PROVENANCE_TO_FLOW .or. interpretation == WCONV_FLOW_TO_PROVENANCE) then
+					! Different interpretation for input and output: sign change
+					call uvWind(polar(1), polar(2) - 180., cartesian(1), cartesian(2))
+					cartesian(3) = polar(3)
+				else
+					! Wrong convention
+					cartesian = [NaN, NaN, polar(3)]
+				end if
+			else
+				! Same interpretation for input and output: no sign change
+				call uvWind(polar(1), polar(2), cartesian(1), cartesian(2))
+			end if
 		else
-			print *, "Omitting slow test 5"
+			cartesian = [NaN, NaN, polar(3)]
 		end if
-		print *
 		
-		! Test 6 - Normal case - Vector velocity and direction for wind fluctuating around 90°
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(32), rvDir(32))
-		rvVel = 1.
-		call random_number(rvDir)
-		rvDir = rvDir - 0.5 + 90.
-		where(rvDir < 0.)
-			rvDir = rvDir + 360.
-		end where
-		rvPolar = VectorDirVel(rvVel, rvDir)
-		rVel = rvPolar(1)
-		rDir = rvPolar(2)
-		print *, "Test 6 - Vector vel and dir from wind fluctuating around 90°"
-		print *, "Vel = ", rVel, "  (expected: close to 1.)"
-		print *, "Dir = ", rDir, "  (expected: close to 90.)"
-		print *
-		
-		! Test 7 - Normal case - Vector velocity and direction for wind fluctuating around 180°
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(32), rvDir(32))
-		rvVel = 1.
-		call random_number(rvDir)
-		rvDir = rvDir - 0.5 + 180.
-		where(rvDir < 0.)
-			rvDir = rvDir + 360.
-		end where
-		rvPolar = VectorDirVel(rvVel, rvDir)
-		rVel = rvPolar(1)
-		rDir = rvPolar(2)
-		print *, "Test 7 - Vector vel and dir from wind fluctuating around 180°"
-		print *, "Vel = ", rVel, "  (expected: close to 1.)"
-		print *, "Dir = ", rDir, "  (expected: close to 180.)"
-		print *
-		
-		! Test 8 - Normal case - Vector velocity and direction for wind fluctuating around 270°
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(32), rvDir(32))
-		rvVel = 1.
-		call random_number(rvDir)
-		rvDir = rvDir - 0.5 + 270.
-		where(rvDir < 0.)
-			rvDir = rvDir + 360.
-		end where
-		rvPolar = VectorDirVel(rvVel, rvDir)
-		rVel = rvPolar(1)
-		rDir = rvPolar(2)
-		print *, "Test 8 - Vector vel and dir from wind fluctuating around 270°"
-		print *, "Vel = ", rVel, "  (expected: close to 1.)"
-		print *, "Dir = ", rDir, "  (expected: close to 270.)"
-		print *
-		
-		! Test 9 - Normal case - Vector velocity and direction for wind fluctuating around 270°, one direction NaN value
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(32), rvDir(32))
-		rvVel = 1.
-		call random_number(rvDir)
-		rvDir = rvDir - 0.5 + 270.
-		where(rvDir < 0.)
-			rvDir = rvDir + 360.
-		end where
-		rvDir(8) = NaN
-		rvPolar = VectorDirVel(rvVel, rvDir)
-		rVel = rvPolar(1)
-		rDir = rvPolar(2)
-		print *, "Test 9 - Vector vel and dir from wind fluctuating around 270° with one direction NaN"
-		print *, "Vel = ", rVel, "  (expected: close to 1.)"
-		print *, "Dir = ", rDir, "  (expected: close to 270.)"
-		print *
-		
-		! Test 10 - Normal case - Vector velocity and direction for wind fluctuating around 270° with one speed NaN
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(32), rvDir(32))
-		rvVel = 1.
-		call random_number(rvDir)
-		rvDir = rvDir - 0.5 + 270.
-		where(rvDir < 0.)
-			rvDir = rvDir + 360.
-		end where
-		rvVel(8) = NaN
-		rvPolar = VectorDirVel(rvVel, rvDir)
-		rVel = rvPolar(1)
-		rDir = rvPolar(2)
-		print *, "Test 10 - Vector vel and dir from wind fluctuating around 270° with one speed NaN"
-		print *, "Vel = ", rVel, "  (expected: close to 1.)"
-		print *, "Dir = ", rDir, "  (expected: close to 270.)"
-		print *
-		
-		! Test 11 - Boundary case - Vector velocity and direction for all direction NaN
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(32), rvDir(32))
-		rvVel = 1.
-		rvDir = NaN
-		rvPolar = VectorDirVel(rvVel, rvDir)
-		rVel = rvPolar(1)
-		rDir = rvPolar(2)
-		print *, "Test 11 - Vector vel and dir with all direction NaN"
-		print *, "Vel = ", rVel, "  (expected: NaN)"
-		print *, "Dir = ", rDir, "  (expected: NaN)"
-		print *
-		
-		! Test 12 - Boundary case - Vector velocity and direction for all speed NaN
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(32), rvDir(32))
-		rvVel = NaN
-		rvDir = 0.
-		rvPolar = VectorDirVel(rvVel, rvDir)
-		rVel = rvPolar(1)
-		rDir = rvPolar(2)
-		print *, "Test 12 - Vector vel and dir with all speed NaN"
-		print *, "Vel = ", rVel, "  (expected: NaN)"
-		print *, "Dir = ", rDir, "  (expected: NaN)"
-		print *
-		
-		! Test 13 - Boundary case - Vector velocity and direction for zero-length data vectors
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(0), rvDir(0))
-		rvPolar = VectorDirVel(rvVel, rvDir)
-		rVel = rvPolar(1)
-		rDir = rvPolar(2)
-		print *, "Test 13 - Vector vel and dir with zero-length data vectors"
-		print *, "Vel = ", rVel, "  (expected: NaN)"
-		print *, "Dir = ", rDir, "  (expected: NaN)"
-		print *
-		
-		! Test 14 - Boundary case - Vector velocity and direction for unequal-length data vectors
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(10), rvDir(20))
-		rvVel = 1.
-		rvDir = 0.
-		rvPolar = VectorDirVel(rvVel, rvDir)
-		rVel = rvPolar(1)
-		rDir = rvPolar(2)
-		print *, "Test 14 - Vector vel and dir with zero-length data vectors"
-		print *, "Vel = ", rVel, "  (expected: NaN)"
-		print *, "Dir = ", rDir, "  (expected: NaN)"
-		print *
-		
-		! Test 15 - Normal case - Scalar speed for wind with one speed NaN
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(32), rvDir(32))
-		rvVel = 1.
-		rvVel(8) = NaN
-		rScalarVel = ScalarVel(rvVel)
-		print *, "Test 15 - Scalar vel from wind with one speed NaN"
-		print *, "S.Vel = ", rScalarVel, "  (expected: 1.)"
-		print *
-		
-		! Test 16 - Boundary case - Scalar speed for wind with all NaN
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(32), rvDir(32))
-		rvVel = NaN
-		rScalarVel = ScalarVel(rvVel)
-		print *, "Test 16 - Scalar vel from wind with all NaN"
-		print *, "S.Vel = ", rScalarVel, "  (expected: NaN)"
-		print *
-		
-		! Test 17 - Boundary case - Scalar speed for zero-length vector
-		deallocate(rvVel, rvDir)
-		allocate(rvVel(0), rvDir(0))
-		rScalarVel = ScalarVel(rvVel)
-		print *, "Test 17 - Scalar vel from null-length vector"
-		print *, "S.Vel = ", rScalarVel, "  (expected: NaN)"
-		print *
-		
-		! Leave
-		deallocate(rvVel, rvDir)
-		
-	end subroutine tst_windVectorScalar
+	end function PolarToCartesian3
 	
-end program t_pbl_wind
+
+	function CartesianToPolar2(cartesian, interpretation) result(polar)
+	
+		! Routine arguments
+		real, dimension(2), intent(in)	:: cartesian			! Wind in cartesian form (u=cartesian(1), v=cartesian(2))
+		real, dimension(2)				:: polar				! Wind in polar form (vel=polar(1), dir=polar(2))
+		integer, intent(in), optional	:: interpretation
+		
+		! Locals
+		! --none--
+		
+		! Convert, taking the desired convention into account
+		if(dot_product(cartesian, cartesian) > 1.e-6) then
+			if(present(interpretation)) then
+				if(interpretation == WCONV_SAME) then
+					! Same interpretation for input and output: no sign change
+					call veldirWind(cartesian(1), cartesian(2), polar(1), polar(2))
+				elseif(interpretation == WCONV_PROVENANCE_TO_FLOW .or. interpretation == WCONV_FLOW_TO_PROVENANCE) then
+					! Different interpretation for input and output: sign change
+					call veldirWind(-cartesian(1), -cartesian(2), polar(1), polar(2))
+				else
+					! Wrong convention
+					polar = [NaN, NaN]
+				end if
+			else
+				! Same interpretation for input and output: no sign change
+				call veldirWind(cartesian(1), cartesian(2), polar(1), polar(2))
+			end if
+		else
+			polar = [0., NaN]
+		end if
+		
+	end function CartesianToPolar2
+	
+	
+	function CartesianToPolar3(cartesian, interpretation) result(polar)
+	
+		! Routine arguments
+		real, dimension(3), intent(in)	:: cartesian			! Wind in cartesian form (u=cartesian(1), v=cartesian(2), w=cartesian(3))
+		real, dimension(3)				:: polar				! Wind in polar form (vel=polar(1), dir=polar(2), w=polar(3))
+		integer, intent(in), optional	:: interpretation
+		
+		! Locals
+		! --none--
+		
+		! Convert, taking the desired convention into account
+		if(dot_product(cartesian(1:2), cartesian(1:2)) > 1.e-6) then
+			if(present(interpretation)) then
+				if(interpretation == WCONV_SAME) then
+					! Same interpretation for input and output: no sign change
+					call veldirWind(cartesian(1), cartesian(2), polar(1), polar(2))
+					polar(3) = cartesian(3)
+				elseif(interpretation == WCONV_PROVENANCE_TO_FLOW .or. interpretation == WCONV_FLOW_TO_PROVENANCE) then
+					! Different interpretation for input and output: sign change
+					call veldirWind(-cartesian(1), -cartesian(2), polar(1), polar(2))
+					polar(3) = cartesian(3)
+				else
+					! Wrong convention
+					polar = [NaN, NaN, cartesian(3)]
+				end if
+			else
+				! Same interpretation for input and output: no sign change
+				call veldirWind(cartesian(1), cartesian(2), polar(1), polar(2))
+			end if
+		else
+			polar = [0., NaN, cartesian(3)]
+		end if
+		
+	end function CartesianToPolar3
+	
+	
+	function ClassVelScalar(vel, rvVel) result(iClass)
+		
+		! Routine arguments
+		real, intent(in)				:: vel			! Wind speed to classify
+		real, dimension(:), intent(in)	:: rvVel		! Vector, containing upper class limits in increasing order
+		integer							:: iClass		! Speed class to which the wind belongs (-9999 if not assignable)
+		
+		! Locals
+		integer		:: n
+		integer		:: i
+		
+		! Check class limit validity
+		if(size(rvVel) <= 0.) then
+			iClass = -9999
+			return
+		end if
+		if(all(.invalid.rvVel)) then
+			iClass = -9999
+			return
+		end if
+		
+		! Check something is to be made: leave, if not
+		if(.invalid.vel) then
+			iClass = -9999
+			return
+		end if
+		
+		! Check added on input vector size
+		if(size(rvVel) <= 0) then
+			iClass = -9999
+			return
+		end if
+		
+		! Perform a simple table lookup
+		n = size(rvVel)
+		do i = 1, n
+			if(vel <= rvVel(i)) then
+				iClass = i
+				return
+			end if
+		end do
+		
+		! Execution reaches this point if no match is found, so
+		iClass = n + 1
+
+	end function ClassVelScalar
+
+
+	function ClassVelVector(vel, rvVel) result(ivClass)
+		
+		! Routine arguments
+		real, dimension(:), intent(in)	:: vel			! Wind speed to classify
+		real, dimension(:), intent(in)	:: rvVel		! Vector, containing upper class limits in increasing order
+		integer, dimension(size(vel))	:: ivClass		! Speed class to which the wind belongs (-9999 if not assignable)
+		
+		! Locals
+		integer		:: n
+		integer		:: i, j
+		
+		! Check class limit validity
+		if(size(rvVel) <= 0.) then
+			ivClass = -9999
+			return
+		end if
+		if(all(.invalid.rvVel)) then
+			ivClass = -9999
+			return
+		end if
+		
+		! Main loop: iterate over speed values
+		do j = 1, size(vel)
+		
+			! Check class can be assigned
+			if(.invalid.vel(j)) then
+				ivClass(j) = -9999
+			else
+			
+				! Perform a simple table lookup
+				n = size(rvVel)
+				ivClass(j) = n + 1
+				do i = 1, n
+					if(vel(j) <= rvVel(i)) then
+						ivClass(j) = i
+						exit
+					end if
+				end do
+			
+			end if
+			
+		end do
+
+	end function ClassVelVector
+
+
+	function ClassDirScalar(dir, iNumClasses, iClassType) result(iClass)
+	
+		! Routine arguments
+		real, intent(in)				:: dir				! Wind direction to classify (°)
+		integer, intent(in)				:: iNumClasses		! Number of desired classes
+		integer, intent(in), optional	:: iClassType		! Class type (WDCLASS_ZERO_CENTERED (default): first class is zero-centered; WDCLASS_ZERO_BASED: first class starts at zero)
+		integer							:: iClass			! Direction class to which the wind belongs (-9999 if no class is assignable)
+		
+		! Locals
+		real	:: classWidth
+		real	:: d
+		integer	:: iClsType
+		
+		! Check something is to be made: leave, if not
+		if(isnan(dir)) then
+			iClass = -9999
+			return
+		end if
+		
+		! If missing 'iClassType' assign default, otherwise get it
+		if(present(iClassType)) then
+			iClsType = iClassType
+		else
+			iClsType = WDCLASS_ZERO_CENTERED
+		end if
+		
+		! Compute the fixed-size class width, and in case of zero-centere classes use it to adjust direction
+		if(iNumClasses <= 0) then
+			iClass = -9999
+			return
+		end if
+		classWidth = 360. / iNumClasses
+		d = dir
+		if(iClsType == WDCLASS_ZERO_CENTERED) d = d + classWidth / 2.
+		
+		! Adjust wind direction to the range 0-360
+		d = mod(d, 360.)
+		if(d < 0.) d = d + 360.
+		
+		! Assign class by division
+		iClass = floor(d / classWidth) + 1
+		
+	end function ClassDirScalar
+	
+
+	function ClassDirVector(dir, iNumClasses, iClassType) result(ivClass)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: dir				! Wind direction to classify (°)
+		integer, intent(in)				:: iNumClasses		! Number of desired classes
+		integer, intent(in), optional	:: iClassType		! Class type (WDCLASS_ZERO_CENTERED (default): first class is zero-centered; WDCLASS_ZERO_BASED: first class starts at zero)
+		integer, dimension(size(dir))	:: ivClass			! Direction class to which the wind belongs (-9999 if no class is assignable)
+		
+		! Locals
+		real						:: classWidth
+		real, dimension(size(dir))	:: d
+		integer						:: iClsType
+		
+		! Check something is to be made: leave, if not
+		if(iNumClasses <= 0) then
+			ivClass = -9999
+			return
+		end if
+		
+		! If missing 'iClassType' assign default, otherwise get it
+		if(present(iClassType)) then
+			iClsType = iClassType
+		else
+			iClsType = WDCLASS_ZERO_CENTERED
+		end if
+		
+		! Compute the fixed-size class width, and in case of zero-centere classes use it to adjust direction
+		classWidth = 360. / iNumClasses
+		d = dir
+		if(iClsType == WDCLASS_ZERO_CENTERED) d = d + classWidth / 2.
+		where(isnan(d))
+		
+			ivClass = -9999
+			
+		elsewhere
+		
+			! Adjust wind direction to the range 0-360
+			d = mod(d, 360.)
+			where(d < 0.)
+				d = d + 360.
+			endwhere
+		
+			! Assign class by division
+			ivClass = floor(d / classWidth) + 1
+			
+		end where
+		
+	end function ClassDirVector
+	
+	
+	function VectorDirVel(rvVel, rvDir) result(polar)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvVel
+		real, dimension(:), intent(in)	:: rvDir
+		real, dimension(2)				:: polar		! [vel,dir]
+		
+		! Locals
+		real, dimension(size(rvVel))	:: rvU
+		real, dimension(size(rvVel))	:: rvV
+		integer							:: n
+		real							:: rU
+		real							:: rV
+		
+		! Check input parameters make sense
+		if(size(rvVel) /= size(rvDir)) then
+			polar = [NaN, NaN]
+			return
+		end if
+		
+		! Transform horizontal wind from polar to Cartesian form. In this case
+		! it is irrelevant whether the wind directio interpretation is of
+		! flow or provenance convention: the transformed vectors will be
+		! back-transformed by the same interpretation.
+		rvU = rvVel * sin(rvDir * ToRad)
+		rvV = rvVel * cos(rvDir * ToRad)
+		
+		! Compute the Cartesian average of wind vectors
+		n = count(.not.isnan(rvU))
+		if(n > 0) then
+			! At least one element: compute the vector mean
+			rU = sum(rvU, mask=.not.isnan(rvU)) / n
+			rV = sum(rvV, mask=.not.isnan(rvU)) / n
+		else
+			rU = NaN
+			rV = NaN
+		end if
+		
+		! Convert the Cartesian average to mean wind in polar form
+		polar = [sqrt(rU**2 + rV**2), atan2(rU,rV)*ToDeg]
+		if(polar(2) < 0) polar(2) = polar(2) + 360.0
+		
+	end function VectorDirVel
+	
+	
+	function ScalarVel(rvVel) result(vel)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvVel
+		real							:: vel
+		
+		! Locals
+		integer	:: n
+		
+		! Compute the wind scalar speed
+		n = count(.not.isnan(rvVel))
+		if(n > 0) then
+			! At least one element: compute the scalar mean
+			vel = sum(rvVel, mask=.not.isnan(rvVel)) / n
+		else
+			vel = NaN
+		end if
+		
+	end function ScalarVel
+	
+
+	function UnitDir(rvDir) result(dir)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvDir
+		real							:: dir
+		
+		! Locals
+		real, dimension(size(rvDir))	:: rvU
+		real, dimension(size(rvDir))	:: rvV
+		integer							:: n
+		real							:: rU
+		real							:: rV
+		
+		! Transform horizontal wind from polar to Cartesian form. In this case
+		! it is irrelevant whether the wind directio interpretation is of
+		! flow or provenance convention: the transformed vectors will be
+		! back-transformed by the same interpretation.
+		rvU = sin(rvDir * ToRad)
+		rvV = cos(rvDir * ToRad)
+		
+		! Compute the Cartesian average of wind vectors
+		n = count(.not.isnan(rvU))
+		if(n > 0) then
+			! At least one element: compute the vector mean
+			rU = sum(rvU, mask=.not.isnan(rvU)) / n
+			rV = sum(rvV, mask=.not.isnan(rvU)) / n
+		else
+			rU = NaN
+			rV = NaN
+		end if
+		
+		! Convert the Cartesian average to mean wind in polar form
+		dir = atan2(rU,rV)*ToDeg
+		
+	end function UnitDir
+	
+	
+	! Compute the joint frequency function of wind speed and direction, that is, the
+	! "wind rose" as it is commonly named.
+	!
+	! In principle, in place of wind speed any other scalar may be used - for example
+	! a pollutant concentration: in this case a, say, concentration rose is obtained.
+	!
+	! The graphical rendering of the wind (concentration , ...) rose is not among
+	! the scopes of pbl_met, but nevertheless you may find excellent routines and
+	! packages to accomplish this task in the open source.
+	function WindRose(vel, dir, rvVel, iNumClasses, iClassType) result(rmWindRose)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)				:: vel			! Wind speed observations (m/s)
+		real, dimension(:), intent(in)				:: dir			! Wind direction observations (°)
+		real, dimension(:), intent(in)				:: rvVel		! Wind speed class limits as in ClassVel (m/s)
+		integer, intent(in)							:: iNumClasses	! Number f direction classes as in ClassDir
+		integer, intent(in)							:: iClassType	! Type of direction classes as in ClassDir
+		real, dimension(size(rvVel)+1,iNumClasses)	:: rmWindRose	! Joint frequency table of wind speed and direction, aka "wind rose" (in tabular form) 
+		
+		! Locals
+		integer, dimension(size(vel))	:: ivVelClass
+		integer, dimension(size(dir))	:: ivDirClass
+		integer							:: i
+		integer							:: m
+		integer							:: n
+		real							:: rTotal
+		
+		! Clean up, and check the call makes sense
+		rmWindRose = 0.
+		if(size(dir) /= size(vel)) return
+		
+		! Classify wind speed and direction
+		ivVelClass = ClassVelVector(vel, rvVel)
+		ivDirClass = ClassDirVector(dir, iNumClasses, iClassType)
+		
+		! Count occurrences in any class
+		m = size(rvVel) + 1
+		n = iNumClasses
+		do i = 1, size(vel)
+			if(ivVelClass(i) > 0 .and. ivDirClass(i) > 0) &
+				rmWindRose(ivVelClass(i),ivDirClass(i)) = rmWindRose(ivVelClass(i),ivDirClass(i)) + 1.
+		end do
+		
+		! Convert counts to frequency
+		rTotal = sum(rmWindRose)	! That is, number of valid data
+		if(rTotal > 0.) rmWindRose = rmWindRose / rTotal
+		
+	end function WindRose
+	
+
+	function VelDirMean(vel, dir, scalar, rvVel, iNumClasses, iClassType) result(rmMean)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)				:: vel			! Wind speed observations (m/s)
+		real, dimension(:), intent(in)				:: dir			! Wind direction observations (°)
+		real, dimension(:), intent(in)				:: scalar		! Any scalar quantity (any unit; invalid values as NaN)
+		real, dimension(:), intent(in)				:: rvVel		! Wind speed class limits as in ClassVel (m/s)
+		integer, intent(in)							:: iNumClasses	! Number f direction classes as in ClassDir
+		integer, intent(in)							:: iClassType	! Type of direction classes as in ClassDir
+		real, dimension(size(rvVel)+1,iNumClasses)	:: rmMean		! Mean of scalar according to wind speed and direction classes 
+		
+		! Locals
+		integer, dimension(size(vel))					:: ivVelClass
+		integer, dimension(size(dir))					:: ivDirClass
+		integer, dimension(size(rvVel)+1,iNumClasses)	:: imNumValues
+		integer											:: i
+		
+		! Clean up, and check the call makes sense
+		rmMean = NaN
+		imNumValues = 0
+		if(size(dir) /= size(vel) .or. size(scalar) /= size(vel)) return
+		
+		! Classify wind speed and direction
+		ivVelClass = ClassVelVector(vel, rvVel)
+		ivDirClass = ClassDirVector(dir, iNumClasses, iClassType)
+		
+		! Count occurrences in any class
+		rmMean = 0.
+		do i = 1, size(vel)
+			if(ivVelClass(i) > 0 .and. ivDirClass(i) > 0 .and. (.not.isnan(scalar(i)))) then
+				rmMean(ivVelClass(i),ivDirClass(i)) = rmMean(ivVelClass(i),ivDirClass(i)) + scalar(i)
+				imNumValues(ivVelClass(i),ivDirClass(i)) = imNumValues(ivVelClass(i),ivDirClass(i)) + 1
+			end if
+		end do
+		
+		! Convert counts to means
+		where(imNumValues > 0)
+			rmMean = rmMean / imNumValues
+		elsewhere
+			rmMean = NaN
+		end where
+		
+	end function VelDirMean
+
+
+	function VelMean(vel, scalar, rvVel) result(rvMean)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: vel			! Wind speed observations (m/s)
+		real, dimension(:), intent(in)	:: scalar		! Any scalar quantity (any unit; invalid values as NaN)
+		real, dimension(:), intent(in)	:: rvVel		! Wind speed class limits as in ClassVel (m/s)
+		real, dimension(size(rvVel)+1)	:: rvMean		! Mean of scalar according to wind speed and direction classes 
+		
+		! Locals
+		integer, dimension(size(vel))		:: ivVelClass
+		integer, dimension(size(rvVel)+1)	:: ivNumValues
+		integer								:: i
+		
+		! Clean up, and check the call makes sense
+		rvMean = NaN
+		ivNumValues = 0
+		if(size(scalar) /= size(vel)) return
+		
+		! Classify wind speed and direction
+		ivVelClass = ClassVelVector(vel, rvVel)
+		
+		! Count occurrences in any class
+		rvMean = 0.
+		do i = 1, size(vel)
+			if(ivVelClass(i) > 0 .and. (.not.isnan(scalar(i)))) then
+				rvMean(ivVelClass(i)) = rvMean(ivVelClass(i)) + scalar(i)
+				ivNumValues(ivVelClass(i)) = ivNumValues(ivVelClass(i)) + 1
+			end if
+		end do
+		
+		! Convert counts to means
+		where(ivNumValues > 0)
+			rvMean = rvMean / ivNumValues
+		elsewhere
+			rvMean = NaN
+		end where
+		
+	end function VelMean
+
+
+	function DirMean(dir, scalar, iNumClasses, iClassType) result(rvMean)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)	:: dir			! Wind direction observations (°)
+		real, dimension(:), intent(in)	:: scalar		! Any scalar quantity (any unit; invalid values as NaN)
+		integer, intent(in)				:: iNumClasses	! Number f direction classes as in ClassDir
+		integer, intent(in)				:: iClassType	! Type of direction classes as in ClassDir
+		real, dimension(iNumClasses)	:: rvMean		! Mean of scalar according to wind speed and direction classes 
+		
+		! Locals
+		integer, dimension(size(dir))		:: ivDirClass
+		integer, dimension(iNumClasses)		:: ivNumValues
+		integer								:: i
+		
+		! Clean up, and check the call makes sense
+		rvMean = NaN
+		ivNumValues = 0
+		if(size(scalar) /= size(dir)) return
+		
+		! Classify wind speed and direction
+		ivDirClass = ClassDirVector(dir, iNumClasses, iClassType)
+		
+		! Count occurrences in any class
+		rvMean = 0.
+		do i = 1, size(dir)
+			if(ivDirClass(i) > 0 .and. (.not.isnan(scalar(i)))) then
+				rvMean(ivDirClass(i)) = rvMean(ivDirClass(i)) + scalar(i)
+				ivNumValues(ivDirClass(i)) = ivNumValues(ivDirClass(i)) + 1
+			end if
+		end do
+		
+		! Convert counts to means
+		where(ivNumValues > 0)
+			rvMean = rvMean / ivNumValues
+		elsewhere
+			rvMean = NaN
+		end where
+		
+	end function DirMean
+
+	! *********************
+	! * Internal routines *
+	! *********************
+	
+	! Transform horizontal wind components wind from polar to cartesian form
+	! (speed is surely greater than 1.e-6)
+	subroutine uvWind(vel, dir, u, v)
+	
+		! Routine arguments
+		real, intent(in)	:: vel
+		real, intent(in)	:: dir
+		real, intent(out)	:: u
+		real, intent(out)	:: v
+		
+		! Locals
+		! --none--
+		
+		! Perform the transform desired
+		u = vel * sin(dir*ToRad)
+		v = vel * cos(dir*ToRad)
+		
+	end subroutine uvWind
+	
+	
+	! Transform horizontal wind components wind from cartesian to polar form
+	! (speed is surely greater than 1.e-6)
+	subroutine veldirWind(u, v, vel, dir)
+	
+		! Routine arguments
+		real, intent(in)	:: u
+		real, intent(in)	:: v
+		real, intent(out)	:: vel
+		real, intent(out)	:: dir
+		
+		! Locals
+		! --none--
+		
+		! Perform the transform desired
+		vel = sqrt(u**2 + v**2)
+		dir = atan2(u, v)*ToDeg
+		dir = mod(dir, 360.)
+		if(dir < 0.) dir = dir + 360.
+		
+	end subroutine veldirWind
+	
+end module pbl_wind
