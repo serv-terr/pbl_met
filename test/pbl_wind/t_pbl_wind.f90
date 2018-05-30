@@ -881,6 +881,15 @@ contains
 		print *, "Dir = ", rDir, "  (expected: NaN)"
 		print *
 		
+		! Test 8 - Boundary case - Unit direction for zero-sized wind dir
+		deallocate(rvDir)
+		allocate(rvDir(0))
+		rDir = UnitDir(rvDir)
+		print *, "Test 8 - Unit dir from zero-size wind dir"
+		print *, "Dir = ", rDir, "  (expected: NaN)"
+		print *
+		
+		! Leave
 		deallocate(rvDir)
 		
 	end subroutine tst_UnitDir
