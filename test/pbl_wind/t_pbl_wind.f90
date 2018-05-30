@@ -862,6 +862,20 @@ contains
 		print *, "Dir = ", rDir, "  (expected: close to 270.)"
 		print *
 		
+		! Test 6 - Normal case - Unit direction for wind fluctuating around 270°, with one NaN
+		call random_number(rvDir)
+		rvDir = rvDir - 0.5 + 270.
+		where(rvDir < 0.)
+			rvDir = rvDir + 360.
+		end where
+		rvDir(7) = NaN
+		rDir = UnitDir(rvDir)
+		print *, "Test 6 - Unit dir from wind fluctuating around 270°, one NaN"
+		print *, "Dir = ", rDir, "  (expected: close to 270.)"
+		print *
+		
+		deallocate(rvDir)
+		
 	end subroutine tst_UnitDir
 	
 end program t_pbl_wind
