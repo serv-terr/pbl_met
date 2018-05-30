@@ -851,6 +851,17 @@ contains
 		print *, "Dir = ", rDir, "  (expected: close to 180.)"
 		print *
 		
+		! Test 5 - Normal case - Unit direction for wind fluctuating around 270°
+		call random_number(rvDir)
+		rvDir = rvDir - 0.5 + 270.
+		where(rvDir < 0.)
+			rvDir = rvDir + 360.
+		end where
+		rDir = UnitDir(rvDir)
+		print *, "Test 5 - Unit dir from wind fluctuating around 270°"
+		print *, "Dir = ", rDir, "  (expected: close to 270.)"
+		print *
+		
 	end subroutine tst_UnitDir
 	
 end program t_pbl_wind
