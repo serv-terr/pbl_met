@@ -874,6 +874,13 @@ contains
 		print *, "Dir = ", rDir, "  (expected: close to 270.)"
 		print *
 		
+		! Test 7 - Boundary case - Unit direction for all NaN wind dir
+		rvDir = NaN
+		rDir = UnitDir(rvDir)
+		print *, "Test 7 - Unit dir from wind dir always NaN"
+		print *, "Dir = ", rDir, "  (expected: NaN)"
+		print *
+		
 		deallocate(rvDir)
 		
 	end subroutine tst_UnitDir
