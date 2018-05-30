@@ -464,7 +464,7 @@ contains
 	
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvDir
-		real, dimension(2)				:: dir
+		real							:: dir
 		
 		! Locals
 		real, dimension(size(rvDir))	:: rvU
