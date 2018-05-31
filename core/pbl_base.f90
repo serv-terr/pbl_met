@@ -299,6 +299,10 @@ contains
 			
 		end do
 		
+		! Confirm successful completion
+		this % lIsUseable = .true.
+		this % iNumKeys   = iNumKeys
+		
 	end function iniRead
 	
 	
