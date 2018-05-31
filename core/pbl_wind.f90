@@ -513,8 +513,8 @@ contains
 		real, dimension(:), intent(in)				:: vel			! Wind speed observations (m/s)
 		real, dimension(:), intent(in)				:: dir			! Wind direction observations (°)
 		real, dimension(:), intent(in)				:: rvVel		! Wind speed class limits as in ClassVel (m/s)
-		integer, intent(in)							:: iNumClasses	! Number f direction classes as in ClassDir
-		integer, intent(in)							:: iClassType	! Type of direction classes as in ClassDir
+		integer, intent(in)							:: iNumClasses	! Number of direction classes as in ClassDir
+		integer, intent(in), optional				:: iClassType	! Type of direction classes as in ClassDir (WDCLASS_ZERO_CENTERED (default), or WDCLASS_ZERO_BASED)
 		real, dimension(size(rvVel)+1,iNumClasses)	:: rmWindRose	! Joint frequency table of wind speed and direction, aka "wind rose" (in tabular form) 
 		
 		! Locals
@@ -524,14 +524,22 @@ contains
 		integer							:: m
 		integer							:: n
 		real							:: rTotal
+		integer							:: iDirClassType
 		
 		! Clean up, and check the call makes sense
 		rmWindRose = 0.
 		if(size(dir) /= size(vel)) return
 		
+		! Get direction class type
+		if(present(iClassType)) then
+			iDirClassType = iClassType
+		else
+			iDirClassType = WDCLASS_ZERO_CENTERED
+		end if
+		
 		! Classify wind speed and direction
 		ivVelClass = ClassVelVector(vel, rvVel)
-		ivDirClass = ClassDirVector(dir, iNumClasses, iClassType)
+		ivDirClass = ClassDirVector(dir, iNumClasses, iDirClassType)
 		
 		! Count occurrences in any class
 		m = size(rvVel) + 1
