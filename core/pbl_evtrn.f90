@@ -101,7 +101,7 @@ contains
 
 		! Locals
 		real	:: Delta	! Slope (first derivative) of saturation vapor pressure relation
-		real	:: gamma	! Psychrometric constant (kPa / °C)
+		real	:: gam		! Psychrometric constant (kPa / °C)
 		real	:: Vel2		! Wind speed at 2 m above ground
 		real	:: h		! Vegetation height (m)
 		real	:: d		! Displacement height (m)
@@ -134,13 +134,13 @@ contains
 
 		! Compute evapotranspiration
 		Delta = 2503.0 * EXP(17.27*Temp/(Temp + 237.3)) / (Temp + 237.3)**2
-		gamma = 0.0000665*Pres
+		gam   = 0.0000665*Pres
 		d     = 0.67 * h
 		z0    = 0.123 * h
 		Vel2  = Vel * LOG((2.0 - d)/z0) / LOG((Zr - d) / z0)
 		ET = (&
-			(0.408*Delta*(Rn-G)*3600.0/1.e6 + gamma*cn/(Temp + 273.0)*Vel2*0.1*(es-ea)) / &
-			(Delta + gamma*(1.0 - cd*Vel2)) &
+			(0.408*Delta*(Rn-G)*3600.0/1.e6 + gam*cn/(Temp + 273.0)*Vel2*0.1*(es-ea)) / &
+			(Delta + gam*(1.0 - cd*Vel2)) &
 		)
 
 	end function Evapotranspiration
