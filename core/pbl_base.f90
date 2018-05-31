@@ -29,8 +29,11 @@ module pbl_base
 	public	:: MONTH_DURATION
 	public	:: BASE_DAY
 	public	:: BASE_DAY_8
+	! 1. Operators and procedures
 	public	:: operator(.valid.)
 	public	:: operator(.invalid.)
+	public	:: toUpper
+	public	:: toLower
 	
 	! Constants
     real, parameter		:: NaN				       = Z'7FC00000'			! Special case of non-signalling NaN (single precision)
@@ -123,5 +126,45 @@ contains
 		invalid = isnan(value)
 		
 	end function isInvalid8
+	
+	
+	subroutine toUpper(sString)
+	
+		! Routine arguments
+		character(len=*), intent(inout)	:: sString
+		
+		! Locals
+		integer		:: i
+		character	:: c
+		
+		! Change all alphabetic letters to uppercase
+		do i = 1, len_trim(sString)
+			c = sString(i:i)
+			if(c >= 'a' .and. c <= 'z') then
+				c = char(ichar(c) - ichar('a') + ichar('A'))
+			end if
+		end do
+		
+	end subroutine toUpper
+	
+
+	subroutine toLower(sString)
+	
+		! Routine arguments
+		character(len=*), intent(inout)	:: sString
+		
+		! Locals
+		integer		:: i
+		character	:: c
+		
+		! Change all alphabetic letters to lowercase
+		do i = 1, len_trim(sString)
+			c = sString(i:i)
+			if(c >= 'A' .and. c <= 'Z') then
+				c = char(ichar(c) - ichar('A') + ichar('a'))
+			end if
+		end do
+		
+	end subroutine toLower
 	
 end module pbl_base
