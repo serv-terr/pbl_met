@@ -34,6 +34,7 @@ module pbl_base
 	public	:: operator(.invalid.)
 	public	:: toUpper
 	public	:: toLower
+	! 2. Data types
 	
 	! Constants
     real, parameter		:: NaN				       = Z'7FC00000'			! Special case of non-signalling NaN (single precision)
@@ -63,6 +64,24 @@ module pbl_base
 		module procedure isInvalid
 		module procedure isInvalid8
 	end interface operator(.invalid.)
+	
+	! Data types
+	
+	type IniFile
+		logical, private										:: lIsUseable
+		character(len=256), dimension(:), allocatable, private	:: svLine
+		character(len=256), dimension(:), allocatable, private	:: svSections
+		character(len=256), dimension(:), allocatable, private	:: svKeyValue
+	contains
+		! Constructor
+		procedure, public	:: read       => iniRead
+		procedure, public	:: getString  => iniGetString
+		procedure, public	:: getReal4   => iniGetReal4
+		procedure, public	:: getReal8   => iniGetReal8
+		procedure, public	:: getInteger => iniGetInteger
+		procedure, public	:: getVector4 => iniGetVector4
+		procedure, public	:: getVector8 => iniGetVector8
+	end type IniFile
 	
 contains
 
@@ -166,5 +185,123 @@ contains
 		end do
 		
 	end subroutine toLower
+	
+	
+	function iniRead(this, iLUN, sIniFileName) result(iRetCode)
+	
+		! Routine arguments
+		class(IniFile), intent(inout)	:: this
+		integer, intent(in)				:: iLUN
+		character(len=*), intent(in)	:: sIniFileName
+		integer							:: iRetCode
+		
+		! Locals
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+	end function iniRead
+	
+	
+	function iniGetString(this, sKey, sValue, sDefault) result(iRetCode)
+	
+		! Routine arguments
+		class(IniFile), intent(inout)			:: this
+		character(len=*), intent(in)			:: sKey
+		character(len=*), intent(out)			:: sValue
+		character(len=*), intent(in), optional	:: sDefault
+		integer									:: iRetCode
+		
+		! Locals
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+	end function iniGetString
+	
+	
+	function iniGetReal4(this, sKey, rValue, rDefault) result(iRetCode)
+	
+		! Routine arguments
+		class(IniFile), intent(inout)			:: this
+		character(len=*), intent(in)			:: sKey
+		real, intent(out)						:: rValue
+		real, intent(in), optional				:: rDefault
+		integer									:: iRetCode
+		
+		! Locals
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+	end function iniGetReal4
+	
+	
+	function iniGetReal8(this, sKey, rValue, rDefault) result(iRetCode)
+	
+		! Routine arguments
+		class(IniFile), intent(inout)			:: this
+		character(len=*), intent(in)			:: sKey
+		real(8), intent(out)					:: rValue
+		real(8), intent(in), optional			:: rDefault
+		integer									:: iRetCode
+		
+		! Locals
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+	end function iniGetReal8
+	
+	
+	function iniGetInteger(this, sKey, iValue, iDefault) result(iRetCode)
+	
+		! Routine arguments
+		class(IniFile), intent(inout)			:: this
+		character(len=*), intent(in)			:: sKey
+		integer, intent(out)					:: iValue
+		integer, intent(in), optional			:: iDefault
+		integer									:: iRetCode
+		
+		! Locals
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+	end function iniGetInteger
+	
+	
+	function iniGetVector4(this, sKey, rvValue, rvDefault) result(iRetCode)
+	
+		! Routine arguments
+		class(IniFile), intent(inout)				:: this
+		character(len=*), intent(in)				:: sKey
+		real, dimension(:), allocatable, intent(in)	:: rvValue
+		real, dimension(:), intent(in), optional	:: rvDefault
+		integer										:: iRetCode
+		
+		! Locals
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+	end function iniGetVector4
+	
+	
+	function iniGetVector8(this, sKey, rvValue, rvDefault) result(iRetCode)
+	
+		! Routine arguments
+		class(IniFile), intent(inout)					:: this
+		character(len=*), intent(in)					:: sKey
+		real(8), dimension(:), allocatable, intent(in)	:: rvValue
+		real(8), dimension(:), intent(in), optional		:: rvDefault
+		integer											:: iRetCode
+		
+		! Locals
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+	end function iniGetVector8
 	
 end module pbl_base
