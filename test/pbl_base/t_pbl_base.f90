@@ -14,6 +14,10 @@
 !
 program t_pbl_base
 
+	use pbl_met
+	
+	implicit none
+
 	! Locals
 	
 	! Perform tests
