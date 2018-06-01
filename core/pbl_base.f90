@@ -295,6 +295,7 @@ contains
 					write(this % svKey(iNumKeys), "(a,'@',a)") &
 						trim(sCurrentSection), adjustl(this % svLine(iLine)(1:(iPos-1)))
 					this % svValue(iNumKeys) = adjustl(this % svLine(iLine)((iPos+1):))
+					call removeChar(this % svValue(iNumKeys), '"')
 				end if
 			end if
 			
@@ -331,9 +332,14 @@ contains
 				iKeyLen = max(iKeyLen, len_trim(this % svKey(i)))
 			end do
 		
-			! Print all keys, and their associated values
+			! Print all keys, and their associated values. To print
+			! keys in column the maximum key length is used, along with
+			! the fact that in Fortran all strings in an array share
+			! the same length and are blank-filled on right. The approach
+			! I've followed would have *not* worked in C and other
+			! variable-length string languages.
 			do i = 1, this % iNumKeys
-				print "(a,' -> ',a)", trim(this % svKey(i)), trim(this % svValue(i))
+				print "(a,' -> ',a)", this % svKey(i)(1:iKeyLen), trim(this % svValue(i))
 			end do
 		
 		else
@@ -484,5 +490,32 @@ contains
 		end if
 		
 	end function isSection
+	
+	
+	subroutine removeChar(sString, cChar)
+	
+		! Routine arguments
+		character(len=*), intent(inout)	:: sString
+		character, intent(in)			:: cChar
+		
+		! Locals
+		integer	:: i, j, n
+		
+		! Copy all desired characters, and them only, to the string, in place
+		n = len_trim(sString)
+		j = 0
+		do i = 1, n
+			if(sString(i:i) /= cChar) then
+				j = j + 1
+				if(j /= i) then
+					sString(j:j) = sString(i:i)
+				end if
+			end if
+		end do
+		if(j < n) then
+			sString((j+1):n) = ' '
+		end if
+		
+	end subroutine removeChar
 	
 end module pbl_base
