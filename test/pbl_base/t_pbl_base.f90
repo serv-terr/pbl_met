@@ -34,6 +34,7 @@ contains
 		type(IniFile)		:: tIniFile
 		integer				:: iRetCode
 		character(len=256)	:: sValue
+		real				:: rValue
 		
 		! Test 1: Load test configuration, then dump it
 		print *, 'Test 1 - Check INI read and decode on an existing file'
@@ -103,6 +104,14 @@ contains
 			stop
 		end if
 		print *,'Value: ', trim(sValue), '   (expected: ... nunc in scutella iaceo.)'
+		print *
+		
+		! Test 3: get real*4 value from INI file
+		print *, "Test 3: Get 32-bit floating point value from INI file"
+		print *
+		print *, "Case 1: Get existing real value from INI"
+		iRetCode = tIniFile % getReal4("General", "Lat", rValue)
+		print *, "Returned: ", rValue, "   (expected: 10.11)"
 		print *
 		
 	end subroutine tstIniFile
