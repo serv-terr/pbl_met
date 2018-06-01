@@ -352,19 +352,54 @@ contains
 	end function iniDump
 	
 	
-	function iniGetString(this, sKey, sValue, sDefault) result(iRetCode)
+	function iniGetString(this, sSection, sKey, sValue, sDefault) result(iRetCode)
 	
 		! Routine arguments
 		class(IniFile), intent(inout)			:: this
+		character(len=*), intent(in)			:: sSection
 		character(len=*), intent(in)			:: sKey
 		character(len=*), intent(out)			:: sValue
 		character(len=*), intent(in), optional	:: sDefault
 		integer									:: iRetCode
 		
 		! Locals
+		integer				:: i
+		character(len=256)	:: sFullKey
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
+		
+		! Check something is to be made
+		if(this % iNumKeys > 0) then
+		
+			! Yes: there are data lines to scan
+			write(sFullKey, "(a, '@', a)") trim(sSection), trim(sKey)
+			do i = 1, this % iNumKeys
+				if(this % svKey(i) == sFullKey) then
+					sValue = this % svValue(i)
+					return
+				end if
+			end do
+			
+			! Nothing found if execution reaches here: in case,
+			! yield the default (if present) or a blank (otherwise).
+			if(present(sDefault)) then
+				sValue = sDefault
+			else
+				sValue = ' '
+			end if
+			
+		else
+			
+			! No INI data available: flag an error condition.
+			if(present(sDefault)) then
+				sValue = sDefault
+			else
+				sValue = ' '
+			end if
+			iRetCode = 1
+			
+		end if
 		
 	end function iniGetString
 	
