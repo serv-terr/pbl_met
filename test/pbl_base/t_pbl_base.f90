@@ -72,6 +72,14 @@ contains
 		end if
 		print *,'Value: ', trim(sValue), '   (expected: empty string)'
 		print *
+		print *, 'Case 4: Try loading non-existent string, with default'
+		iRetCode = tIniFile % getString("Nonsensical", "Wrong", sValue, "--missing--")
+		if(iRetCode /= 0) then
+			print *, 'Error no.', iRetCode
+			stop
+		end if
+		print *,'Value: ', trim(sValue), '   (expected: --missing--)'
+		print *
 		
 	end subroutine tstIniFile
 
