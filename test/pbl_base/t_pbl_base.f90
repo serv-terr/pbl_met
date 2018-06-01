@@ -31,8 +31,9 @@ contains
 		! -none-
 		
 		! Locals
-		type(IniFile)	:: tIniFile
-		integer			:: iRetCode
+		type(IniFile)		:: tIniFile
+		integer				:: iRetCode
+		character(len=256)	:: sValue
 		
 		! Test 1: Load test configuration, then dump it
 		print *, 'Test 1 - Check INI read and decode on an existing file'
@@ -42,6 +43,26 @@ contains
 			stop
 		end if
 		iRetCode = tIniFile % dump()
+		print *
+		
+		! Test 2: get string value from INI
+		print *, 'Test 2: Get string values from INI'
+		print *
+		print *, 'Case 1: Get existent string, without default'
+		iRetCode = tIniFile % getString("Mysterious", "Boh", sValue)
+		if(iRetCode /= 0) then
+			print *, 'Error no.', iRetCode
+			stop
+		end if
+		print *,'Value: ', trim(sValue), '   (expected: SunChi)'
+		print *
+		print *, 'Case 2: Get existent string, with default'
+		iRetCode = tIniFile % getString("Mysterious", "Boh", sValue, 'Artificial_default')
+		if(iRetCode /= 0) then
+			print *, 'Error no.', iRetCode
+			stop
+		end if
+		print *,'Value: ', trim(sValue), '   (expected: SunChi)'
 		print *
 		
 	end subroutine tstIniFile
