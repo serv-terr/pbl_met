@@ -77,6 +77,7 @@ module pbl_base
 	contains
 		! Constructor
 		procedure, public	:: read       => iniRead
+		procedure, public	:: dump       => iniDump
 		procedure, public	:: getString  => iniGetString
 		procedure, public	:: getReal4   => iniGetReal4
 		procedure, public	:: getReal8   => iniGetReal8
@@ -304,6 +305,45 @@ contains
 		this % iNumKeys   = iNumKeys
 		
 	end function iniRead
+	
+	
+	function iniDump(this) result(iRetCode)
+	
+		! Routine arguments
+		class(IniFile), intent(in)	:: this
+		integer						:: iRetCode
+		
+		! Locals
+		integer	:: i
+		integer	:: iKeyLen
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check whether the dump is to be make in full,
+		! that is, the INI file read has completed successfully
+		! and the data structures have been filled
+		if(this % lIsUseable) then
+		
+			! Check length to constrain keys to when printing
+			iKeyLen = 0
+			do i = 1, this % iNumKeys
+				iKeyLen = max(iKeyLen, len_trim(this % svKey(i)))
+			end do
+		
+			! Print all keys, and their associated values
+			do i = 1, this % iNumKeys
+				print "(a,' -> ',a)", trim(this % svKey(i)), trim(this % svValue(i))
+			end do
+		
+		else
+		
+			print *, "INI data contents has not yet been assigned, nothing to print"
+			iRetCode = 1
+			
+		end if
+		
+	end function iniDump
 	
 	
 	function iniGetString(this, sKey, sValue, sDefault) result(iRetCode)
