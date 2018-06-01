@@ -32,6 +32,17 @@ contains
 		
 		! Locals
 		type(IniFile)	:: tIniFile
+		integer			:: iRetCode
+		
+		! Test 1: Load test configuration, then dump it
+		print *, 'Test 1 - Check INI read and decode on an existing file'
+		iRetCode = tIniFile % read(10, "test.ini")
+		if(iRetCode /= 0) then
+			print *, 'Test 1 failed: please identify and correct the malfunction'
+			stop
+		end if
+		iRetCode = tIniFile % dump()
+		print *
 		
 	end subroutine tstIniFile
 
