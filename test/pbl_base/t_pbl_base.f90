@@ -88,6 +88,22 @@ contains
 		end if
 		print *,'Value: ', trim(sValue), '   (expected: Here I am, amnyway)'
 		print *
+		print *, 'Case 6: Try loading existent string, with non-empty section and name but empty contents'
+		iRetCode = tIniFile % getString("Senseful", "Line_003", sValue, "Should not print this default")
+		if(iRetCode /= 0) then
+			print *, 'Error no.', iRetCode
+			stop
+		end if
+		print *,'Value: ', trim(sValue), '   (expected: empty string)'
+		print *
+		print *, 'Case 7: Checking case sensitiveness using a wrongly-cased key and default'
+		iRetCode = tIniFile % getString("Senseful", "LINE_005", sValue, "... nunc in scutella iaceo.")
+		if(iRetCode /= 0) then
+			print *, 'Error no.', iRetCode
+			stop
+		end if
+		print *,'Value: ', trim(sValue), '   (expected: ... nunc in scutella iaceo.)'
+		print *
 		
 	end subroutine tstIniFile
 
