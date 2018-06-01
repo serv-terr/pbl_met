@@ -64,6 +64,14 @@ contains
 		end if
 		print *,'Value: ', trim(sValue), '   (expected: SunChi)'
 		print *
+		print *, 'Case 3: Try loading non-existent string, no default'
+		iRetCode = tIniFile % getString("Nonsensical", "Wrong", sValue)
+		if(iRetCode /= 0) then
+			print *, 'Error no.', iRetCode
+			stop
+		end if
+		print *,'Value: ', trim(sValue), '   (expected: empty string)'
+		print *
 		
 	end subroutine tstIniFile
 
