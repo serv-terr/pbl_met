@@ -125,7 +125,7 @@ contains
 		iRetCode = tIniFile % getReal4("Mysterious", "Mah", rValue)
 		print *, "Returned: ", rValue, "   (expected: NaN; Return code:",iRetCode, ")"
 		print *
-		print *, "Case 5: Get existing but invalid real value from INI, no default"
+		print *, "Case 5: Get existing but empty real value from INI, no default"
 		iRetCode = tIniFile % getReal4("Senseful", "Line_003", rValue)
 		print *, "Returned: ", rValue, "   (expected: NaN; Return code:",iRetCode, ")"
 		print *
