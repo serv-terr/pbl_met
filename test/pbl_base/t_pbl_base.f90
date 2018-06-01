@@ -80,6 +80,14 @@ contains
 		end if
 		print *,'Value: ', trim(sValue), '   (expected: --missing--)'
 		print *
+		print *, 'Case 5: Try loading existent string, with empty section'
+		iRetCode = tIniFile % getString("", "here", sValue)
+		if(iRetCode /= 0) then
+			print *, 'Error no.', iRetCode
+			stop
+		end if
+		print *,'Value: ', trim(sValue), '   (expected: Here I am, amnyway)'
+		print *
 		
 	end subroutine tstIniFile
 
