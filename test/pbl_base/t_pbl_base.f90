@@ -167,6 +167,10 @@ contains
 		iRetCode = tIniFile % getInteger("Senseful", "num_lines", iValue)
 		print *, "Returned: ", iValue, "   (expected: -9999; Return code:",iRetCode, ")"
 		print *
+		print *, "Case 3: Get non-existing integer value (because of wrong char case) from INI, default 8888"
+		iRetCode = tIniFile % getInteger("Senseful", "num_lines", iValue, 8888)
+		print *, "Returned: ", iValue, "   (expected: 8888; Return code:",iRetCode, ")"
+		print *
 		
 	end subroutine tstIniFile
 
