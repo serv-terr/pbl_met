@@ -157,11 +157,15 @@ contains
 		print *
 		
 		! Test 5: get integer value from INI file
-		print *, "Test 4: Get integer value from INI file"
+		print *, "Test 5: Get integer value from INI file"
 		print *
 		print *, "Case 1: Get existing integer value from INI"
 		iRetCode = tIniFile % getInteger("Senseful", "Num_Lines", iValue)
 		print *, "Returned: ", iValue, "   (expected: 5; Return code:",iRetCode, ")"
+		print *
+		print *, "Case 2: Get non-existing integer value (because of wrong char case) from INI, no default"
+		iRetCode = tIniFile % getInteger("Senseful", "num_lines", iValue)
+		print *, "Returned: ", iValue, "   (expected: -9999; Return code:",iRetCode, ")"
 		print *
 		
 	end subroutine tstIniFile
