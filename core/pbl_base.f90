@@ -512,19 +512,56 @@ contains
 	end function iniGetReal8
 	
 	
-	function iniGetInteger(this, sKey, iValue, iDefault) result(iRetCode)
+	function iniGetInteger(this, sSection, sKey, iValue, iDefault) result(iRetCode)
 	
 		! Routine arguments
 		class(IniFile), intent(inout)			:: this
+		character(len=*), intent(in)			:: sSection
 		character(len=*), intent(in)			:: sKey
 		integer, intent(out)					:: iValue
 		integer, intent(in), optional			:: iDefault
 		integer									:: iRetCode
 		
 		! Locals
+		character(len=32)	:: sValue
+		integer				:: iReplace
+		integer				:: iErrCode
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
+		
+		! Assign the replacement value based on rDefault
+		if(present(iDefault)) then
+			iReplace = iDefault
+		else
+			iReplace = -9999
+		end if
+		
+		! Gather the string supposedly containing the floating point value to transfer
+		iErrCode = this % getString(sSection, sKey, sValue)
+		if(iErrCode /= 0) then
+			iValue = iReplace
+			iRetCode = 1
+			return
+		end if
+		! Post-condition: iRetCode was 0 from now on
+		
+		! Check the value found to be not empty
+		if(sValue == ' ') then
+			iValue = iReplace
+			iRetCode = 2
+			return
+		end if
+		
+		! Ok, something was found: but, it might not be a floating point value:
+		! try converting it and, in case of failure, yield an error
+		read(sValue, *, iostat=iErrCode) iValue
+		if(iErrCode /= 0) then
+			iValue = iReplace
+			iRetCode = 3
+		end if
+		! Post-condition: 'iValue' has been assigned correctly, and on
+		! function exit will be restituted regularly
 		
 	end function iniGetInteger
 	
