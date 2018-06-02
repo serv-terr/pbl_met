@@ -171,6 +171,14 @@ contains
 		iRetCode = tIniFile % getInteger("Senseful", "num_lines", iValue, 8888)
 		print *, "Returned: ", iValue, "   (expected: 8888; Return code:",iRetCode, ")"
 		print *
+		print *, "Case 4: Get existing but invalid integer value from INI, no default"
+		iRetCode = tIniFile % getInteger("General", "Lat", iValue)
+		print *, "Returned: ", iValue, "   (expected: -9999; Return code:",iRetCode, ")"
+		print *
+		print *, "Case 5: Get existing but missing integer value from INI, no default"
+		iRetCode = tIniFile % getInteger("Senseful", "Line_003", iValue)
+		print *, "Returned: ", iValue, "   (expected: -9999; Return code:",iRetCode, ")"
+		print *
 		
 	end subroutine tstIniFile
 
