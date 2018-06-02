@@ -35,6 +35,7 @@ contains
 		integer				:: iRetCode
 		character(len=256)	:: sValue
 		real				:: rValue
+		real(8)				:: rValue8
 		
 		! Test 1: Load test configuration, then dump it
 		print *, 'Test 1 - Check INI read and decode on an existing file'
@@ -128,6 +129,14 @@ contains
 		print *, "Case 5: Get existing but empty real value from INI, no default"
 		iRetCode = tIniFile % getReal4("Senseful", "Line_003", rValue)
 		print *, "Returned: ", rValue, "   (expected: NaN; Return code:",iRetCode, ")"
+		print *
+		
+		! Test 4: get real*8 value from INI file
+		print *, "Test 4: Get 64-bit floating point value from INI file"
+		print *
+		print *, "Case 1: Get existing real value from INI"
+		iRetCode = tIniFile % getReal8("General", "Lat", rValue8)
+		print *, "Returned: ", rValue8, "   (expected: 10.11; Return code:",iRetCode, ")"
 		print *
 		
 	end subroutine tstIniFile
