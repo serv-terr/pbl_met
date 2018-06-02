@@ -138,6 +138,10 @@ contains
 		iRetCode = tIniFile % getReal8("General", "Lat", rValue8)
 		print *, "Returned: ", rValue8, "   (expected: 10.11; Return code:",iRetCode, ")"
 		print *
+		print *, "Case 2: Get non-existing real value (because of wrong char case) from INI, no default"
+		iRetCode = tIniFile % getReal8("General", "LAT", rValue8)
+		print *, "Returned: ", rValue8, "   (expected: NaN; Return code:",iRetCode, ")"
+		print *
 		
 	end subroutine tstIniFile
 
