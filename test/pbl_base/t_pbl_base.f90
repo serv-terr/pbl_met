@@ -34,6 +34,7 @@ contains
 		type(IniFile)		:: tIniFile
 		integer				:: iRetCode
 		character(len=256)	:: sValue
+		integer				:: iValue
 		real				:: rValue
 		real(8)				:: rValue8
 		
@@ -153,6 +154,14 @@ contains
 		print *, "Case 5: Get existing but empty real value from INI, no default"
 		iRetCode = tIniFile % getReal8("Senseful", "Line_003", rValue8)
 		print *, "Returned: ", rValue8, "   (expected: NaN; Return code:",iRetCode, ")"
+		print *
+		
+		! Test 5: get integer value from INI file
+		print *, "Test 4: Get integer value from INI file"
+		print *
+		print *, "Case 1: Get existing integer value from INI"
+		iRetCode = tIniFile % getInteger("Senseful", "Num_Lines", iValue)
+		print *, "Returned: ", iValue, "   (expected: 5; Return code:",iRetCode, ")"
 		print *
 		
 	end subroutine tstIniFile
