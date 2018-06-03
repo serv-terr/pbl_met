@@ -268,7 +268,18 @@ My answer, coming fro experience, is the NAMEFILE form is extremely powerful, bu
 
 ##### The overall structure of IniFile class
 
-The IniFile class consists of a data type, with private data contents, equipper with some member functions:
+The IniFile class consists of a data type, with private data contents, along with some member functions:
+
+* `read(iLUN, sIniFileName)` - Constructs an IniFile instance from an INI file.
+* `dump()` - Print IniFile contents, without any comment, to display (may be redirected to file).
+* `getString(sSection, sKey, sValue, sDefault)` - Retrieve a string.
+* `getReal4(sSection, sKey, rValue, rDefault)` - Retrieve a single precision floating-point value.
+* `getReal8(sSection, sKey, rValue, rDefault)` - Retrieve a double precision floating-point value.
+* `getInteger(sSection, sKey, iValue, iDefault)` - Retrieve an integer value.
+
+All these members are function returning an integer completion code. A value of 0 indicates uccessful completion, while a non-zero value indicates an error condition.
+
+In case of errors, if present the `sDefault` value is returned in `sValue`. If `sDefault`, optional, is not specified then an invalid value is returned. This is a NaN for floating point values, a -9999 for integer values, and the empty string "" for strings.
 
 #### Other symbols
 
