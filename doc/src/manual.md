@@ -214,6 +214,62 @@ One of these constants is of very special interest, and ubiquitous use in `pbl_m
 
 The value of `NaN` is a special case of a _non-signalling not-a-number_. Not-a-number values are an invention of IEEE 754 floating-point arithmetics, to date supported by practically any commercial hardware, and originally used to denote things as the real `sqrt(-1.)` and other "invalid" function results. Indeed two kind of not-a-number values are defined, signalling and non-signalling. The former, once encountered during program execution, usually results in an exception: the offending program hangs, and a (possibly cryptic) error message is printed. The latter is way more interesting: it combines with oher floating point values, at hardware speed, yielding other non-signalling not-a-number values, propagating the invalid state until results are written somewhere.
 
+#### The ` IniFile` class
+
+##### Introduction
+
+One operation common I'm meteorological (and non-meteorological) data processing is reading initialization data from a configuration file.
+
+To date various popular formats exist for initialization files. It is worth mentioning among them the `NAMELIST` format introduced in Fortran (and indeed very easy to use). But indeed many other specifications exist, like for example JSON, YAML, XML, or LUA used as a configuration language.
+
+One of the earliest, and still very popular, is the INI format introduced decades ago in the MSDOS and Windows world. An INI file is composed by zero or more sections, each having a name, and containing zero or more "key=value" statements.
+
+The specific variant used in _pbl_met_ adds a few extensions to the usual INI form:
+
+* Any character in a line following (and including) a '#' character is ignored - that is, treated as a comment.
+* A section may have an empty name. This is the empty section, treated as any other sections.
+* Two sections may have the same name. In this case, they are treated as if a unique section.
+* The same key may appear more than once in the same section. In this case, of the two only the last one is used.
+* The section name, key and value may contain non-ASCII character. The actua treatment and rendering of these is compiler-dependent.
+
+This is an example of (useless) INI File.
+
+```
+# Example INI file, for testing purposes only
+
+[General]
+StationName = Schöner_Frühling  # Some non-ASCII characters
+Lat         = 10.11
+Lon         = 12.13
+
+[Senseful]
+Num_Lines = 5
+Line_001  = I claim line 2 contains no reference to line 3
+
+[Vectors]
+v1 = 3.14, 6.26, 7.654321
+v2 = 1, 2, 3, 4, 5, 6, 7, 8, 9, 0
+
+[Senseful]
+Line_002  = Yes. But consider this: this line does contain one reference to line 1
+Line_003  =
+Line_004  = A toast to this Test!
+Line_005  = Olim lacus coluerat...
+
+[] # Empty-name section
+here = Here I am, anyway
+```
+
+##### Why an INI instead of a `NAMELIST`?
+
+Modern Fortran has standardized the NAMELIST format since a long time, and all existing recent compilers provide an excellent support to this configuration form. So, why trying to imagine using another?
+
+My answer, coming fro experience, is the NAMEFILE form is extremely powerful, but also rigid (the two attributes co-exists not by chance). But in many cases, a configuration may need a fuzzy, more flexible definition. For example, it would be taxing and insensitive to ask someone to insert in a configuration file rows and rows of obvious data whose value is the default. This might make the configuration file easier to read to a computer, but "idiotic" and irritating to a human. With an INI file, you have the opportunity to insert only the interesting values, leaving the others to the defaulting mechanism of the INI API - or class, in this case.
+
+##### The overall structure of IniFile class
+
+The IniFile class consists of a data type, with private data contents, equipper with some member functions:
+
 #### Other symbols
 
 The `pbl_base` module defines two new operators, `.valid.` and `.invalid.`, testing respectively if a floating point value is valid (i.e. not NaN) and invalid (that is, a NaN).
