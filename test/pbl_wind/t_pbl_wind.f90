@@ -925,6 +925,19 @@ contains
 		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: 111)"
 		print *
 		
+		! Test 2: Nominal, uniform case
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(16384), rvDir(16384))
+		call random_number(rvVel)
+		call random_number(rvDir)
+		rvVel = rvVel*12.
+		rvDir = rvDir*360.
+		print *, "Test 2 - Wind rose, nominal, uniform case"
+		iRetCode = WindRose(rvVel, rvDir, [0.5, 1., 2., 3., 4.5, 10.], 16, WDCLASS_ZERO_CENTERED, rmWindRose)
+		print *, "Sum of all values: ", sum(rmWindRose), "  (expected: nearly 1.0) - Ret.code = ", iRetCode
+		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: few, if any at all)"
+		print *
+		
 	end subroutine tst_WindRose
 	
 end program t_pbl_wind
