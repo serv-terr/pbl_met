@@ -82,8 +82,6 @@ module pbl_base
 		procedure, public	:: getReal4   => iniGetReal4
 		procedure, public	:: getReal8   => iniGetReal8
 		procedure, public	:: getInteger => iniGetInteger
-		procedure, public	:: getVector4 => iniGetVector4
-		procedure, public	:: getVector8 => iniGetVector8
 	end type IniFile
 	
 contains
@@ -564,40 +562,6 @@ contains
 		! function exit will be restituted regularly
 		
 	end function iniGetInteger
-	
-	
-	function iniGetVector4(this, sKey, rvValue, rvDefault) result(iRetCode)
-	
-		! Routine arguments
-		class(IniFile), intent(inout)				:: this
-		character(len=*), intent(in)				:: sKey
-		real, dimension(:), allocatable, intent(in)	:: rvValue
-		real, dimension(:), intent(in), optional	:: rvDefault
-		integer										:: iRetCode
-		
-		! Locals
-		
-		! Assume success (will falsify on failure)
-		iRetCode = 0
-		
-	end function iniGetVector4
-	
-	
-	function iniGetVector8(this, sKey, rvValue, rvDefault) result(iRetCode)
-	
-		! Routine arguments
-		class(IniFile), intent(inout)					:: this
-		character(len=*), intent(in)					:: sKey
-		real(8), dimension(:), allocatable, intent(in)	:: rvValue
-		real(8), dimension(:), intent(in), optional		:: rvDefault
-		integer											:: iRetCode
-		
-		! Locals
-		
-		! Assume success (will falsify on failure)
-		iRetCode = 0
-		
-	end function iniGetVector8
 	
 	! **********************
 	! * Internal functions *
