@@ -945,6 +945,25 @@ contains
 		print *, "Sum of all values: ", sum(rmWindRose), "  (expected: nearly 1.0) - Ret.code = ", iRetCode
 		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: few, if any at all)"
 		print *
+		print *, "Case 3: One invalid speed, one invalid direction"
+		rvVel(1024) = NaN
+		rvDir(2048) = NaN
+		iRetCode = WindRose(rvVel, rvDir, [0.5, 1., 2., 3., 4.5, 10.], 16, WDCLASS_ZERO_CENTERED, rmWindRose)
+		print *, "Sum of all values: ", sum(rmWindRose), "  (expected: nearly 1.0) - Ret.code = ", iRetCode
+		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: few, if any at all)"
+		print *
+		
+		! Test 3: Boundary, all-invalid
+		print *, "Test 2 - Wind rose, nominal, uniform case"
+		print *
+		print *, "Case 1: All speed invalid"
+		rvVel = NaN
+		call random_number(rvDir)
+		rvDir = rvDir*360.
+		iRetCode = WindRose(rvVel, rvDir, [0.5, 1., 2., 3., 4.5, 10.], 16, WDCLASS_ZERO_CENTERED, rmWindRose)
+		print *, "Sum of all values: ", sum(rmWindRose), "  (expected: nearly 0.0) - Ret.code = ", iRetCode
+		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: 112)"
+		print *
 		
 	end subroutine tst_WindRose
 	
