@@ -972,6 +972,34 @@ contains
 		print *, "Sum of all values: ", sum(rmWindRose), "  (expected: nearly 0.0) - Ret.code = ", iRetCode
 		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: 112)"
 		print *
+		print *, "Case 2: All speeds and directions invalid"
+		rvVel = NaN
+		rvDir = NaN
+		iRetCode = WindRose(rvVel, rvDir, [0.5, 1., 2., 3., 4.5, 10.], 16, WDCLASS_ZERO_CENTERED, rmWindRose)
+		print *, "Sum of all values: ", sum(rmWindRose), "  (expected: nearly 0.0) - Ret.code = ", iRetCode
+		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: 112)"
+		print *
+		
+		! Test 4: Boundary, different vector lengths
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(16384), rvDir(16385))
+		call random_number(rvVel)
+		call random_number(rvDir)
+		rvVel = rvVel*12.
+		rvDir = rvDir*360.
+		print *, "Test 4 - Wind rose, differing data vector lengths"
+		print *
+		print *, "Case 1: Data vector lengths differ"
+		iRetCode = WindRose(rvVel, rvDir, [0.5, 1., 2., 3., 4.5, 10.], 16, WDCLASS_ZERO_CENTERED, rmWindRose)
+		print *, "Ret.code = ", iRetCode
+		print *
+		deallocate(rvVel, rvDir)
+		allocate(rvVel(0), rvDir(0))
+		print *, "Case 2: Data vector lengths equal to 0"
+		iRetCode = WindRose(rvVel, rvDir, [0.5, 1., 2., 3., 4.5, 10.], 16, WDCLASS_ZERO_CENTERED, rmWindRose)
+		print *, "Sum of all values: ", sum(rmWindRose), "  (expected: nearly 0.0) - Ret.code = ", iRetCode
+		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: 112)"
+		print *
 		
 	end subroutine tst_WindRose
 	
