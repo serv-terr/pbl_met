@@ -933,6 +933,14 @@ contains
 		rvVel = rvVel*12.
 		rvDir = rvDir*360.
 		print *, "Test 2 - Wind rose, nominal, uniform case"
+		print *
+		print *, "Case 1: All data valid"
+		iRetCode = WindRose(rvVel, rvDir, [0.5, 1., 2., 3., 4.5, 10.], 16, WDCLASS_ZERO_CENTERED, rmWindRose)
+		print *, "Sum of all values: ", sum(rmWindRose), "  (expected: nearly 1.0) - Ret.code = ", iRetCode
+		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: few, if any at all)"
+		print *
+		print *, "Case 2: One invalid speed"
+		rvVel(1024) = NaN
 		iRetCode = WindRose(rvVel, rvDir, [0.5, 1., 2., 3., 4.5, 10.], 16, WDCLASS_ZERO_CENTERED, rmWindRose)
 		print *, "Sum of all values: ", sum(rmWindRose), "  (expected: nearly 1.0) - Ret.code = ", iRetCode
 		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: few, if any at all)"
