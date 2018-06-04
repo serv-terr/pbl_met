@@ -25,6 +25,7 @@ program t_pbl_wind
 	call tst_classdirvector()
 	call tst_windVectorScalar()
 	call tst_UnitDir()
+	call tst_WindRose()
 	
 contains
 
@@ -893,5 +894,32 @@ contains
 		deallocate(rvDir)
 		
 	end subroutine tst_UnitDir
+	
+	
+	subroutine tst_WindRose()
+	
+		! Routine arguments
+		! -none-
+		
+		! Locals
+		real, dimension(:), allocatable		:: rvVel
+		real, dimension(:), allocatable		:: rvDir
+		real, dimension(:,:), allocatable	:: rmWindRose
+		integer								:: iRetCode
+		integer, dimension(2)				:: imPos
+		
+		! Test 1: Nominal, single-class case
+		allocate(rvVel(1), rvDir(1))
+		rvVel = 1.1
+		rvDir = 179.1
+		print *, "Test 1 - Wind rose, nominal, single value"
+		print *
+		print *, "Case 1: zero-centered classes"
+		iRetCode = WindRose(rvVel, rvDir, [0.5, 1., 2., 3., 4.5, 10.], 16, WDCLASS_ZERO_CENTERED, rmWindRose)
+		print *, "Position of max value: ", maxloc(rmWindRose), "  (expected: 3, 9) - Ret.code = ", iRetCode
+		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: 111)"
+		print *
+		
+	end subroutine tst_WindRose
 	
 end program t_pbl_wind
