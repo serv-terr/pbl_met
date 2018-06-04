@@ -954,12 +954,20 @@ contains
 		print *
 		
 		! Test 3: Boundary, all-invalid
-		print *, "Test 2 - Wind rose, nominal, uniform case"
+		print *, "Test 3 - Wind rose, nominal, uniform case"
 		print *
-		print *, "Case 1: All speed invalid"
+		print *, "Case 1: All speeds invalid"
 		rvVel = NaN
 		call random_number(rvDir)
 		rvDir = rvDir*360.
+		iRetCode = WindRose(rvVel, rvDir, [0.5, 1., 2., 3., 4.5, 10.], 16, WDCLASS_ZERO_CENTERED, rmWindRose)
+		print *, "Sum of all values: ", sum(rmWindRose), "  (expected: nearly 0.0) - Ret.code = ", iRetCode
+		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: 112)"
+		print *
+		print *, "Case 2: All directions invalid"
+		rvVel = rvVel*12.
+		call random_number(rvVel)
+		rvDir = NaN
 		iRetCode = WindRose(rvVel, rvDir, [0.5, 1., 2., 3., 4.5, 10.], 16, WDCLASS_ZERO_CENTERED, rmWindRose)
 		print *, "Sum of all values: ", sum(rmWindRose), "  (expected: nearly 0.0) - Ret.code = ", iRetCode
 		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: 112)"
