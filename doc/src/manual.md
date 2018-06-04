@@ -581,9 +581,9 @@ $$
 $$
 and here we see that it is not the specific input and output conventions, but rather whether they are opposite, or same.
 
-##### Wind related functions
+#### Wind related functions
 
-###### Conversion of horizontal wind between Cartesian and polar form
+##### Conversion of horizontal wind between Cartesian and polar form
 
 The conversion between Cartesian and polar form of horizontal wind is performed through two functions, `CartesianToPolar2` and `PolarToCartesian2`.
 
@@ -621,7 +621,7 @@ The arguments common to the functions have the following meaning:
 
 The conversion functions operate as described mathematically in the sections above. The exception is, when $$[Math Processing Error]\rho \approx 0$$ and $$[Math Processing Error](u,v) \approx (0,0)$$. In this case the conversion function yield an invalid wind; to place this (mathematically-imposed) rule in due perspective, we should consider that null wind does not exist in Nature - air is constantly moving - and zero wind is an artifact due to instrumental and data logger nuisances as finite resolution and activation threshold.
 
-###### Conversion of 3D wind between Cartesian and polar form
+##### Conversion of 3D wind between Cartesian and polar form
 
 The conversion between Cartesian and polar form of 3D wind is performed through two functions, `CartesianToPolar3` and `PolarToCartesian3`.
 
@@ -659,7 +659,7 @@ The arguments common to the functions have the following meaning:
 
 The conversion functions operate as described mathematically in the sections above. The exception is, when $$[Math Processing Error]\rho \approx 0$$ and $$[Math Processing Error](u,v) \approx (0,0)$$. In this case the conversion function yield an invalid wind; to place this (mathematically-imposed) rule in due perspective, we should consider that null wind does not exist in Nature - air is constantly moving - and zero wind is an artifact due to instrumental and data logger nuisances as finite resolution and activation threshold.
 
-###### Classifying horizontal wind by speed
+##### Classifying horizontal wind by speed
 
 By "classifying wind by speed" we mean assigning one or more wind speed readings to speed classes, based on a table containing upper class limits $$L = \left\lbrace l_{1},l_{2},\ldots,l_{n} \right\rbrace$$ with $$l_{i} < l_{i+1}$$ for $$1 \le i \le n-1$$. A first implied class is $$l_{0}=0$$, and class index $$i$$ is assigned to speed $$U$$ whenever $$l_{i-1} < U \le l_{i}$$.
 
@@ -703,7 +703,7 @@ If `vel` is `NaN`, then `iClass=-9999` (integer numbers don't allow their own `N
 
 Use of the vector or scalar form is left to the user taste: the two form are computationally equivalent. The vector form is slightly faster than a `DO` cycle incorporating many scalar calls, but the difference of execution time might well be small to non-existent is compiler optimizations are allowed.
 
-###### Classifying horizontal wind by direction
+##### Classifying horizontal wind by direction
 
 Classifying horizontal wind by direction is much the same as classifying by wind speed, with some important differences however:
 
@@ -761,7 +761,7 @@ $$
 $$
 Direction values smaller that 0° or larger than 360° are converted to range $$[0°,360)$$ modularly.
 
-###### Computing mean wind speed and direction from polar form wind data
+##### Computing mean wind speed and direction from polar form wind data
 
 Averaging a set of wind speed and direction values demands a bit of caution when the "vector" horizontal velocity is desired: just averaging out separately the speed and direction is not the right way of doing, as this would yield the scalar speed and a direction value which is likely wrong if data across North are encountered.
 
@@ -788,7 +788,7 @@ If the two vectors have different or zero length then `NaN` is returned in both 
 
 
 
-###### Computing scalar wind speed from instant speeds
+##### Computing scalar wind speed from instant speeds
 
 The calculation of scalar wind speed is simpler than what encountered for vector wind speed and direction: scalar speed is "just" the arithmetical mean of measured wind velocities.
 
@@ -806,7 +806,7 @@ end function ScalarVel
 
 The `rvVel` must have at least one element (possibly `NaN`). In case the `rvVel` vector is zero length, or none of its elements is valid, a `NaN` is returned. In case `rvVel` contains some valid elements, the scalar speed is computed from the valid elements only, discarding  invalid elements if any. 
 
-###### Computing unit direction from instant directions
+##### Computing unit direction from instant directions
 
 In mainstream practice, and some of the preceding procedures, we already met the mean vector direction, defined by the formula
 $$
@@ -841,6 +841,47 @@ end function UnitDir
 ```
 
 Invalid values are discarded from the overall unit direction. If all direction values are invalid, or the length of the direction vector is zero, then an invalid (NaN) value is returned. 
+
+##### Computing numerical wind roses
+
+In meteorology, a _wind rose_ is defined as the joint frequency function of wind direction and speed, classified according to a suitable method.
+
+In _pbl_met_, the classification is made as in `ClassVel` and `ClassDir` functions, so, in particular, by equal-size direction classes and configurable size velocity classes.
+
+The numerical wind rose is calculated using `WindRose`  function, having the following interface.
+
+```
+function WindRose(vel, dir, rvVel, iNumClasses, iClassType, rmWindRose) result(iRetCode)
+	
+    ! Routine arguments
+    real, dimension(:), intent(in)                  :: vel			! Wind speed observations (m/s)
+    real, dimension(:), intent(in)                  :: dir			! Wind direction observations (°)
+    real, dimension(:), intent(in)                  :: rvVel		! Wind speed class limits as in ClassVel (m/s)
+    integer, intent(in)                             :: iNumClasses	! Number of direction classes as in ClassDir
+    integer, intent(in), optional                   :: iClassType	! Type of direction classes as in ClassDir (WDCLASS_ZERO_CENTERED (default), or WDCLASS_ZERO_BASED)
+    real, dimension(:,:), allocatable, intent(out)  :: rmWindRose	! Joint frequency table of wind speed and direction, aka "wind rose" (in tabular form) 
+    integer                                         :: iRetCode
+		
+end function WindRose
+```
+
+where
+
+* `vel` is the vector of wind speeds (m/s)
+* `dir` is the vector of wind directions (°)
+* `rvVel` is the vector containing the speed class limits (m/s)
+* `iNumClasses` is the desired number of wind direction classes
+* `iClassType`, optional, is an integer flag specifying how classes are computed (WDCLASS_ZERO_CENTERED, default; or WDCLASS_ZERO_BASED)
+* `rmWindRose` is an allocatable two-dimensional array containing the frequencies per class; the first index relates to speed class, the second to direction class
+* `iRetCode` is a return code indicating whether the function terminated correctly (value is 0 in case) or not (any other value).
+
+The two data vectors `vel`  and `dir`  should be the same size (otherwise an error is returned). If they are, values of same index are considered to refer to the same individual wind data.
+
+Invalid values in `vel`  or `dir`  or both are discarded from the frequency counts.
+
+The frequency in the returned numerical wind rose is normalized so that all its elements are non-negative, and their sum is 1 - unless no (valid) data are presented to the function, in which case all values are zero.
+
+If the return code is non-zero, that is, if an error has occurred, the numerical wind rose array can be not allocated. Prior using it it is then necessary to chech the return value.
 
 
 ### `pbl_turb`: Turbulence indicators from measured data and elements of eddy covariance
