@@ -919,6 +919,11 @@ contains
 		print *, "Position of max value: ", maxloc(rmWindRose), "  (expected: 3, 9) - Ret.code = ", iRetCode
 		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: 111)"
 		print *
+		print *, "Case 2: zero-based classes"
+		iRetCode = WindRose(rvVel, rvDir, [0.5, 1., 2., 3., 4.5, 10.], 16, WDCLASS_ZERO_BASED, rmWindRose)
+		print *, "Position of max value: ", maxloc(rmWindRose), "  (expected: 3, 8) - Ret.code = ", iRetCode
+		print *, "Num.zeros: ", count(rmWindRose<=0.), " (expected: 111)"
+		print *
 		
 	end subroutine tst_WindRose
 	
