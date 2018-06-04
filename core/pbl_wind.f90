@@ -507,15 +507,16 @@ contains
 	! The graphical rendering of the wind (concentration , ...) rose is not among
 	! the scopes of pbl_met, but nevertheless you may find excellent routines and
 	! packages to accomplish this task in the open source.
-	function WindRose(vel, dir, rvVel, iNumClasses, iClassType) result(rmWindRose)
+	function WindRose(vel, dir, rvVel, iNumClasses, iClassType, rmWindRose) result(iRetCode)
 	
 		! Routine arguments
-		real, dimension(:), intent(in)				:: vel			! Wind speed observations (m/s)
-		real, dimension(:), intent(in)				:: dir			! Wind direction observations (°)
-		real, dimension(:), intent(in)				:: rvVel		! Wind speed class limits as in ClassVel (m/s)
-		integer, intent(in)							:: iNumClasses	! Number of direction classes as in ClassDir
-		integer, intent(in), optional				:: iClassType	! Type of direction classes as in ClassDir (WDCLASS_ZERO_CENTERED (default), or WDCLASS_ZERO_BASED)
-		real, dimension(size(rvVel)+1,iNumClasses)	:: rmWindRose	! Joint frequency table of wind speed and direction, aka "wind rose" (in tabular form) 
+		real, dimension(:), intent(in)					:: vel			! Wind speed observations (m/s)
+		real, dimension(:), intent(in)					:: dir			! Wind direction observations (°)
+		real, dimension(:), intent(in)					:: rvVel		! Wind speed class limits as in ClassVel (m/s)
+		integer, intent(in)								:: iNumClasses	! Number of direction classes as in ClassDir
+		integer, intent(in), optional					:: iClassType	! Type of direction classes as in ClassDir (WDCLASS_ZERO_CENTERED (default), or WDCLASS_ZERO_BASED)
+		real, dimension(:,:), allocatable, intent(out)	:: rmWindRose	! Joint frequency table of wind speed and direction, aka "wind rose" (in tabular form) 
+		integer											:: iRetCode
 		
 		! Locals
 		integer, dimension(size(vel))	:: ivVelClass
@@ -523,12 +524,36 @@ contains
 		integer							:: i
 		integer							:: m
 		integer							:: n
+		integer							:: l
 		real							:: rTotal
 		integer							:: iDirClassType
 		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check data vectors have the same size
+		l = size(vel)
+		if(size(dir) /= l) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Check classification parameters, and use it to reserve workspace if correct
+		if(size(rvVel) <= 0) then
+			iRetCode = 2
+			return
+		end if
+		m = size(rvVel) + 1
+		if(iNumClasses <= 0) then
+			iRetCode = 3
+			return
+		end if
+		n = iNumClasses
+		if(allocated(rmWindRose)) deallocate(rmWindRose)
+		allocate(rmWindRose(m,n))
+		
 		! Clean up, and check the call makes sense
 		rmWindRose = 0.
-		if(size(dir) /= size(vel)) return
 		
 		! Get direction class type
 		if(present(iClassType)) then
@@ -542,8 +567,6 @@ contains
 		ivDirClass = ClassDirVector(dir, iNumClasses, iDirClassType)
 		
 		! Count occurrences in any class
-		m = size(rvVel) + 1
-		n = iNumClasses
 		do i = 1, size(vel)
 			if(ivVelClass(i) > 0 .and. ivDirClass(i) > 0) &
 				rmWindRose(ivVelClass(i),ivDirClass(i)) = rmWindRose(ivVelClass(i),ivDirClass(i)) + 1.
