@@ -1,3 +1,46 @@
 ! Test program for 'pbl_thermo' sub-module.
+!
+! This code is part of the pbl_met library.
+!
+! This is open-source code, covered by the lGPL 3.0 license.
+!
 program t_pbl_thermo
+
+	use pbl_met
+	
+	implicit none
+	
+	! Locals
+	! --none--
+	
+	! Perform tests
+	call tst_BruntVaisala()
+	
+contains
+
+	subroutine tst_BruntVaisala()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real	:: Tpot, Temp, N
+		integer	:: i
+		real	:: z
+		
+		! Test 1: Behavior with increasing height
+		print *, "Test 1: Brunt-Vaisala frequency at increasing height, same potential temperature"
+		print *
+		Tpot = 20.0
+		print *,"Z, Td, N"
+		do i = 1, 16
+			z = i * 100.
+			Temp = Tpot - 0.0098*z
+			N = BruntVaisala(Temp, z)
+			print "(f5.0,',',f5.1,',',e15.7)", z, Temp, N
+		end do
+		print *
+		
+	end subroutine tst_BruntVaisala
+	
 end program t_pbl_thermo
