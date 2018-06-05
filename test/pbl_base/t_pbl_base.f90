@@ -22,6 +22,7 @@ program t_pbl_base
 	
 	! Perform tests
 	call tstIniFile()
+	call tstIncompleteGamma()
 
 contains
 
@@ -181,5 +182,36 @@ contains
 		print *
 		
 	end subroutine tstIniFile
+	
+	
+	subroutine tstIncompleteGamma()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real, dimension(:), allocatable	:: rvX
+		real, dimension(:), allocatable	:: rvA
+		real, dimension(:), allocatable	:: rvP_Exp
+		real, dimension(:), allocatable	:: rvP_Act
+		character(len=128)				:: sBuffer
+		integer							:: i
+		
+		! Test 1: compare results with reference value from R (note: gappaP(x,a) = pgamma(a,x) in R
+		print *, "Test 1: Incomplete gamma function vs reference values"
+		allocate(rvX(56), rvA(56), rvP_Exp(56), rvP_Act(56))
+		open(10, file="incomplete.gamma.csv", status='old', action='read')
+		read(10,"(a)") sBuffer
+		print *
+		print *, "x, a, P.Expected, P.Actual"
+		do i = 1, 56
+			read(10, *) rvX(i), rvA(i), rvP_Exp(i)
+			rvP_Act(i) = gammaP(rvA(i), rvX(i))
+			print "(2(f4.1,','),e15.7,',',e15.7)", rvX(i), rvA(i), rvP_Exp(i), rvP_Act(i) 
+		end do
+		close(10)
+		deallocate(rvX, rvA, rvP_Exp, rvP_Act)
+	
+	end subroutine tstIncompleteGamma
 
 end program t_pbl_base
