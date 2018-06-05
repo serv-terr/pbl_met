@@ -42,6 +42,7 @@ module pbl_thermo
 	public	:: Cloudiness					! Estimate cloudiness factor (see ASCE report for definitions)
 	! 3. Energy balance at ground atmosphere contact (old MPDA method)
 	public	:: GlobalRadiation_MPDA			! Supersedes SUN_RAD2 in old PBL_MET
+	public	:: CloudCover_MPDA				! Supersedes CLOUD_RG in old PBL_MET
 	
 	! Polymorphic (Fortran-90-art) routines
 	
@@ -1015,9 +1016,9 @@ contains
 	function GlobalRadiation_MPDA(n, sinPsi) result(Rg)
 	
 		! Routine arguments
-		real, intent(in)	:: n
-		real, intent(in)	:: sinPsi
-		real				:: Rg
+		real, intent(in)	:: n		! Cloud cover fraction (0 to 1)
+		real, intent(in)	:: sinPsi	! Sine of solar elevation angle (° above horizon; negative below)
+		real				:: Rg		! Estimate of the global solar radiation (W/m2)1-0.75
 		
 		! Locals
 		real	:: rSinMin
@@ -1047,6 +1048,39 @@ contains
 		end if
       
 	end function GlobalRadiation_MPDA
+	
+	
+	! Estimate the cloud cover using MPDA method
+	function CloudCover_MPDA(Rg, sinPsi) result(N)
+	
+		! Routine arguments
+		real, intent(in)	:: Rg
+		real, intent(in)	:: sinPsi
+		real				:: N
+		
+		! Locals
+		real	:: sinPsiMin
+		real	:: maxRg
+		
+		! Constants
+		real, parameter	:: a1 = 990.
+		real, parameter	:: a2 = -30.
+		real, parameter	:: b1 =  -0.75
+		real, parameter	:: b2 =   3.4
+		
+		sinPsiMin = -a2/a1
+		if(sinPsi > sinpsimin) then
+			maxRg =  a1*sinPsi * exp(-0.057/sinPsi)
+			if(Rg >= maxRg) then
+				N = 0.
+			else
+				N = (1./b1*(Rg/maxRg-1.))**(1./b2)
+			end if
+		else
+			N = 0.5
+		end if
+		
+	end function CloudCover_MPDA
 
 
 	! ***************************************
