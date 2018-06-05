@@ -28,6 +28,7 @@ contains
 		real	:: Tpot1, N1, Tpot2, N2
 		integer	:: i
 		real	:: z
+		real	:: rLapseRate
 		
 		! Test 1: Behavior with increasing height
 		print *, "Test 1: Brunt-Vaisala frequency at increasing height, same potential temperature"
@@ -88,10 +89,24 @@ contains
 			Temp = -15.0 + 2*i
 			N = BruntVaisala(Temp, z)
 			Tpot1 = Temp + 273.15 + 0.009 * z
-			N1    = sqrt(abs(9.807/Tpot * 0.009))
+			N1    = sqrt(abs(9.807/Tpot1 * 0.009))
 			Tpot2 = Temp + 273.15 + 0.011 * z
-			N2    = sqrt(abs(9.807/Tpot * 0.011))
+			N2    = sqrt(abs(9.807/Tpot2 * 0.011))
 			print "(f5.0,',',f5.1,3(',',e15.7))", z, Temp, N, N1, N2
+		end do
+		print *
+		
+		! Test 6: Behavior with constant height, constant temperature, and changing lapse rate
+		print *, "Test 6: Brunt-Vaisala frequency at constant height and temperature, with different lapse rates"
+		print *
+		z = 1500.
+		Temp = 0.
+		print *,"dT/dz, N"
+		do i = 1, 16
+			rLapseRate = 0.0098 + (i-8) * 0.0002
+			Tpot1 = Temp + 273.15 + rLapseRate * z
+			N1    = sqrt(abs(9.807/Tpot1 * rLapseRate))
+			print "(f6.4,',',e15.7)", rLapseRate, N1
 		end do
 		print *
 		
