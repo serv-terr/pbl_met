@@ -34,6 +34,7 @@ module pbl_base
 	public	:: operator(.invalid.)
 	public	:: toUpper
 	public	:: toLower
+	public	:: gammaP	! Lower incomplete gamma function P(a,x)
 	! 2. Data types
 	public	:: IniFile
 	
@@ -186,6 +187,85 @@ contains
 		end do
 		
 	end subroutine toLower
+	
+	
+	function gammaP(a, x, iMaxIterations) result(gP)
+	
+		! Routine arguments
+		real, intent(in)				:: a
+		real, intent(in)				:: x
+		integer, intent(in), optional	:: iMaxIterations
+		real							:: gP
+		
+		! Locals
+		integer	:: i
+		integer	:: iMaxIter
+		real	:: delta
+		real	:: accumulator
+		real	:: p, b, c, d, h, tmp
+		real	:: fpmin
+		
+		! Check input parameters
+		if(x < 0. .or. a <= 0.) then
+			gP = NaN
+			return
+		end if
+		if(present(iMaxIterations)) then
+			if(iMaxIterations < 10) then
+				gP = NaN
+				return
+			end if
+		end if
+		
+		! Assign maximum iteration number
+		if(present(iMaxIterations)) then
+			iMaxIter = iMaxIterations
+		else
+			iMaxIter = 100
+		end if
+		
+		! Dispatch execution based on parameter value
+		if(x < a + 1.) then
+			! More convenient to use the series expansion here
+			p           = a
+			delta       = 1./a
+			accumulator = delta
+			gP          = NaN
+			do i = 1, iMaxIter
+				p           = p + 1.
+				delta       = delta * x / p
+				accumulator = accumulator + delta
+				if(abs(delta) < abs(accumulator)*epsilon(delta)) then
+					gP = accumulator * exp(-x + a*log(x) - log_gamma(a))
+					exit
+				end if
+			end do
+		else
+			! Here it is better to use the continued fraction approximation
+			fpmin = -huge(fpmin)/2.
+			b     = x + 1.0 - a
+			c     = 1. / fpmin
+			d     = 1. / b
+			h     = d
+			gP    = NaN
+			do i = 1, iMaxIter
+				tmp = -1 * (i - a)
+				b   = b + 2.
+				d   = tmp*d + b
+				if(abs(d) < fpmin) d = fpmin
+				c = b + tmp/c
+				if(abs(c) < fpmin) c = fpmin
+				d     = 1. / d
+				delta = d * c
+				h     = h * delta
+				if(abs(delta - 1.) < epsilon(delta)) then
+					gP = h * exp(-x + a*log(x) - log_gamma(a))
+					exit
+				end if
+			end do
+		end if
+		
+	end function gammaP
 	
 	
 	function iniRead(this, iLUN, sIniFileName) result(iRetCode)
