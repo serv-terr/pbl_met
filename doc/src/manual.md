@@ -919,7 +919,7 @@ To date this module is a placeholder, still to be filled.
 |                 |                                                              |
 | Sozzi, 2002     | R. Sozzi, M. Valentini, T. Georgiadis, _Introduzione alla turbolenza atmosferica - Concetti, stime, misure_, Pitagora, 2002 |
 | Stull, 1988     | R.B. Stull, _An Introduction to Boundary Layer Meteorology_, Kluwer Academic Publishers, 1988 |
-|                 |                                                              |
+| Stull, 2015 | R.B. Stull, _Practical Meteorology: An Algebra-based Survey of the Atmospheric Science_, The University of British Columbia, 2015, downloadable at the University of British Columbia site from URL https://www.eoas.ubc.ca/books/Practical_Meteorology/prmet/PracticalMet_WholeBook-v1_00b.pdf |
 |                 |                                                              |
 | Venables, 2002  | W.N. Venables, B.D. Ripley, _Modern Applied Statistics with S_, 2nd edition, Springer, 2002 |
 |                 |                                                              |
