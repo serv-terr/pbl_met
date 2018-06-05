@@ -25,6 +25,7 @@ contains
 		
 		! Locals
 		real	:: Tpot, Temp, N
+		real	:: Tpot1, N1, Tpot2, N2
 		integer	:: i
 		real	:: z
 		
@@ -75,6 +76,22 @@ contains
 			Temp = -15.0 + 2*i
 			N = BruntVaisala(Temp, z)
 			print "(f5.0,',',f5.1,',',e15.7)", z, Temp, N
+		end do
+		print *
+		
+		! Test 5: Behavior with constant height, more realistic temperature, and different assumptions about temperature lapse rate
+		print *, "Test 5: Brunt-Vaisala frequency at constant height, increasing temperature, different lapse rates"
+		print *
+		z = 1500.
+		print *,"Z, Td, N(0.0098), N(0.0090), N(0.0110)"
+		do i = 1, 16
+			Temp = -15.0 + 2*i
+			N = BruntVaisala(Temp, z)
+			Tpot1 = Temp + 273.15 + 0.009 * z
+			N1    = sqrt(abs(9.807/Tpot * 0.009))
+			Tpot2 = Temp + 273.15 + 0.011 * z
+			N2    = sqrt(abs(9.807/Tpot * 0.011))
+			print "(f5.0,',',f5.1,3(',',e15.7))", z, Temp, N, N1, N2
 		end do
 		print *
 		
