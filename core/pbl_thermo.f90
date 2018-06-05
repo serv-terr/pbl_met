@@ -34,12 +34,14 @@ module pbl_thermo
 	PUBLIC	:: AirPressure					! Estimate atmospheric pressure from height and temperature
 	PUBLIC	:: VirtualTemperature			! Virtual temperature given water vapor pressure and air pressure
 	PUBLIC	:: SonicTemperature				! Estimate ultrasonic temperature given dry bulb temperature, relative humidity and pressure
-	! 2. Energy balance at ground-atmosphere contact
+	! 2. Energy balance at ground-atmosphere contact (new method, as from ASCE Evapotranspiration Equation
  	public	:: ClearSkyRg_Simple			! Simple estimate of global solar radiation under clear sky conditions
 	public	:: ClearSkyRg_Accurate			! More accurate estimate of global solar radiation under clear sky conditions
 	public	:: ExtraterrestrialRadiation	! Estimate of extraterrestrial radiation (i.e., global radiation above the Earth atmosphere)
 	public	:: NetRadiation					! Estimate of solar net radiation
 	public	:: Cloudiness					! Estimate cloudiness factor (see ASCE report for definitions)
+	! 3. Energy balance at ground atmosphere contact (old MPDA method)
+	public	:: GlobalRadiation_MPDA			! Supersedes SUN_RAD2 in old PBL_MET
 	
 	! Polymorphic (Fortran-90-art) routines
 	
@@ -1007,6 +1009,44 @@ contains
 		Ts = Td*(1.+0.51*0.622*WaterVaporPressure(Tw, Td, Pa)/Pa)
 		
 	END FUNCTION SonicTemperature
+	
+	
+	! Estimate solar global radiation using the MPDA method
+	function GlobalRadiation_MPDA(n, sinPsi) result(Rg)
+	
+		! Routine arguments
+		real, intent(in)	:: n
+		real, intent(in)	:: sinPsi
+		real				:: Rg
+		
+		! Locals
+		real	:: rSinMin
+		real	:: rCloud
+		
+		! Constants
+		real, parameter	:: a1 = 990.
+		real, parameter	:: a2 = -30.
+		real, parameter	:: b1 =  -0.75
+		real, parameter	:: b2 =   3.4
+		
+		! Check input parameter make sense
+		if(n < 0. .or. sinPsi < -1. .or. sinPsi > 1.) then
+			Rg = NaN
+			return
+		end if
+		
+		! Constrain cloud cover to senseful interval
+		rCloud = max(min(n, 1.), 0.)
+		
+		! Estimate the minimum sine of solar elevation
+		rSinMin = - a2 / a1
+		if(sinPsi >= rSinMin) then
+			Rg = (a1*sinPsi*exp(-0.057/sinPsi))*(1.+b1*rCloud**b2)
+		else
+			Rg = 0.
+		end if
+      
+	end function GlobalRadiation_MPDA
 
 
 	! ***************************************
