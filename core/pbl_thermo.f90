@@ -1159,10 +1159,14 @@ contains
 	end function NetRadiation_MPDA
 	
 	
+	! Indicative evaluation of Brunt-Vaisala frequency. Notice this function yields a valid value
+	! even under unstable situations, when in principle the Brunt-Vaisala frequency is not
+	! defined: this is intentional, and may be overcome by programmatically invalidate the values obtained under
+	! neutral and unstable conditions.
 	function BruntVaisala(Td, z) result(N)
 	
 		! Routine arguments
-		real, intent(in)	:: Td	! Dry-bulb (ordinary) temperature (°C)
+		real, intent(in)	:: Td	! Virtual temperature (°C)
 		real, intent(in)	:: z	! Height above ground level (m)
 		real				:: N	! Brunt-Vaisala frequency (Hz)
 		
