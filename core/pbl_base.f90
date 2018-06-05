@@ -263,6 +263,7 @@ contains
 					exit
 				end if
 			end do
+			gP = 1. - gP
 		end if
 		
 	end function gammaP
