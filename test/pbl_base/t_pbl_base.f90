@@ -203,11 +203,11 @@ contains
 		open(10, file="incomplete.gamma.csv", status='old', action='read')
 		read(10,"(a)") sBuffer
 		print *
-		print *, "x, a, P.Expected, P.Actual"
+		print *, "x, a, P.Expected, P.Actual, Difference"
 		do i = 1, 56
 			read(10, *) rvX(i), rvA(i), rvP_Exp(i)
 			rvP_Act(i) = gammaP(rvA(i), rvX(i))
-			print "(2(f4.1,','),e15.7,',',e15.7)", rvX(i), rvA(i), rvP_Exp(i), rvP_Act(i) 
+			print "(2(f4.1,','),e15.7,2(',',e15.7))", rvX(i), rvA(i), rvP_Exp(i), rvP_Act(i), rvP_Act(i) - rvP_Exp(i)
 		end do
 		close(10)
 		deallocate(rvX, rvA, rvP_Exp, rvP_Act)
