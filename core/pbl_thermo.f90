@@ -40,9 +40,10 @@ module pbl_thermo
 	public	:: ExtraterrestrialRadiation	! Estimate of extraterrestrial radiation (i.e., global radiation above the Earth atmosphere)
 	public	:: NetRadiation					! Estimate of solar net radiation
 	public	:: Cloudiness					! Estimate cloudiness factor (see ASCE report for definitions)
-	! 3. Energy balance at ground atmosphere contact (old MPDA method)
+	! 3. Energy balance at ground atmosphere contact (old PBL_MET method)
 	public	:: GlobalRadiation_MPDA			! Supersedes SUN_RAD2 in old PBL_MET
 	public	:: CloudCover_MPDA				! Supersedes CLOUD_RG in old PBL_MET
+	public	:: DaytimeNetRadiation			! Supersedes R_NET_D in old PBL_MET
 	! 4. Atmospheric scaling quantities
 	public	:: BruntVaisala					! Estimate of Brunt-Vaisala frequency, given temperature and height
 	
@@ -1083,6 +1084,52 @@ contains
 		end if
 		
 	end function CloudCover_MPDA
+	
+	
+	! Estimate the net radiation by MPDA method. The relation used,
+	! based on a grey body approximation, tends to be accurate when
+	! the global radiation is greater than zero, then on daytime.
+	! Over night-time (actually, when the value returned by this
+	! function is negative), the function NighttimeNetRadiation
+	! should be called instead
+	function DaytimeNetRadiation(land, albedo, Td, Rg, C) result(Rn)
+	
+		! Routine arguments
+		integer, intent(in)	:: land			! Simplified land use code:
+											!   1: Desert
+											!   2: Dry rural
+											!   3: Dense urban fabric
+											!   4: Sparse urban fabric, sub-urban
+											!   5: Forests, prairies, irrigated coltures
+											!   6: Water bodies
+		real, intent(in)	:: albedo		! Albedo coefficient
+		real, intent(in)	:: Td			! Dry bulb (ordinary) temperature (°C)
+		real, intent(in)	:: Rg			! Global radiation (W/m2)
+		real, intent(in)	:: C			! Cloud cover fraction (0 to 1)
+		real				:: Rn			! Estimated net radiation (W/m2)
+		
+		! Locals
+		real	:: Ta
+		real	:: a
+		real	:: s
+		real	:: tt
+		real	:: c3
+
+		! Constant parameters
+		real, dimension(6), parameter	:: alpha = [0.1, 0.3, 0.5, 0.8, 1.0, 1.4]
+		real, parameter					:: c1    = 5.31e-13
+		real, parameter					:: c2    = 60.
+		real, parameter					:: sigma = 5.67e-08
+		real, parameter					:: pi    = 3.14159265
+		
+		! Compute the information desired
+		Ta = Td + 273.15
+		a  = alpha(land)
+		s  = 1.05*exp((6.42-Td)/17.78)
+		c3 = 0.38*((1.-a)+1.)/(1.+s)
+		Rn = ((1.-albedo)*Rg+c1*Ta**6-sigma*Ta**4+c2*C)/(1.+c3)
+
+	end function DaytimeNetRadiation
 	
 	
 	function BruntVaisala(Td, z) result(N)
