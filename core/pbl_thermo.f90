@@ -43,7 +43,7 @@ module pbl_thermo
 	! 3. Energy balance at ground atmosphere contact (old PBL_MET method)
 	public	:: GlobalRadiation_MPDA			! Supersedes SUN_RAD2 in old PBL_MET
 	public	:: CloudCover_MPDA				! Supersedes CLOUD_RG in old PBL_MET
-	public	:: DaytimeNetRadiation			! Supersedes R_NET_D in old PBL_MET
+	public	:: NetRadiation_MPDA			! Supersedes R_NET_D and R_NET_N in ECOMET legacy code
 	! 4. Atmospheric scaling quantities
 	public	:: BruntVaisala					! Estimate of Brunt-Vaisala frequency, given temperature and height
 	
@@ -1092,7 +1092,7 @@ contains
 	! Over night-time (actually, when the value returned by this
 	! function is negative), the function NighttimeNetRadiation
 	! should be called instead
-	function DaytimeNetRadiation(land, albedo, Td, Rg, C) result(Rn)
+	function NetRadiation_MPDA(land, albedo, Td, Rg, C, z0, zr, vel) result(Rn)
 	
 		! Routine arguments
 		integer, intent(in)	:: land			! Simplified land use code:
@@ -1106,6 +1106,9 @@ contains
 		real, intent(in)	:: Td			! Dry bulb (ordinary) temperature (°C)
 		real, intent(in)	:: Rg			! Global radiation (W/m2)
 		real, intent(in)	:: C			! Cloud cover fraction (0 to 1)
+		real, intent(in)	:: z0			! Aerodynamic roughness length (m)
+		real, intent(in)	:: zr			! Anemometer height above ground (m)
+		real, intent(in)	:: vel			! Wind speed (m/s)
 		real				:: Rn			! Estimated net radiation (W/m2)
 		
 		! Locals
@@ -1114,22 +1117,46 @@ contains
 		real	:: s
 		real	:: tt
 		real	:: c3
+		real	:: u2
+		integer	:: k
 
 		! Constant parameters
 		real, dimension(6), parameter	:: alpha = [0.1, 0.3, 0.5, 0.8, 1.0, 1.4]
+		real, dimension(9), parameter	:: a0    = [-96.1,-101.5,-76.1,-80.1,-53.5,-45.3,-35.5,-23.0,-9.9]
+		real, dimension(4), parameter	:: a1    = [-16.4,-12.6,-13.0,-9.8]
+		real, dimension(4), parameter	:: a2    = [1.35,0.99,1.16,0.9]
+		real, dimension(4), parameter	:: a3    = [100.e-15,104.e-15,66.e-15,72.e-15]
 		real, parameter					:: c1    = 5.31e-13
 		real, parameter					:: c2    = 60.
 		real, parameter					:: sigma = 5.67e-08
 		real, parameter					:: pi    = 3.14159265
 		
-		! Compute the information desired
+		! Check parameters
+		if(C < 0. .or. C > 1.) then
+			Rn = NaN
+			return
+		end if
+		
+		! Compute a preliminary estimate of net radiation
 		Ta = Td + 273.15
 		a  = alpha(land)
 		s  = 1.05*exp((6.42-Td)/17.78)
 		c3 = 0.38*((1.-a)+1.)/(1.+s)
 		Rn = ((1.-albedo)*Rg+c1*Ta**6-sigma*Ta**4+c2*C)/(1.+c3)
+		
+		! If the preliminary estimate is negative apply the "nocturnal" formula
+		! to get a more refined estimate
+		if(Rn < 0.) then
+			k = nint(C*8.) + 1		! 'k' belongs to range 1..9
+			if(k > 4) then
+				Rn = a0(k)
+			else
+				u2 = log(2./z0)/log(zr/z0) * vel
+				Rn = a0(k) + a1(k)*u2 + a2(k)*u2*u2 + a3(k)*Ta**6
+			end if
+		end if
 
-	end function DaytimeNetRadiation
+	end function NetRadiation_MPDA
 	
 	
 	function BruntVaisala(Td, z) result(N)
