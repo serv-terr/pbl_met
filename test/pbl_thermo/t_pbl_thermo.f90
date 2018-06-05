@@ -41,6 +41,19 @@ contains
 		end do
 		print *
 		
+		! Test 2: Behavior with increasing height
+		print *, "Test 2: Brunt-Vaisala frequency at increasing height, same dry-bulb temperature"
+		print *
+		Temp = 20.0
+		print *,"Z, Td, N"
+		do i = 1, 16
+			z = i * 100.
+			Tpot = Temp + 0.0098*z
+			N = BruntVaisala(Temp, z)
+			print "(f5.0,',',f5.1,',',e15.7)", z, Temp, N
+		end do
+		print *
+		
 	end subroutine tst_BruntVaisala
 	
 end program t_pbl_thermo
