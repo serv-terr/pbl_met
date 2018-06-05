@@ -235,30 +235,30 @@ contains
 				p           = p + 1.
 				delta       = delta * x / p
 				accumulator = accumulator + delta
-				if(abs(delta) < abs(accumulator)*epsilon(delta)) then
+				if(abs(delta) < abs(accumulator)*epsilon(delta)*4.) then
 					gP = accumulator * exp(-x + a*log(x) - log_gamma(a))
 					exit
 				end if
 			end do
 		else
 			! Here it is better to use the continued fraction approximation
-			fpmin = -huge(fpmin)/2.
+			fpmin = 4./huge(fpmin)
 			b     = x + 1.0 - a
 			c     = 1. / fpmin
 			d     = 1. / b
 			h     = d
 			gP    = NaN
 			do i = 1, iMaxIter
-				tmp = -1 * (i - a)
+				tmp = -i * (i - a)
 				b   = b + 2.
 				d   = tmp*d + b
 				if(abs(d) < fpmin) d = fpmin
-				c = b + tmp/c
+				c   = b + tmp/c
 				if(abs(c) < fpmin) c = fpmin
-				d     = 1. / d
+				d   = 1. / d
 				delta = d * c
-				h     = h * delta
-				if(abs(delta - 1.) < epsilon(delta)) then
+				h   = h * delta
+				if(abs(delta - 1.) < epsilon(delta)*4.) then
 					gP = h * exp(-x + a*log(x) - log_gamma(a))
 					exit
 				end if
