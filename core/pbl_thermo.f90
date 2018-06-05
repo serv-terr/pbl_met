@@ -43,6 +43,8 @@ module pbl_thermo
 	! 3. Energy balance at ground atmosphere contact (old MPDA method)
 	public	:: GlobalRadiation_MPDA			! Supersedes SUN_RAD2 in old PBL_MET
 	public	:: CloudCover_MPDA				! Supersedes CLOUD_RG in old PBL_MET
+	! 4. Atmospheric scaling quantities
+	public	:: BruntVaisala					! Estimate of Brunt-Vaisala frequency, given temperature and height
 	
 	! Polymorphic (Fortran-90-art) routines
 	
@@ -1013,10 +1015,10 @@ contains
 	
 	
 	! Estimate solar global radiation using the MPDA method
-	function GlobalRadiation_MPDA(n, sinPsi) result(Rg)
+	function GlobalRadiation_MPDA(C, sinPsi) result(Rg)
 	
 		! Routine arguments
-		real, intent(in)	:: n		! Cloud cover fraction (0 to 1)
+		real, intent(in)	:: C		! Cloud cover fraction (0 to 1)
 		real, intent(in)	:: sinPsi	! Sine of solar elevation angle (° above horizon; negative below)
 		real				:: Rg		! Estimate of the global solar radiation (W/m2)1-0.75
 		
@@ -1031,35 +1033,35 @@ contains
 		real, parameter	:: b2 =   3.4
 		
 		! Check input parameter make sense
-		if(n < 0. .or. sinPsi < -1. .or. sinPsi > 1.) then
+		if(C < 0. .or. sinPsi < -1. .or. sinPsi > 1.) then
 			Rg = NaN
 			return
 		end if
 		
 		! Constrain cloud cover to senseful interval
-		rCloud = max(min(n, 1.), 0.)
+		rCloud = max(min(C, 1.), 0.)
 		
 		! Estimate the minimum sine of solar elevation
 		rSinMin = - a2 / a1
 		if(sinPsi >= rSinMin) then
 			Rg = (a1*sinPsi*exp(-0.057/sinPsi))*(1.+b1*rCloud**b2)
 		else
-			Rg = 0.
+			Rg = 0.5
 		end if
       
 	end function GlobalRadiation_MPDA
 	
 	
 	! Estimate the cloud cover using MPDA method
-	function CloudCover_MPDA(Rg, sinPsi) result(N)
+	function CloudCover_MPDA(Rg, sinPsi) result(C)
 	
 		! Routine arguments
-		real, intent(in)	:: Rg
-		real, intent(in)	:: sinPsi
-		real				:: N
+		real, intent(in)	:: Rg		! Global radiation (W/m2)
+		real, intent(in)	:: sinPsi	! Sine of solar elevaton angle
+		real				:: C		! Cloud cover fraction
 		
 		! Locals
-		real	:: sinPsiMin
+		real	:: rSinMin
 		real	:: maxRg
 		
 		! Constants
@@ -1068,19 +1070,41 @@ contains
 		real, parameter	:: b1 =  -0.75
 		real, parameter	:: b2 =   3.4
 		
-		sinPsiMin = -a2/a1
-		if(sinPsi > sinpsimin) then
+		rSinMin = -a2/a1
+		if(sinPsi >= rSinMin) then
 			maxRg =  a1*sinPsi * exp(-0.057/sinPsi)
 			if(Rg >= maxRg) then
-				N = 0.
+				C = 0.
 			else
-				N = (1./b1*(Rg/maxRg-1.))**(1./b2)
+				C = (1./b1*(Rg/maxRg-1.))**(1./b2)
 			end if
 		else
-			N = 0.5
+			C = 0.5
 		end if
 		
 	end function CloudCover_MPDA
+	
+	
+	function BruntVaisala(Td, z) result(N)
+	
+		! Routine arguments
+		real, intent(in)	:: Td	! Dry-bulb (ordinary) temperature (°C)
+		real, intent(in)	:: z	! Height above ground level (m)
+		real				:: N	! Brunt-Vaisala frequency (Hz)
+		
+		! Locals
+		real	:: Tpot	! Potential temperature (K)
+
+		! Compute the information desired
+		if(z < 0. .OR. Td < 0.) then
+			N = NaN
+			return
+		endif
+		Tpot = Td + 273.15 + 0.0098 * z
+		N    = sqrt(abs(9.807/Tpot * 0.0098))
+
+	end function BruntVaisala
+
 
 
 	! ***************************************
