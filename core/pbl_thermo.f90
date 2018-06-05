@@ -1170,7 +1170,7 @@ contains
 		real	:: Tpot	! Potential temperature (K)
 
 		! Compute the information desired
-		if(z < 0. .OR. Td < 0.) then
+		if(z < 0. .OR. Td < -100.) then
 			N = NaN
 			return
 		endif
