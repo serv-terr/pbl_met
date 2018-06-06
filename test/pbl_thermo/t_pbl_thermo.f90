@@ -110,6 +110,16 @@ contains
 		end do
 		print *
 		
+		! Test 7: Boundary: One or two inputs invalid
+		print *, "Test 6: Brunt-Vaisala frequency at constant height and temperature, with different lapse rates"
+		print *
+		z = 1500.
+		Temp = 0.
+		print *,"Case 1: invalid temperature:   result = ", BruntVaisala(NaN, 1000.), "   (Expected: NaN)"
+		print *,"Case 2: invalid height:        result = ", BruntVaisala(1., NaN), "   (Expected: NaN)"
+		print *,"Case 3: invalid height & temp: result = ", BruntVaisala(NaN, NaN), "   (Expected: NaN)"
+		print *
+		
 	end subroutine tst_BruntVaisala
 	
 end program t_pbl_thermo
