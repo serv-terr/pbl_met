@@ -217,6 +217,17 @@ contains
 		end do
 		print *
 		
+		! Test 7: Determine the cloud cover effect on date/time 2000-06-21 12:00:00
+		print *,"Test 7, GlobalRadiation_MPDA: cloud cover effect on date/time 2000-06-21 12:00:00"
+		print *
+		print *, "Cloud.Cover, Rg"
+		sinBeta = SinSolarElevation(2000, 6, 21, 12, 0, 0, 45.5, 10.0, 1, 3600)
+		do i = 0, 32
+			Rg_0 = GlobalRadiation_MPDA(i/32., sinBeta)
+			print "(f6.4,',',f6.1)", i/32., Rg_0
+		end do
+		print *
+		
 	end subroutine tst_GlobalRadiation_MPDA
 	
 end program t_pbl_thermo
