@@ -131,9 +131,16 @@ contains
 		
 		! Locals
 		real	:: sinBeta
+		integer	:: i
+		integer	:: iYear
+		integer	:: iMonth
+		integer	:: iDay
 		integer	:: iHour
+		integer	:: iMinute
+		integer	:: iSecond
 		real	:: Rg_0
 		real	:: Rg_1
+		integer	:: iCurTime
 		
 		! Test 1: Determine the fork min-max cloud on 01. 01. 2000
 		print *,"Test 1, GlobalRadiation_MPDA: 01. 01. 2000"
@@ -192,6 +199,21 @@ contains
 			Rg_1 = GlobalRadiation_MPDA(1., sinBeta)
 			Rg_0 = GlobalRadiation_MPDA(0., sinBeta)
 			print "(i2,',',f7.4,2(',',f6.1))", iHour, sinBeta, Rg_1, Rg_0
+		end do
+		print *
+		
+		! Test 6: Determine the fork min-max cloud on all days in 2000 at noon
+		print *,"Test 6, GlobalRadiation_MPDA: all days in 2000, noon"
+		print *
+		print *, "Date/Time, sin(Beta), Rg(Cloud=100%), Rg(Cloud=0%)"
+		call PackTime(iCurTime, 2000, 1, 1, 12, 0, 0)
+		do i = 0, 365
+			call UnpackTime(iCurTime + i*3600*24, iYear, iMonth, iDay, iHour, iMinute, iSecond)
+			sinBeta = SinSolarElevation(iYear, iMonth, iDay, iHour, iMinute, iSecond, 45.5, 10.0, 1, 3600)
+			Rg_1 = GlobalRadiation_MPDA(1., sinBeta)
+			Rg_0 = GlobalRadiation_MPDA(0., sinBeta)
+			print "(i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2),',',f7.4,2(',',f6.1))", &
+				iYear, iMonth, iDay, iHour, iMinute, iSecond, sinBeta, Rg_1, Rg_0
 		end do
 		print *
 		
