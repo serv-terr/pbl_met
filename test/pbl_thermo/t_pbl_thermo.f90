@@ -279,6 +279,7 @@ contains
 		real	:: Rn_0
 		real	:: Rn_1
 		integer	:: iCurTime
+		integer	:: iLand
 		
 		! Test 1: Determine the fork min-max cloud on 21. 06. 2000
 		print *,"Test 1, NetRadiation_MPDA: 21. 06. 2000"
@@ -333,6 +334,20 @@ contains
 			Rn_1 = NetRadiation_MPDA(4, 0.5, 20., Rg_1, 1., 0.05, 10., 2.5)
 			Rn_0 = NetRadiation_MPDA(4, 0.5, 20., Rg_0, 0., 0.05, 10., 2.5)
 			print "(i2,',',f7.4,4(',',f6.1))", iHour, sinBeta, Rg_1, Rg_0, Rn_1, Rn_0
+		end do
+		print *
+		
+		! Test 5: Sensitivity to land use, diurnal
+		print *,"Test 5, NetRadiation_MPDA: sensitivity to land use, on day 21. 03. 2000, 12:00:00"
+		print *
+		print *, "Land.Use, sin(Beta), Rg(Cloud=100%), Rg(Cloud=0%), Rn(Cloud=100%), Rn(Cloud=0%)"
+		sinBeta = SinSolarElevation(2000, 3, 21, 12, 0, 0, 45.5, 10.0, 1, 3600)
+		do iLand = 1, 6
+			Rg_1 = GlobalRadiation_MPDA(1., sinBeta)
+			Rg_0 = GlobalRadiation_MPDA(0., sinBeta)
+			Rn_1 = NetRadiation_MPDA(iLand, 0.5, 20., Rg_1, 1., 0.05, 10., 2.5)
+			Rn_0 = NetRadiation_MPDA(iLand, 0.5, 20., Rg_0, 0., 0.05, 10., 2.5)
+			print "(i2,',',f7.4,4(',',f6.1))", iLand, sinBeta, Rg_1, Rg_0, Rn_1, Rn_0
 		end do
 		print *
 		
