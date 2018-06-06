@@ -242,6 +242,20 @@ contains
 		print *, "Actually obtained: ", GlobalRadiation_MPDA(NaN, NaN), "  (expected: NaN)"
 		print *
 		
+		! Test 9: Boundary: Check what happens when one input parameter is valid but makes no sense
+		print *,"Test 9, effect of invalid parameters"
+		print *
+		print *, "Case 1: Wrong cloud cover: -0.01"
+		sinBeta = SinSolarElevation(2000, 6, 21, 12, 0, 0, 45.5, 10.0, 1, 3600)
+		print *, "Actually obtained: ", GlobalRadiation_MPDA(-0.01, sinBeta), "  (expected: NaN)"
+		print *
+		print *, "Case 2: Wrong sine of solar elevation angle: -1.1"
+		print *, "Actually obtained: ", GlobalRadiation_MPDA(0.2, -1.1), "  (expected: NaN)"
+		print *
+		print *, "Case 3: Wrong sine of solar elevation angle: 1.1"
+		print *, "Actually obtained: ", GlobalRadiation_MPDA(0.2, 1.1), "  (expected: NaN)"
+		print *
+		
 	end subroutine tst_GlobalRadiation_MPDA
 	
 end program t_pbl_thermo
