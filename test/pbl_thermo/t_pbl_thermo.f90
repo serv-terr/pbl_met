@@ -16,6 +16,7 @@ program t_pbl_thermo
 	! Perform tests
 	call tst_BruntVaisala()
 	call tst_GlobalRadiation_MPDA()
+	call tst_NetRadiation_MPDA()
 	
 contains
 
@@ -257,5 +258,43 @@ contains
 		print *
 		
 	end subroutine tst_GlobalRadiation_MPDA
+	
+
+	subroutine tst_NetRadiation_MPDA()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real	:: sinBeta
+		integer	:: i
+		integer	:: iYear
+		integer	:: iMonth
+		integer	:: iDay
+		integer	:: iHour
+		integer	:: iMinute
+		integer	:: iSecond
+		real	:: Rg_0
+		real	:: Rg_1
+		real	:: Rn_0
+		real	:: Rn_1
+		integer	:: iCurTime
+		
+		! Test 1: Determine the fork min-max cloud on 21. 06. 2000
+		print *,"Test 1, NetRadiation_MPDA: 21. 06. 2000"
+		print *
+		print *, "Hour, sin(Beta), Rg(Cloud=100%), Rg(Cloud=0%), Rn(Cloud=100%), Rn(Cloud=0%)"
+		do iHour = 0, 23
+			sinBeta = SinSolarElevation(2000, 6, 21, iHour, 0, 0, 45.5, 10.0, 1, 3600)
+			Rg_1 = GlobalRadiation_MPDA(1., sinBeta)
+			Rg_0 = GlobalRadiation_MPDA(0., sinBeta)
+			Rn_1 = NetRadiation_MPDA(4, 0.5, 20., Rg_1, 1., 0.05, 10., 2.5)
+			Rn_0 = NetRadiation_MPDA(4, 0.5, 20., Rg_0, 1., 0.05, 10., 2.5)
+			print "(i2,',',f7.4,4(',',f6.1))", iHour, sinBeta, Rg_1, Rg_0, Rn_1, Rn_0
+		end do
+		print *
+		
+		
+	end subroutine tst_NetRadiation_MPDA
 	
 end program t_pbl_thermo
