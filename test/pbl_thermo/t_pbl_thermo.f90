@@ -15,6 +15,7 @@ program t_pbl_thermo
 	
 	! Perform tests
 	call tst_BruntVaisala()
+	call tst_GlobalRadiation_MPDA()
 	
 contains
 
@@ -121,5 +122,31 @@ contains
 		print *
 		
 	end subroutine tst_BruntVaisala
+
+
+	subroutine tst_GlobalRadiation_MPDA()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real	:: sinBeta
+		integer	:: iHour
+		real	:: Rg_0
+		real	:: Rg_1
+		
+		! Test 1: Determine the fork min-max cloud on 01. 01. 2000
+		print *,"Test 1, GlobalRadiation_MPDA: 01. 01. 2000"
+		print *
+		print *, "Hour, Rg(Cloud=100%), Rg(Cloud=0%)"
+		do iHour = 0, 23
+			sinBeta = SinSolarElevation(2000, 1, 1, iHour, 0, 0, 45.5, 10.0, 1, 3600)
+			Rg_1 = GlobalRadiation_MPDA(1., sinBeta)
+			Rg_0 = GlobalRadiation_MPDA(0., sinBeta)
+			print "(i2,2(',',f6.1))", iHour, Rg_1, Rg_0
+		end do
+		print *
+		
+	end subroutine tst_GlobalRadiation_MPDA
 	
 end program t_pbl_thermo
