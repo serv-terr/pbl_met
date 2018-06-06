@@ -160,11 +160,23 @@ contains
 		print *
 		
 		! Test 3: Determine the fork min-max cloud on 21. 03. 2000
-		print *,"Test 2, GlobalRadiation_MPDA: 21. 03. 2000"
+		print *,"Test 3, GlobalRadiation_MPDA: 21. 03. 2000"
 		print *
 		print *, "Hour, sin(Beta), Rg(Cloud=100%), Rg(Cloud=0%)"
 		do iHour = 0, 23
 			sinBeta = SinSolarElevation(2000, 3, 21, iHour, 0, 0, 45.5, 10.0, 1, 3600)
+			Rg_1 = GlobalRadiation_MPDA(1., sinBeta)
+			Rg_0 = GlobalRadiation_MPDA(0., sinBeta)
+			print "(i2,',',f7.4,2(',',f6.1))", iHour, sinBeta, Rg_1, Rg_0
+		end do
+		print *
+		
+		! Test 4: Determine the fork min-max cloud on 21. 06. 2000
+		print *,"Test 4, GlobalRadiation_MPDA: 21. 06. 2000"
+		print *
+		print *, "Hour, sin(Beta), Rg(Cloud=100%), Rg(Cloud=0%)"
+		do iHour = 0, 23
+			sinBeta = SinSolarElevation(2000, 6, 21, iHour, 0, 0, 45.5, 10.0, 1, 3600)
 			Rg_1 = GlobalRadiation_MPDA(1., sinBeta)
 			Rg_0 = GlobalRadiation_MPDA(0., sinBeta)
 			print "(i2,',',f7.4,2(',',f6.1))", iHour, sinBeta, Rg_1, Rg_0
