@@ -1047,7 +1047,7 @@ contains
 		if(sinPsi >= rSinMin) then
 			Rg = (a1*sinPsi*exp(-0.057/sinPsi))*(1.+b1*rCloud**b2)
 		else
-			Rg = 0.5
+			Rg = 0.
 		end if
       
 	end function GlobalRadiation_MPDA
