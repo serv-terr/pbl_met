@@ -1034,6 +1034,10 @@ contains
 		real, parameter	:: b2 =   3.4
 		
 		! Check input parameter make sense
+		if(.invalid.C .or. .invalid.sinPsi) then
+			Rg = NaN
+			return
+		end if
 		if(C < 0. .or. sinPsi < -1. .or. sinPsi > 1.) then
 			Rg = NaN
 			return
