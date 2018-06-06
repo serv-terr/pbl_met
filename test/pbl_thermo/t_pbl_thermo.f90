@@ -228,6 +228,20 @@ contains
 		end do
 		print *
 		
+		! Test 8: Boundary: Check what happens when one or both the input parameters are invalid
+		print *,"Test 8, effect of invalid parameters"
+		print *
+		print *, "Case 1: Invalid cloud cover"
+		sinBeta = SinSolarElevation(2000, 6, 21, 12, 0, 0, 45.5, 10.0, 1, 3600)
+		print *, "Actually obtained: ", GlobalRadiation_MPDA(NaN, sinBeta), "  (expected: NaN)"
+		print *
+		print *, "Case 2: Invalid sine of solar elevation angle"
+		print *, "Actually obtained: ", GlobalRadiation_MPDA(0.2, NaN), "  (expected: NaN)"
+		print *
+		print *, "Case 3: Invalid sine of solar elevation angle and cloud cover"
+		print *, "Actually obtained: ", GlobalRadiation_MPDA(NaN, NaN), "  (expected: NaN)"
+		print *
+		
 	end subroutine tst_GlobalRadiation_MPDA
 	
 end program t_pbl_thermo
