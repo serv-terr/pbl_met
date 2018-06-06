@@ -322,6 +322,20 @@ contains
 		end do
 		print *
 		
+		! Test 4: Determine the fork min-max cloud on 21. 03. 2000
+		print *,"Test 4, NetRadiation_MPDA: 21. 03. 2000"
+		print *
+		print *, "Hour, sin(Beta), Rg(Cloud=100%), Rg(Cloud=0%), Rn(Cloud=100%), Rn(Cloud=0%)"
+		do iHour = 0, 23
+			sinBeta = SinSolarElevation(2000, 3, 21, iHour, 0, 0, 45.5, 10.0, 1, 3600)
+			Rg_1 = GlobalRadiation_MPDA(1., sinBeta)
+			Rg_0 = GlobalRadiation_MPDA(0., sinBeta)
+			Rn_1 = NetRadiation_MPDA(4, 0.5, 20., Rg_1, 1., 0.05, 10., 2.5)
+			Rn_0 = NetRadiation_MPDA(4, 0.5, 20., Rg_0, 0., 0.05, 10., 2.5)
+			print "(i2,',',f7.4,4(',',f6.1))", iHour, sinBeta, Rg_1, Rg_0, Rn_1, Rn_0
+		end do
+		print *
+		
 	end subroutine tst_NetRadiation_MPDA
 	
 end program t_pbl_thermo
