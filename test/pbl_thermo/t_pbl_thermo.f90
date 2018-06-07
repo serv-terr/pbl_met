@@ -449,7 +449,20 @@ contains
 		print *, "C, Rn"
 		sinBeta = SinSolarElevation(2000, 3, 21, 12, 0, 0, 45.5, 10.0, 1, 3600)
 		do i = 0, 20
-			Rn_1 = NetRadiation_MPDA(4, 0.5, 20., 500., i/20., 0.05, 10., 2.5)
+			Rg_1 = GlobalRadiation_MPDA(i/20., sinBeta)
+			Rn_1 = NetRadiation_MPDA(4, 0.5, 20., Rg_1, i/20., 0.05, 10., 2.5)
+			print "(f5.3,',',f6.1)", i/20., Rn_1
+		end do
+		print *
+		
+		! Test 14: Sensitivity to cloud cover, nocturnal
+		print *,"Test 14, NetRadiation_MPDA: sensitivity to cloud cover, on day 21. 03. 2000, 00:00:00"
+		print *
+		print *, "C, Rn"
+		sinBeta = SinSolarElevation(2000, 3, 21, 0, 0, 0, 45.5, 10.0, 1, 3600)
+		do i = 0, 20
+			Rg_1 = GlobalRadiation_MPDA(i/20., sinBeta)
+			Rn_1 = NetRadiation_MPDA(4, 0.5, 20., Rg_1, i/20., 0.05, 10., 2.5)
 			print "(f5.3,',',f6.1)", i/20., Rn_1
 		end do
 		print *
