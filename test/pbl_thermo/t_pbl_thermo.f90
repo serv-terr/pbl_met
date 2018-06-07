@@ -421,6 +421,17 @@ contains
 		end do
 		print *
 		
+		! Test 11: Sensitivity to global radiation, diurnal
+		print *,"Test 11, NetRadiation_MPDA: sensitivity to global radiation, on day 21. 03. 2000, 12:00:00"
+		print *
+		print *, "Rg, Rn"
+		sinBeta = SinSolarElevation(2000, 3, 21, 12, 0, 0, 45.5, 10.0, 1, 3600)
+		do i = 0, 20
+			Rn_1 = NetRadiation_MPDA(4, 0.5, 20., 50.*i, 1., 0.05, 10., 2.5)
+			print "(f6.1,',',f6.1)", 50.*i, Rn_1
+		end do
+		print *
+		
 	end subroutine tst_NetRadiation_MPDA
 	
 end program t_pbl_thermo
