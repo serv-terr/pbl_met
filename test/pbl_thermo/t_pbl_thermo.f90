@@ -365,6 +365,20 @@ contains
 		end do
 		print *
 		
+		! Test 7: Sensitivity to albedo, diurnal
+		print *,"Test 7, NetRadiation_MPDA: sensitivity to albedo, on day 21. 03. 2000, 12:00:00"
+		print *
+		print *, "Albedo, sin(Beta), Rg(Cloud=100%), Rg(Cloud=0%), Rn(Cloud=100%), Rn(Cloud=0%)"
+		sinBeta = SinSolarElevation(2000, 3, 21, 12, 0, 0, 45.5, 10.0, 1, 3600)
+		do i = 0, 10
+			Rg_1 = GlobalRadiation_MPDA(1., sinBeta)
+			Rg_0 = GlobalRadiation_MPDA(0., sinBeta)
+			Rn_1 = NetRadiation_MPDA(4, i/10., 20., Rg_1, 1., 0.05, 10., 2.5)
+			Rn_0 = NetRadiation_MPDA(4, i/10., 20., Rg_0, 0., 0.05, 10., 2.5)
+			print "(f4.2,',',f7.4,4(',',f6.1))", i/10., sinBeta, Rg_1, Rg_0, Rn_1, Rn_0
+		end do
+		print *
+		
 	end subroutine tst_NetRadiation_MPDA
 	
 end program t_pbl_thermo
