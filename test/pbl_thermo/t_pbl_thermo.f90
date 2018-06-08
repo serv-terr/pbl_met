@@ -17,6 +17,7 @@ program t_pbl_thermo
 	call tst_BruntVaisala()
 	call tst_GlobalRadiation_MPDA()
 	call tst_NetRadiation_MPDA()
+	call tst_CloudCover_MPDA()
 	
 contains
 
@@ -540,7 +541,40 @@ contains
 				print "(f4.0,',',i1,',',e15.7)", Td, j, c3
 			end do
 		end do
+		print *
 		
 	end subroutine tst_NetRadiation_MPDA
+	
+	
+	subroutine tst_CloudCover_MPDA
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real	:: sinBeta
+		integer	:: i, j
+		integer	:: iYear
+		integer	:: iMonth
+		integer	:: iDay
+		integer	:: iHour
+		integer	:: iMinute
+		integer	:: iSecond
+		real	:: Rg
+		real	:: C
+		
+		! Test 1: Cloud cover on 21. 06. 2000 12:00
+		print *,"Test 1, CloudCover_MPDA: 21. 06. 2000 at 12:00"
+		print *
+		print *, "Rg, C.exp, C.act"
+		sinBeta = SinSolarElevation(2000, 6, 21, 12, 0, 0, 45.5, 10.0, 1, 3600)
+		do i = 0, 10
+			Rg = GlobalRadiation_MPDA(i/10., sinBeta)
+			C  = CloudCover_MPDA(Rg, sinBeta)
+			print "(f6.1,2(',',f6.4))", Rg, i/10., C
+		end do
+		print *
+		
+	end subroutine tst_CloudCover_MPDA
 	
 end program t_pbl_thermo
