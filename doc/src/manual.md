@@ -915,7 +915,7 @@ To date this module is a placeholder, still to be filled.
 | Ihaka, web1     | G.R. Ihaka, "Statistics 726, Assignment 2, Solution", https://www.stat.auckland.ac.nz/~ihaka/726/sol02.pdf, section1 on an implementation of Durbin-Levinson algorithm, written in R and producing the same result as R's "acf" function with `type="partial"`. |
 |                 |                                                              |
 |                 |                                                              |
-|                 |                                                              |
+| Paumier, 1986   | J. Paumier, D. Stinson, T. Kelly, C. Bollinger, J.S. Irwin. MPDA-1: meteorological processor for diffusion analysis - user's guide, US-EPA, 1986 |
 |                 |                                                              |
 | Sozzi, 2002     | R. Sozzi, M. Valentini, T. Georgiadis, _Introduzione alla turbolenza atmosferica - Concetti, stime, misure_, Pitagora, 2002 |
 | Stull, 1988     | R.B. Stull, _An Introduction to Boundary Layer Meteorology_, Kluwer Academic Publishers, 1988 |
