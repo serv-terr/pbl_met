@@ -575,6 +575,18 @@ contains
 		end do
 		print *
 		
+		! Test 2: Cloud cover on 21. 06. 2000 00:00
+		print *,"Test 2, CloudCover_MPDA: 21. 06. 2000 at 00:00"
+		print *
+		print *, "Rg, C.exp, C.act"
+		sinBeta = SinSolarElevation(2000, 6, 21, 0, 0, 0, 45.5, 10.0, 1, 3600)
+		do i = 0, 10
+			Rg = GlobalRadiation_MPDA(i/10., sinBeta)
+			C  = CloudCover_MPDA(Rg, sinBeta)
+			print "(f6.1,2(',',f6.4))", Rg, i/10., C
+		end do
+		print *
+		
 	end subroutine tst_CloudCover_MPDA
 	
 end program t_pbl_thermo
