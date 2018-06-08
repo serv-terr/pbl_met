@@ -267,7 +267,7 @@ contains
 		
 		! Locals
 		real	:: sinBeta
-		integer	:: i
+		integer	:: i, j
 		integer	:: iYear
 		integer	:: iMonth
 		integer	:: iDay
@@ -280,6 +280,9 @@ contains
 		real	:: Rn_1
 		integer	:: iCurTime
 		integer	:: iLand
+		real	:: Td, a, s, c3
+		real, dimension(4), parameter	:: temp  = [-10., 0., 15., 30.]
+		real, dimension(6), parameter	:: alpha = [0.1, 0.3, 0.5, 0.8, 1.0, 1.4]
 		real, dimension(11), parameter	:: z0r = [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.023, 0.05, 0.1, 0.23, 0.5, 1.]
 		
 		! Test 1: Determine the fork min-max cloud on 21. 06. 2000
@@ -523,6 +526,20 @@ contains
 			print "(f4.1,2(',',f6.1))", i*0.2, Rn_1, Rn_0
 		end do
 		print *
+		
+		! Test 19: Sensitivity of 'c3' "constant" with temperature and land use
+		print *,"Test 19, NetRadiation_MPDA, 'c3': sensitivity to wind speed and land use, on day 21. 03. 2000, 00:00:00"
+		print *
+		print *, "Td, Land.Use, c3"
+		do i = 1, 4
+			do j = 1, 6
+				Td = temp(i)
+				a  = alpha(j)
+				s  = 1.05*exp((6.42-Td)/17.78)
+				c3 = 0.38*((1.-a)+1.)/(1.+s)
+				print "(f4.0,',',i1,',',e15.7)", Td, j, c3
+			end do
+		end do
 		
 	end subroutine tst_NetRadiation_MPDA
 	
