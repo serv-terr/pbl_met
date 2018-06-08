@@ -496,6 +496,20 @@ contains
 		end do
 		print *
 		
+		! Test 17: Sensitivity to wind speed, diurnal
+		print *,"Test 17, NetRadiation_MPDA: sensitivity to wind speed, on day 21. 03. 2000, 12:00:00"
+		print *
+		print *, "Vel, Rn(C=100%),Rn(C=0%)"
+		sinBeta = SinSolarElevation(2000, 3, 21, 12, 0, 0, 45.5, 10.0, 1, 3600)
+		Rg_0 = GlobalRadiation_MPDA(0., sinBeta)
+		Rg_1 = GlobalRadiation_MPDA(1., sinBeta)
+		do i = 0, 20
+			Rn_0 = NetRadiation_MPDA(4, 0.5, 20., Rg_0, 0., 0.05, 10., i*0.2)
+			Rn_1 = NetRadiation_MPDA(4, 0.5, 20., Rg_1, 1., 0.05, 10., i*0.2)
+			print "(f4.1,2(',',f6.1))", i*0.2, Rn_1, Rn_0
+		end do
+		print *
+		
 	end subroutine tst_NetRadiation_MPDA
 	
 end program t_pbl_thermo
