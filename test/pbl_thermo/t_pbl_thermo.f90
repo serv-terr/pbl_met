@@ -583,7 +583,7 @@ contains
 		do i = 0, 10
 			Rg = GlobalRadiation_MPDA(i/10., sinBeta)
 			C  = CloudCover_MPDA(Rg, sinBeta)
-			print "(f6.1,2(',',f6.4))", Rg, i/10., C
+			print "(f6.1,2(',',f6.4))", Rg, 0.5, C
 		end do
 		print *
 		
