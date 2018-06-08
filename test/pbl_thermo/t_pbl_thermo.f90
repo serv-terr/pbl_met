@@ -280,6 +280,7 @@ contains
 		real	:: Rn_1
 		integer	:: iCurTime
 		integer	:: iLand
+		real, dimension(11), parameter	:: z0r = [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.023, 0.05, 0.1, 0.23, 0.5, 1.]
 		
 		! Test 1: Determine the fork min-max cloud on 21. 06. 2000
 		print *,"Test 1, NetRadiation_MPDA: 21. 06. 2000"
@@ -472,12 +473,26 @@ contains
 		print *
 		print *, "z0/zr, Rn(C=100%),Rn(C=0%)"
 		sinBeta = SinSolarElevation(2000, 3, 21, 12, 0, 0, 45.5, 10.0, 1, 3600)
-		do i = 1, 20
+		do i = 1, size(z0r)
 			Rg_0 = GlobalRadiation_MPDA(0., sinBeta)
 			Rg_1 = GlobalRadiation_MPDA(1., sinBeta)
-			Rn_0 = NetRadiation_MPDA(4, 0.5, 20., Rg_0, 0., 0.005*i, 10., 2.5)
-			Rn_1 = NetRadiation_MPDA(4, 0.5, 20., Rg_1, 1., 0.005*i, 10., 2.5)
-			print "(f6.4,2(',',f6.1))", 0.0005*i, Rn_1, Rn_0
+			Rn_0 = NetRadiation_MPDA(4, 0.5, 20., Rg_0, 0., z0r(i), 10., 2.5)
+			Rn_1 = NetRadiation_MPDA(4, 0.5, 20., Rg_1, 1., z0r(i), 10., 2.5)
+			print "(f6.4,2(',',f6.1))", z0r(i), Rn_1, Rn_0
+		end do
+		print *
+		
+		! Test 16: Sensitivity to z0/zr, nocturnal
+		print *,"Test 16, NetRadiation_MPDA: sensitivity to z0/zr, on day 21. 03. 2000, 00:00:00"
+		print *
+		print *, "z0/zr, Rn(C=100%),Rn(C=0%)"
+		sinBeta = SinSolarElevation(2000, 3, 21, 0, 0, 0, 45.5, 10.0, 1, 3600)
+		do i = 1, size(z0r)
+			Rg_0 = GlobalRadiation_MPDA(0., sinBeta)
+			Rg_1 = GlobalRadiation_MPDA(1., sinBeta)
+			Rn_0 = NetRadiation_MPDA(4, 0.5, 20., Rg_0, 0., z0r(i), 10., 2.5)
+			Rn_1 = NetRadiation_MPDA(4, 0.5, 20., Rg_1, 1., z0r(i), 10., 2.5)
+			print "(f6.4,2(',',f6.1))", z0r(i), Rn_1, Rn_0
 		end do
 		print *
 		
