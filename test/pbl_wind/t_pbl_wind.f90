@@ -26,6 +26,7 @@ program t_pbl_wind
 	call tst_windVectorScalar()
 	call tst_UnitDir()
 	call tst_WindRose()
+	call tst_SonicData()
 	
 contains
 
@@ -1002,5 +1003,16 @@ contains
 		print *
 		
 	end subroutine tst_WindRose
+	
+
+	subroutine tst_SonicData()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		type(SonicData)		:: tSonic
+		
+	end subroutine tst_SonicData
 	
 end program t_pbl_wind
