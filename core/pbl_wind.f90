@@ -38,6 +38,8 @@ module pbl_wind
 	public	:: VelDirMean
 	public	:: VelMean
 	public	:: DirMean
+	! 4. Data types
+	public	:: SonicData
 	
 	! Public constants
 	integer, parameter	:: WCONV_SAME               = 0
@@ -62,6 +64,17 @@ module pbl_wind
 		module procedure ClassDirScalar
 		module procedure ClassDirVector
 	end interface ClassDir
+	
+	! Data types
+	
+	type SonicData
+		logical, private			:: isValid
+		real(8), dimension(:), allocatable, private	:: rvTimeStamp
+		real, dimension(:), allocatable, private	:: rvU
+		real, dimension(:), allocatable, private	:: rvV
+		real, dimension(:), allocatable, private	:: rvW
+		real, dimension(:), allocatable, private	:: rvT
+	end type SonicData
 	
 contains
 
