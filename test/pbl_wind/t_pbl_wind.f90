@@ -1012,6 +1012,12 @@ contains
 		
 		! Locals
 		type(SonicData)		:: tSonic
+		integer				:: iRetCode
+		
+		! Test 1: Read and count an existing SonicLib file name
+		print *, "Test 1: Read SonicLib file"
+		iRetCode = tSonic % readSonicLib(10, "20130308.12.csv", OS_UNIX)
+		print *, "Return code: ", iRetCode, " (expected: 0)"
 		
 	end subroutine tst_SonicData
 	
