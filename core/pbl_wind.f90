@@ -10,6 +10,7 @@
 module pbl_wind
 
 	use pbl_base
+	use pbl_time
 	
 	implicit none
 	
@@ -68,12 +69,14 @@ module pbl_wind
 	! Data types
 	
 	type SonicData
-		logical, private			:: isValid
+		logical, private							:: isValid
 		real(8), dimension(:), allocatable, private	:: rvTimeStamp
 		real, dimension(:), allocatable, private	:: rvU
 		real, dimension(:), allocatable, private	:: rvV
 		real, dimension(:), allocatable, private	:: rvW
 		real, dimension(:), allocatable, private	:: rvT
+	contains
+		procedure	:: ReadSonicLib		=> sd_ReadSonicLib
 	end type SonicData
 	
 contains
@@ -716,6 +719,103 @@ contains
 		end where
 		
 	end function DirMean
+	
+	
+	function sd_ReadSonicLib(this, iLUN, sFileName, iOS) result(iRetCode)
+	
+		! Routine arguments
+		class(SonicData), intent(out)	:: this
+		integer, intent(in)				:: iLUN
+		character(len=*), intent(in)	:: sFileName
+		integer, intent(in)				:: iOS
+		integer							:: iRetCode
+		
+		! Locals
+		integer				:: iErrCode
+		logical				:: lExist
+		character(len=15)	:: sBaseName
+		character(len=64)	:: sBuffer
+		integer				:: iPos
+		type(DateTime)		:: tStamp
+		real(8)				:: rTimeBase
+		integer				:: iNumData
+		integer				:: i
+		integer				:: iYear, iMonth, iDay, iHour
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check file exists
+		inquire(file=sFileName, exist=lExist)
+		if(.not.lExist) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Check file name to be a valid SonicLib, and obtain its time base
+		sBaseName = baseName(sFileName, iOS)
+		if(len_trim(sBaseName) /= 15) then
+			iRetCode = 2
+			return
+		end if
+		read(sBaseName, "(i4,2i2,1x,i2)", iostat=iErrCode) iYear, iMonth, iDay, iHour
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		open(iLUN, file=sBaseName, status='old', action='read', iostat=iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 4
+			close(iLUN)
+			return
+		end if
+		tStamp = DateTime(iYear, iMonth, iDay, iHour, 0, 0.d0)
+		rTimeBase = tStamp % toEpoch()
+		
+		! Count data and reserve workspace
+		iNumData = -1	! Implicitly consider the 1-line header, not contributing to data count
+		do
+			read(iLUN, "(a)", iostat=iErrCode) sBuffer
+			if(iErrCode /= 0) exit
+			iNumData = iNumData + 1
+		end do
+		if(iNumData <= 0) then
+			iRetCode = 5
+			close(iLUN)
+			return
+		end if
+		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(allocated(this % rvU)) deallocate(this % rvU)
+		if(allocated(this % rvV)) deallocate(this % rvV)
+		if(allocated(this % rvW)) deallocate(this % rvW)
+		if(allocated(this % rvT)) deallocate(this % rvT)
+		allocate(this % rvTimeStamp(iNumData))
+		allocate(this % rvU(iNumData))
+		allocate(this % rvV(iNumData))
+		allocate(this % rvW(iNumData))
+		allocate(this % rvT(iNumData))
+		
+		! Read actual data
+		rewind(iLUN)
+		read(iLUN, "(a)") sBuffer	! Skip header line
+		do i = 1, iNumData
+			read(iLUN, *) &
+				this % rvTimeStamp(i), &
+				this % rvU(i), &
+				this % rvV(i), &
+				this % rvW(i), &
+				this % rvT(i)
+		end do
+		close(iLUN)
+		
+		! Shift the time stamps read (representing second) by the base time,
+		! obtaining full time stamps
+		this % rvTimeStamp = this % rvTimeStamp + rTimeBase
+		
+		! Inform users all was OK
+		this % isValid = .true.
+		
+	end function sd_ReadSonicLib
 
 	! *********************
 	! * Internal routines *
