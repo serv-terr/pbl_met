@@ -29,11 +29,14 @@ module pbl_base
 	public	:: MONTH_DURATION
 	public	:: BASE_DAY
 	public	:: BASE_DAY_8
+	public	:: OS_UNIX
+	public	:: OS_WIN
 	! 1. Operators and procedures
 	public	:: operator(.valid.)
 	public	:: operator(.invalid.)
 	public	:: toUpper
 	public	:: toLower
+	public	:: baseName
 	public	:: gammaP	! Lower incomplete gamma function P(a,x)
 	! 2. Data types
 	public	:: IniFile
@@ -54,6 +57,8 @@ module pbl_base
 	integer, parameter	:: ASCE_ALFALFA            = 2
 	integer, parameter	:: ACV_GENERAL             = 0
 	integer, parameter	:: ACV_2ND_ORDER           = 1
+	integer, parameter	:: OS_UNIX      	       = 0
+	integer, parameter	:: OS_WIN		           = 1
 	
 	! Operators
 	
@@ -187,6 +192,39 @@ contains
 		end do
 		
 	end subroutine toLower
+	
+	
+	function baseName(sFileName, iOS) result(sName)
+	
+		! Routine arguments
+		character(len=*), intent(in)	:: sFileName
+		integer, intent(in)				:: iOS			! Operating system type (OS_WIN: Windows; OS_UNIX: Linux, UNIX, OS/X)
+		character(len=256)				:: sName
+		
+		! Locals
+		integer		:: iPos
+		character	:: sDelimiter
+		
+		! Set delimiter based on OS type
+		if(iOS == OS_UNIX) then
+			sDelimiter = "/"
+		elseif(iOS == OS_WIN) then
+			sDelimiter = "\"
+		else
+			sName = sFileName
+			return
+		end if
+		
+		! Find last delimiter in string, and if found return all characters on right of it;
+		! otherwise, return the input string unchanged
+		iPos = index(sFileName, sDelimiter, back=.true.)
+		if(iPos > 0) then
+			sName = sFileName(iPos+1:)
+		else
+			sName = sFileName
+		end if
+		
+	end function baseName
 	
 	
 	function gammaP(a, x, iMaxIterations) result(gP)
