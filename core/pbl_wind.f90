@@ -76,7 +76,8 @@ module pbl_wind
 		real, dimension(:), allocatable, private	:: rvW
 		real, dimension(:), allocatable, private	:: rvT
 	contains
-		procedure	:: ReadSonicLib		=> sd_ReadSonicLib
+		procedure	:: readSonicLib		=> sd_ReadSonicLib
+		procedure	:: size				=> sd_Size
 	end type SonicData
 	
 contains
@@ -816,6 +817,25 @@ contains
 		this % isValid = .true.
 		
 	end function sd_ReadSonicLib
+	
+	
+	function sd_Size(this) result(iSize)
+	
+		! Routine arguments
+		class(SonicData), intent(in)	:: this
+		integer							:: iSize
+		
+		! Locals
+		! --none--
+		
+		! Get the information desired
+		if(this % isValid) then
+			iSize = size(this % rvTimeStamp)
+		else
+			iSize = 0
+		end if
+		
+	end function sd_Size
 
 	! *********************
 	! * Internal routines *
