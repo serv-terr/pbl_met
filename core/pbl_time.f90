@@ -16,6 +16,10 @@ module pbl_time
 	private
 	
 	! Public interface
+	! 0. Constants
+	public	:: DELTA_1_HOUR
+	public	:: DELTA_8_HOURS
+	public	:: DELTA_1_DAY
 	! 1. Date and time management
 	public	:: JulianDay					! Integer-valued Julian day
 	public	:: UnpackDate					! Inverse of integer-valued Julian day
@@ -38,6 +42,11 @@ module pbl_time
 	public	:: timeGetYear					! Extract year from a time stamp vector (may be used to obtain an index)
 	public	:: timeGetMonth					! Extract month from a time stamp vector (may be used to obtain an index)
 	public	:: timeGetYearMonth				! Extract a year-month value from a time stamp vector (may be used to obtain an index)
+	
+	! Constants
+	integer, parameter	:: DELTA_1_HOUR  = 3600
+	integer, parameter	:: DELTA_8_HOURS = DELTA_1_HOUR * 8
+	integer, parameter	:: DELTA_1_DAY   = DELTA_1_HOUR * 24
 	
 	! Data types
 	type DateTime
