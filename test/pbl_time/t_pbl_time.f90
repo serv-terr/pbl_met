@@ -282,6 +282,30 @@ contains
 		end do
 		print *
 		
+		! Test 10: Linear index under normal conditions, new time stamp, one invalid
+		print *, "Test 10: Linear index, hourly, new time stamp, one invalid"
+		rvTimeStamp(46) = NaN_8
+		iRetCode = timeLinearIndex(rvTimeStamp, DELTA_1_HOUR, ivTimeCode, rvBaseTimeStamp)
+		print *, "Return code: ", iRetCode, " (expected: 0)"
+		print *
+		print *, "Time.Stamp, Time.Index, Base.Time.Stamp"
+		do i = 1, 48
+			iRetCode = dt % fromEpoch(rvTimeStamp(i))
+			sDateTime3 = dt % toIso()
+			iRetCode = dt % fromEpoch(rvBaseTimeStamp(i))
+			sDateTime4 = dt % toIso()
+			print "(a,',',i8,', ',a)", sDateTime3, ivTimeCode(i), sDateTime4
+		end do
+		print *
+		
+		! Test 11: Linear index under normal conditions, legacy time stamp, one invalid
+		print *, "Test 11: Linear index, hourly, legacy time stamp, one invalid"
+		deallocate(ivTimeStamp, rvTimeStamp)
+		allocate(ivTimeStamp(0), rvTimeStamp(0))
+		iRetCode = timeLinearIndex(ivTimeStamp, DELTA_1_HOUR, ivTimeCode, ivBaseTimeStamp)
+		print *, "Return code: ", iRetCode, " (expected: non-zero)"
+		print *
+		
 		! Leave
 		deallocate(ivTimeStamp, rvTimeStamp, ivTimeCode, rvBaseTimeStamp, ivBaseTimeStamp)
 		
