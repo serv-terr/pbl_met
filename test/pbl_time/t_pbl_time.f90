@@ -266,6 +266,22 @@ contains
 		end do
 		print *
 		
+		! Test 9: Linear index under normal conditions, legacy time stamp, one invalid
+		print *, "Test 9: Linear index, hourly, legacy time stamp, one invalid"
+		ivTimeStamp(46) = 0
+		iRetCode = timeLinearIndex(ivTimeStamp, DELTA_1_HOUR, ivTimeCode, ivBaseTimeStamp)
+		print *, "Return code: ", iRetCode, " (expected: 0)"
+		print *
+		print *, "Time.Stamp, Time.Index, Base.Time.Stamp"
+		do i = 1, 48
+			call UnpackTime(ivTimeStamp(i), iYear, iMonth, iDay, iHour, iMinute, iSecond)
+			write(sDateTime1, "(i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2))") iYear, iMonth, iDay, iHour, iMinute, iSecond
+			call UnpackTime(ivBaseTimeStamp(i), iYear, iMonth, iDay, iHour, iMinute, iSecond)
+			write(sDateTime2, "(i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2))") iYear, iMonth, iDay, iHour, iMinute, iSecond
+			print "(a,',',i8,', ',a)", sDateTime1, ivTimeCode(i), sDateTime2
+		end do
+		print *
+		
 		! Leave
 		deallocate(ivTimeStamp, rvTimeStamp, ivTimeCode, rvBaseTimeStamp, ivBaseTimeStamp)
 		
