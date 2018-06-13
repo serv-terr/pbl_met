@@ -618,6 +618,15 @@ contains
 			this % iMinute = 0
 			this % rSecond = 0.d0
             return
+        elseif(.invalid.rEpoch) then
+			iRetCode = 1
+			this % iYear   = 1970
+			this % iMonth  = 1
+			this % iDay    = 1
+			this % iHour   = 0
+			this % iMinute = 0
+			this % rSecond = 0.d0
+            return
         end if
 
         ! Isolate the date and time parts
