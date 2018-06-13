@@ -36,6 +36,7 @@ module pbl_wind
 	public	:: ScalarVel
 	public	:: UnitDir
 	public	:: WindRose
+	public	:: CompareWindRoses
 	public	:: VelDirMean
 	public	:: VelMean
 	public	:: DirMean
@@ -594,6 +595,72 @@ contains
 		if(rTotal > 0.) rmWindRose = rmWindRose / rTotal
 		
 	end function WindRose
+	
+
+	function CompareWindRoses( &
+		vel1, dir1, &
+		vel2, dir2, &
+		rvVel, iNumClasses, iClassType, &
+		rmWindRose1, rmWindRose2, &
+		rProb &
+	) result(iRetCode)
+	
+		! Routine arguments
+		real, dimension(:), intent(in)					:: vel1			! First wind speed observations (m/s)
+		real, dimension(:), intent(in)					:: dir1			! First wind direction observations (°)
+		real, dimension(:), intent(in)					:: vel2			! Second wind speed observations (m/s)
+		real, dimension(:), intent(in)					:: dir2			! Second wind direction observations (°)
+		real, dimension(:), intent(in)					:: rvVel		! Wind speed class limits as in ClassVel (m/s)
+		integer, intent(in)								:: iNumClasses	! Number of direction classes as in ClassDir
+		integer, intent(in), optional					:: iClassType	! Type of direction classes as in ClassDir (WDCLASS_ZERO_CENTERED (default), or WDCLASS_ZERO_BASED)
+		real, dimension(:,:), allocatable, intent(out)	:: rmWindRose1	! First joint frequency table of wind speed and direction, aka "wind rose" (in tabular form) 
+		real, dimension(:,:), allocatable, intent(out)	:: rmWindRose2	! Second joint frequency table of wind speed and direction, aka "wind rose" (in tabular form) 
+		real, intent(out)								:: rProb		! Probability associated with Chi-square equality of distribution test, applied to the two wind roses
+		integer											:: iRetCode
+		
+		! Locals
+		integer	:: i, j
+		integer	:: iErrCode
+		integer	:: iDegreesOfFreedom
+		real	:: rChiSquare
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Compute the two wind roses with respect to the same classes
+		iErrCode = WindRose(vel1, dir1, rvVel, iNumClasses, iClassType, rmWindRose1)
+		if(iErrCode /= 0) then
+			if(allocated(rmWindRose1)) deallocate(rmWindRose1)
+			if(allocated(rmWindRose2)) deallocate(rmWindRose2)
+			rProb = NaN
+			iRetCode = 1
+			return
+		end if
+		iErrCode = WindRose(vel2, dir2, rvVel, iNumClasses, iClassType, rmWindRose2)
+		if(iErrCode /= 0) then
+			if(allocated(rmWindRose1)) deallocate(rmWindRose1)
+			if(allocated(rmWindRose2)) deallocate(rmWindRose2)
+			rProb = NaN
+			iRetCode = 1
+			return
+		end if
+		
+		! Compute chi-square variable
+		iDegreesOfFreedom = -1	! Take into account the normalization made on wind roses expressed as fraction
+		rChiSquare        =  0.
+		do i = 1, size(rmWindRose1, dim=1)
+			do j = 1, size(rmWindRose1, dim=2)
+				if(rmWindRose1(i,j) > 0. .or. rmWindRose2(i,j) > 0.) then
+					iDegreesOfFreedom = iDegreesOfFreedom + 1
+					rChiSquare = rChiSquare + (rmWindRose1(i,j) - rmWindRose2(i,j))**2 / (rmWindRose1(i,j) + rmWindRose2(i,j))
+				end if
+			end do
+		end do
+		
+		! Calculate probability
+		rProb = 1. - gammaP(0.5*iDegreesOfFreedom, 0.5*rChiSquare)
+		
+	end function CompareWindRoses
 	
 
 	function VelDirMean(vel, dir, scalar, rvVel, iNumClasses, iClassType) result(rmMean)
