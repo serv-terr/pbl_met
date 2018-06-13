@@ -298,16 +298,22 @@ contains
 		end do
 		print *
 		
-		! Test 11: Linear index under normal conditions, legacy time stamp, one invalid
-		print *, "Test 11: Linear index, hourly, legacy time stamp, one invalid"
+		! Test 11: Linear index under boundary conditions, legacy time stamp, zero-length input
+		print *, "Test 11: Linear index, hourly, legacy time stamp, zero-length input"
 		deallocate(ivTimeStamp, rvTimeStamp)
 		allocate(ivTimeStamp(0), rvTimeStamp(0))
-		iRetCode = timeLinearIndex(ivTimeStamp, DELTA_1_HOUR, ivTimeCode, ivBaseTimeStamp)
+		iRetCode = timeLinearIndex(ivTimeStamp, DELTA_1_HOUR, ivTimeCode)
+		print *, "Return code: ", iRetCode, " (expected: non-zero)"
+		print *
+		
+		! Test 12: Linear index under boundary conditions, new time stamp, zero-length input
+		print *, "Test 11: Linear index, hourly, new time stamp, zero-length input"
+		iRetCode = timeLinearIndex(rvTimeStamp, DELTA_1_HOUR, ivTimeCode)
 		print *, "Return code: ", iRetCode, " (expected: non-zero)"
 		print *
 		
 		! Leave
-		deallocate(ivTimeStamp, rvTimeStamp, ivTimeCode, rvBaseTimeStamp, ivBaseTimeStamp)
+		deallocate(ivTimeStamp, rvTimeStamp)
 		
 	end subroutine tst_LinearIndex
 	
