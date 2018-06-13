@@ -176,6 +176,21 @@ contains
 		end do
 		print *
 		
+		! Test 3: Linear index under normal conditions, legacy time stamp
+		print *, "Test 3: Linear index, 8-hourly, legacy time stamp"
+		iRetCode = timeLinearIndex(ivTimeStamp, DELTA_8_HOURS, ivTimeCode, ivBaseTimeStamp)
+		print *, "Return code: ", iRetCode, " (expected: 0)"
+		print *
+		print *, "Time.Stamp, Time.Index, Base.Time.Stamp"
+		do i = 1, 48
+			call UnpackTime(ivTimeStamp(i), iYear, iMonth, iDay, iHour, iMinute, iSecond)
+			write(sDateTime1, "(i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2))") iYear, iMonth, iDay, iHour, iMinute, iSecond
+			call UnpackTime(ivBaseTimeStamp(i), iYear, iMonth, iDay, iHour, iMinute, iSecond)
+			write(sDateTime2, "(i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2))") iYear, iMonth, iDay, iHour, iMinute, iSecond
+			print "(a,',',i8,', ',a)", sDateTime1, ivTimeCode(i), sDateTime2
+		end do
+		print *
+		
 		! Leave
 		deallocate(ivTimeStamp, rvTimeStamp, ivTimeCode, rvBaseTimeStamp, ivBaseTimeStamp)
 		
