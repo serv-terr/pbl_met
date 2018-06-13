@@ -162,7 +162,7 @@ contains
 		print *
 		
 		! Test 2: Linear index under normal conditions, new time stamp
-		print *, "Test 2: Linear index, daily, legacy time stamp"
+		print *, "Test 2: Linear index, daily, new time stamp"
 		iRetCode = timeLinearIndex(rvTimeStamp, DELTA_1_DAY, ivTimeCode, rvBaseTimeStamp)
 		print *, "Return code: ", iRetCode, " (expected: 0)"
 		print *
@@ -188,6 +188,21 @@ contains
 			call UnpackTime(ivBaseTimeStamp(i), iYear, iMonth, iDay, iHour, iMinute, iSecond)
 			write(sDateTime2, "(i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2))") iYear, iMonth, iDay, iHour, iMinute, iSecond
 			print "(a,',',i8,', ',a)", sDateTime1, ivTimeCode(i), sDateTime2
+		end do
+		print *
+		
+		! Test 4: Linear index under normal conditions, new time stamp
+		print *, "Test 4: Linear index, 8-hourly, new time stamp"
+		iRetCode = timeLinearIndex(rvTimeStamp, DELTA_8_HOURS, ivTimeCode, rvBaseTimeStamp)
+		print *, "Return code: ", iRetCode, " (expected: 0)"
+		print *
+		print *, "Time.Stamp, Time.Index, Base.Time.Stamp"
+		do i = 1, 48
+			iRetCode = dt % fromEpoch(rvTimeStamp(i))
+			sDateTime3 = dt % toIso()
+			iRetCode = dt % fromEpoch(rvBaseTimeStamp(i))
+			sDateTime4 = dt % toIso()
+			print "(a,',',i8,', ',a)", sDateTime3, ivTimeCode(i), sDateTime4
 		end do
 		print *
 		
