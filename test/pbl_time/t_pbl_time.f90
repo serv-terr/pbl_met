@@ -221,6 +221,21 @@ contains
 		end do
 		print *
 		
+		! Test 6: Linear index under normal conditions, new time stamp
+		print *, "Test 6: Linear index, hourly, new time stamp"
+		iRetCode = timeLinearIndex(rvTimeStamp, DELTA_1_HOUR, ivTimeCode, rvBaseTimeStamp)
+		print *, "Return code: ", iRetCode, " (expected: 0)"
+		print *
+		print *, "Time.Stamp, Time.Index, Base.Time.Stamp"
+		do i = 1, 48
+			iRetCode = dt % fromEpoch(rvTimeStamp(i))
+			sDateTime3 = dt % toIso()
+			iRetCode = dt % fromEpoch(rvBaseTimeStamp(i))
+			sDateTime4 = dt % toIso()
+			print "(a,',',i8,', ',a)", sDateTime3, ivTimeCode(i), sDateTime4
+		end do
+		print *
+		
 		! Leave
 		deallocate(ivTimeStamp, rvTimeStamp, ivTimeCode, rvBaseTimeStamp, ivBaseTimeStamp)
 		
