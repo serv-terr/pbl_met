@@ -34,6 +34,7 @@ module pbl_time
 	public	:: DateTime						! Class, supporting the new REAL(8) time stamps used in Time Series
 	! 4. Support for time stamps as vectors
 	public	:: timeEncode					! Compute aggregation indices for a time stamp vector
+	public	:: timeLinearIndex				! Compute a linear aggregation index for a time stamp vector
 	public	:: timeGetYear					! Extract year from a time stamp vector (may be used to obtain an index)
 	public	:: timeGetMonth					! Extract month from a time stamp vector (may be used to obtain an index)
 	public	:: timeGetYearMonth				! Extract a year-month value from a time stamp vector (may be used to obtain an index)
@@ -65,6 +66,12 @@ module pbl_time
 		module procedure	:: timeEncode1
 		module procedure	:: timeEncode2
 	end interface timeEncode
+	
+	
+	interface timeLinearIndex
+		module procedure	:: timeLinearIndex1
+		module procedure	:: timeLinearIndex2
+	end interface timeLinearIndex
 	
 	
 	interface timeGetYear
@@ -755,6 +762,109 @@ contains
 		end do
 		
 	end function timeEncode2
+
+	
+	function timeLinearIndex1(rvTimeStamp, iStepSize, ivTimeCode, rvBaseTimeStamp) result(iRetCode)
+	
+		! Routine arguments
+		real(8), intent(in), dimension(:)							:: rvTimeStamp
+		integer, intent(in)											:: iStepSize
+		integer, intent(out), dimension(:), allocatable				:: ivTimeCode
+		real(8), intent(out), dimension(:), allocatable, optional	:: rvBaseTimeStamp
+		integer														:: iRetCode
+		
+		! Locals
+		integer		:: n
+		integer		:: i
+		integer(8)	:: iTimeStamp
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Reserve workspace
+		if(allocated(ivTimeCode)) deallocate(ivTimeCode)
+		n = size(rvTimeStamp)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		allocate(ivTimeCode(n))
+		if(present(rvBaseTimeStamp)) then
+			if(allocated(rvBaseTimeStamp)) deallocate(rvBaseTimeStamp)
+			allocate(rvBaseTimeStamp(n))
+		end if
+		
+		! Iterate over time stamps, and assign codes
+		do i = 1, n
+			if(.valid.rvTimeStamp(i)) then
+				iTimeStamp = floor(rvTimeStamp(i), kind=8)
+				ivTimeCode(i) = iTimeStamp / iStepSize + 1
+			else
+				ivTimeCode(i) = 0	! Special "invalid" code
+			end if
+		end do
+		if(present(rvBaseTimeStamp)) then
+			where(ivTimeCode > 0)
+				rvBaseTimeStamp = int(ivTimeCode-1, kind=8) * iStepSize
+			elsewhere
+				rvBaseTimeStamp = NaN_8
+			endwhere
+		end if
+		where(ivTimeCode > 0)
+			ivTimeCode = ivTimeCode - minval(ivTimeCode) + 1
+		end where
+		
+	end function timeLinearIndex1
+
+	
+	function timeLinearIndex2(ivTimeStamp, iStepSize, ivTimeCode, ivBaseTimeStamp) result(iRetCode)
+	
+		! Routine arguments
+		integer, intent(in), dimension(:)							:: ivTimeStamp
+		integer, intent(in)											:: iStepSize
+		integer, intent(out), dimension(:), allocatable				:: ivTimeCode
+		integer, intent(out), dimension(:), allocatable, optional	:: ivBaseTimeStamp
+		integer														:: iRetCode
+		
+		! Locals
+		integer		:: n
+		integer		:: i
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Reserve workspace
+		if(allocated(ivTimeCode)) deallocate(ivTimeCode)
+		n = size(ivTimeStamp)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		allocate(ivTimeCode(n))
+		if(present(ivBaseTimeStamp)) then
+			if(allocated(ivBaseTimeStamp)) deallocate(ivBaseTimeStamp)
+			allocate(ivBaseTimeStamp(n))
+		end if
+		
+		do i = 1, n
+			if(ivTimeStamp(i) > 0) then
+				ivTimeCode(i) = ivTimeStamp(i) / iStepSize + 1
+			else
+				ivTimeCode(i) = 0	! Special "invalid" code
+			end if
+		end do
+		if(present(ivBaseTimeStamp)) then
+			where(ivTimeCode > 0)
+				ivBaseTimeStamp = (ivTimeCode-1) * iStepSize
+			elsewhere
+				ivBaseTimeStamp = 0
+			endwhere
+		end if
+		where(ivTimeCode > 0)
+			ivTimeCode = ivTimeCode - minval(ivTimeCode) + 1
+		end where
+		
+	end function timeLinearIndex2
 
 	
 	function timeGetYear1(rvTimeStamp, ivYear) result(iRetCode)
