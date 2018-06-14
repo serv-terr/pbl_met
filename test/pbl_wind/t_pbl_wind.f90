@@ -27,6 +27,7 @@ program t_pbl_wind
 	call tst_UnitDir()
 	call tst_WindRose()
 	call tst_SonicData()
+	call tst_CompareWindRoses()
 	
 contains
 
@@ -1019,7 +1020,45 @@ contains
 		iRetCode = tSonic % readSonicLib(10, "20130308.12.csv", OS_UNIX)
 		print *, "Return code: ", iRetCode, " (expected: 0)"
 		print *, "Size:        ", tSonic % size(), " (expected: > 0)"
+		print *
 		
 	end subroutine tst_SonicData
+	
+	
+	subroutine tst_CompareWindRoses()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real, dimension(:), allocatable		:: vel1, dir1, vel2, dir2
+		real, dimension(:,:), allocatable	:: rmWindRose1, rmWindRose2
+		integer								:: iRetCode
+		real								:: rProb
+		
+		! Test 1: Read and count an existing SonicLib file name
+		print *, "Test 1: Identical roses"
+		allocate(vel1(1024),dir1(1024),vel2(1024),dir2(1024))
+		call random_number(vel1)
+		call random_number(dir1)
+		vel1 = 10.*vel1
+		dir1 = 360.*dir1
+		vel2 = vel1
+		dir2 = dir1
+		iRetCode = CompareWindRoses(&
+			vel1, dir1, vel2, dir2, &
+			[1., 2., 4.5, 7.], &
+			16, WDCLASS_ZERO_CENTERED, &
+			rmWindRose1, rmWindRose2, rProb &
+		)
+		print *, "Ret.code = ", iRetCode, "  (expected: 0)"
+		print *, "Prob = ", rProb
+		print *
+		
+		! Leave
+		deallocate(vel1,dir1,vel2,dir2)
+		
+	end subroutine tst_CompareWindRoses
+	
 	
 end program t_pbl_wind
