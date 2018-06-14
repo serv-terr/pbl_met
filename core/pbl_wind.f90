@@ -602,20 +602,22 @@ contains
 		vel2, dir2, &
 		rvVel, iNumClasses, iClassType, &
 		rmWindRose1, rmWindRose2, &
-		rProb &
+		rProb, rChiSquareOut, iDegreesOfFreedomOut &
 	) result(iRetCode)
 	
 		! Routine arguments
-		real, dimension(:), intent(in)					:: vel1			! First wind speed observations (m/s)
-		real, dimension(:), intent(in)					:: dir1			! First wind direction observations (°)
-		real, dimension(:), intent(in)					:: vel2			! Second wind speed observations (m/s)
-		real, dimension(:), intent(in)					:: dir2			! Second wind direction observations (°)
-		real, dimension(:), intent(in)					:: rvVel		! Wind speed class limits as in ClassVel (m/s)
-		integer, intent(in)								:: iNumClasses	! Number of direction classes as in ClassDir
-		integer, intent(in), optional					:: iClassType	! Type of direction classes as in ClassDir (WDCLASS_ZERO_CENTERED (default), or WDCLASS_ZERO_BASED)
-		real, dimension(:,:), allocatable, intent(out)	:: rmWindRose1	! First joint frequency table of wind speed and direction, aka "wind rose" (in tabular form) 
-		real, dimension(:,:), allocatable, intent(out)	:: rmWindRose2	! Second joint frequency table of wind speed and direction, aka "wind rose" (in tabular form) 
-		real, intent(out)								:: rProb		! Probability associated with Chi-square equality of distribution test, applied to the two wind roses
+		real, dimension(:), intent(in)					:: vel1					! First wind speed observations (m/s)
+		real, dimension(:), intent(in)					:: dir1					! First wind direction observations (°)
+		real, dimension(:), intent(in)					:: vel2					! Second wind speed observations (m/s)
+		real, dimension(:), intent(in)					:: dir2					! Second wind direction observations (°)
+		real, dimension(:), intent(in)					:: rvVel				! Wind speed class limits as in ClassVel (m/s)
+		integer, intent(in)								:: iNumClasses			! Number of direction classes as in ClassDir
+		integer, intent(in), optional					:: iClassType			! Type of direction classes as in ClassDir (WDCLASS_ZERO_CENTERED (default), or WDCLASS_ZERO_BASED)
+		real, dimension(:,:), allocatable, intent(out)	:: rmWindRose1			! First joint frequency table of wind speed and direction, aka "wind rose" (in tabular form) 
+		real, dimension(:,:), allocatable, intent(out)	:: rmWindRose2			! Second joint frequency table of wind speed and direction, aka "wind rose" (in tabular form) 
+		real, intent(out)								:: rProb				! Probability associated with Chi-square equality of distribution test, applied to the two wind roses
+		real, intent(out), optional						:: rChiSquareOut		! Chi square sum
+		integer, intent(out), optional					:: iDegreesOfFreedomOut	! Chi square degrees of freedom
 		integer											:: iRetCode
 		
 		! Locals
@@ -659,6 +661,10 @@ contains
 		
 		! Calculate probability
 		rProb = 1. - gammaP(0.5*iDegreesOfFreedom, 0.5*rChiSquare)
+		
+		! Return auxiliary quantities, if desired
+		if(present(rChiSquareOut))        rChiSquareOut = rChiSquare
+		if(present(iDegreesOfFreedomOut)) iDegreesOfFreedomOut = iDegreesOfFreedom
 		
 	end function CompareWindRoses
 	
