@@ -625,6 +625,7 @@ contains
 		integer	:: iErrCode
 		integer	:: iDegreesOfFreedom
 		real	:: rChiSquare
+		real	:: R, S, RS, SR
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -647,6 +648,16 @@ contains
 			return
 		end if
 		
+		! Rescale the wind roses from fraction to count form
+		rmWindRose1 = rmWindRose1 * size(vel1)
+		rmWindRose2 = rmWindRose2 * size(vel2)
+		
+		! Compute the coefficients adjusting for different wind vector sizes
+		R  = real(size(vel1))
+		S  = real(size(vel2))
+		RS = sqrt(R/S)
+		SR = sqrt(S/R)
+		
 		! Compute chi-square variable
 		iDegreesOfFreedom = -1	! Take into account the normalization made on wind roses expressed as fraction
 		rChiSquare        =  0.
@@ -654,7 +665,7 @@ contains
 			do j = 1, size(rmWindRose1, dim=2)
 				if(rmWindRose1(i,j) > 0. .or. rmWindRose2(i,j) > 0.) then
 					iDegreesOfFreedom = iDegreesOfFreedom + 1
-					rChiSquare = rChiSquare + (rmWindRose1(i,j) - rmWindRose2(i,j))**2 / (rmWindRose1(i,j) + rmWindRose2(i,j))
+					rChiSquare = rChiSquare + (SR*rmWindRose1(i,j) - RS*rmWindRose2(i,j))**2 / (rmWindRose1(i,j) + rmWindRose2(i,j))
 				end if
 			end do
 		end do
