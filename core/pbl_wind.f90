@@ -79,6 +79,7 @@ module pbl_wind
 	contains
 		procedure	:: readSonicLib		=> sd_ReadSonicLib
 		procedure	:: size				=> sd_Size
+		procedure	:: valid			=> sd_Valid
 	end type SonicData
 	
 contains
@@ -920,6 +921,32 @@ contains
 		end if
 		
 	end function sd_Size
+	
+	
+	function sd_Valid(this) result(iValid)
+	
+		! Routine arguments
+		class(SonicData), intent(in)	:: this
+		integer							:: iValid
+		
+		! Locals
+		integer	:: i
+		
+		! Scan data set, and count all totally valid records
+		iValid = 0
+		do i = 1, size(this % rvTimeStamp)
+			if( &
+				.valid. this % rvTimeStamp(i) .and. &
+				.valid. this % rvU(i) .and. &
+				.valid. this % rvV(i) .and. &
+				.valid. this % rvW(i) .and. &
+				.valid. this % rvT(i) &
+			) then
+				iValid = iValid + 1
+			end if
+		end do
+		
+	end function sd_Valid
 
 	! *********************
 	! * Internal routines *
