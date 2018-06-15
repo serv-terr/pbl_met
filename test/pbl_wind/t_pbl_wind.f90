@@ -26,8 +26,8 @@ program t_pbl_wind
 	call tst_windVectorScalar()
 	call tst_UnitDir()
 	call tst_WindRose()
-	call tst_SonicData()
 	call tst_CompareWindRoses()
+	call tst_SonicData()
 	
 contains
 
@@ -1005,6 +1005,83 @@ contains
 		
 	end subroutine tst_WindRose
 	
+	
+	subroutine tst_CompareWindRoses()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real, dimension(:), allocatable		:: vel1, dir1, vel2, dir2
+		real, dimension(:,:), allocatable	:: rmWindRose1, rmWindRose2
+		integer								:: iRetCode
+		real								:: rProb, rChiSquareSum
+		integer								:: iDegreesOfFreedom
+		
+		! Test 1: Identical roses
+		print *, "Test 1: Identical roses"
+		allocate(vel1(1024),dir1(1024),vel2(1024),dir2(1024))
+		call random_number(vel1)
+		call random_number(dir1)
+		vel1 = 10.*vel1
+		dir1 = 360.*dir1
+		vel2 = vel1
+		dir2 = dir1
+		iRetCode = CompareWindRoses(&
+			vel1, dir1, vel2, dir2, &
+			[1., 2., 4.5, 7.], &
+			16, WDCLASS_ZERO_CENTERED, &
+			rmWindRose1, rmWindRose2, rProb, &
+			rChiSquareSum, iDegreesOfFreedom &
+		)
+		print *, "Ret.code = ", iRetCode, "  (expected: 0)"
+		print *, "Prob = ", rProb
+		print *, "DF = ", iDegreesOfFreedom, "   Chi2_Sum =", rChiSquareSum
+		print *
+		
+		! Test 2: Two roses all zero but on different classes
+		print *, "Test 2: Quite unrelated roses"
+		vel1 = 1.5
+		dir1 = 0.
+		vel2 = 10.
+		dir2 = 180.
+		iRetCode = CompareWindRoses(&
+			vel1, dir1, vel2, dir2, &
+			[1., 2., 4.5, 7.], &
+			16, WDCLASS_ZERO_CENTERED, &
+			rmWindRose1, rmWindRose2, rProb, &
+			rChiSquareSum, iDegreesOfFreedom &
+		)
+		print *, "Ret.code = ", iRetCode, "  (expected: 0)"
+		print *, "Prob = ", rProb
+		print *, "DF = ", iDegreesOfFreedom, "   Chi2_Sum =", rChiSquareSum
+		print *
+		
+		! Test 3: Two unrelated roses
+		print *, "Test 3: Unrelated roses"
+		call random_number(vel1)
+		call random_number(dir1)
+		vel1 = 10.*vel1
+		dir1 = 360.*dir1
+		vel2 = 10.
+		dir2 = 180.
+		iRetCode = CompareWindRoses(&
+			vel1, dir1, vel2, dir2, &
+			[1., 2., 4.5, 7.], &
+			16, WDCLASS_ZERO_CENTERED, &
+			rmWindRose1, rmWindRose2, rProb, &
+			rChiSquareSum, iDegreesOfFreedom &
+		)
+		print *, "Ret.code = ", iRetCode, "  (expected: 0)"
+		print *, "Prob = ", rProb
+		print *, "DF = ", iDegreesOfFreedom, "   Chi2_Sum =", rChiSquareSum
+		print *
+		
+		! Leave
+		deallocate(vel1,dir1,vel2,dir2)
+		
+	end subroutine tst_CompareWindRoses
+	
 
 	subroutine tst_SonicData()
 	
@@ -1020,79 +1097,10 @@ contains
 		iRetCode = tSonic % readSonicLib(10, "20130308.12.csv", OS_UNIX)
 		print *, "Return code: ", iRetCode, " (expected: 0)"
 		print *, "Size:        ", tSonic % size(), " (expected: > 0)"
+		print *, "Valid:       ", tSonic % valid(), " (expected: > 0)"
 		print *
 		
 	end subroutine tst_SonicData
-	
-	
-	subroutine tst_CompareWindRoses()
-	
-		! Routine arguments
-		! --none--
-		
-		! Locals
-		real, dimension(:), allocatable		:: vel1, dir1, vel2, dir2
-		real, dimension(:,:), allocatable	:: rmWindRose1, rmWindRose2
-		integer								:: iRetCode
-		real								:: rProb
-		
-		! Test 1: Identical roses
-		print *, "Test 1: Identical roses"
-		allocate(vel1(1024),dir1(1024),vel2(1024),dir2(1024))
-		call random_number(vel1)
-		call random_number(dir1)
-		vel1 = 10.*vel1
-		dir1 = 360.*dir1
-		vel2 = vel1
-		dir2 = dir1
-		iRetCode = CompareWindRoses(&
-			vel1, dir1, vel2, dir2, &
-			[1., 2., 4.5, 7.], &
-			16, WDCLASS_ZERO_CENTERED, &
-			rmWindRose1, rmWindRose2, rProb &
-		)
-		print *, "Ret.code = ", iRetCode, "  (expected: 0)"
-		print *, "Prob = ", rProb
-		print *
-		
-		! Test 2: Two roses all zero but on different classes
-		print *, "Test 2: Quite unrelated roses"
-		vel1 = 1.5
-		dir1 = 0.
-		vel2 = 10.
-		dir2 = 180.
-		iRetCode = CompareWindRoses(&
-			vel1, dir1, vel2, dir2, &
-			[1., 2., 4.5, 7.], &
-			16, WDCLASS_ZERO_CENTERED, &
-			rmWindRose1, rmWindRose2, rProb &
-		)
-		print *, "Ret.code = ", iRetCode, "  (expected: 0)"
-		print *, "Prob = ", rProb
-		print *
-		
-		! Test 3: Two unrelated roses
-		print *, "Test 3: Unrelated roses"
-		call random_number(vel1)
-		call random_number(dir1)
-		vel1 = 10.*vel1
-		dir1 = 360.*dir1
-		vel2 = 10.
-		dir2 = 180.
-		iRetCode = CompareWindRoses(&
-			vel1, dir1, vel2, dir2, &
-			[1., 2., 4.5, 7.], &
-			16, WDCLASS_ZERO_CENTERED, &
-			rmWindRose1, rmWindRose2, rProb &
-		)
-		print *, "Ret.code = ", iRetCode, "  (expected: 0)"
-		print *, "Prob = ", rProb
-		print *
-		
-		! Leave
-		deallocate(vel1,dir1,vel2,dir2)
-		
-	end subroutine tst_CompareWindRoses
 	
 	
 end program t_pbl_wind
