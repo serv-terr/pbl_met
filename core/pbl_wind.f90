@@ -808,6 +808,63 @@ contains
 	end function DirMean
 	
 	
+	function sd_BuildFromVectors(this, rvTimeStamp, rvU, rvV, rvW, rvT) result(iRetCode)
+	
+		! Routine arguments
+		class(SonicData), intent(out)		:: this
+		real(8), dimension(:), intent(in)	:: rvTimeStamp	! Time stamp, in Epoch new form
+		real, dimension(:), intent(in)		:: rvU			! Eastward wind component (m/s)
+		real, dimension(:), intent(in)		:: rvV			! Northward wind component (m/s)
+		real, dimension(:), intent(in)		:: rvW			! Verticalward wind component (m/s)
+		real, dimension(:), intent(in)		:: rvT			! Sonic temperature (°C)
+		integer								:: iRetCode
+		
+		! Locals
+		integer	::nstamp, nu, nv, nw, nt, n
+		
+		! Assume succes (will falsify on failure)
+		iRetCode = 0
+		
+		! Get and check vector sizes
+		nstamp = size(rvTimeStamp)
+		nu     = size(rvU)
+		nv     = size(rvV)
+		nw     = size(rvW)
+		nt     = size(rvT)
+		if(maxval(abs(nstamp-[nu,nv,nw,nt])) > 0) then
+			! Just a fancy way to pack all together the equal-size comparisons: if all are equal, then the differences
+			! (componentwise) between [nu,nv,nw,nt] and nstamp are all zero, and then their absolute maximum is zero, too.
+			! Conversely, if the absolute maximum is > 0 then at least one of the nu,nv,nw,nt differs from nstamp.
+			! Notice in this case the routine does nothing on dthe SonicData structure, which is left unchanged.
+			iRetCode = 1
+			return
+		end if
+		n = nstamp
+		! Post-condition: nstamp == nu == nv == nw == nt == n
+		
+		! Reserve workspace
+		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(allocated(this % rvU))         deallocate(this % rvU)
+		if(allocated(this % rvV))         deallocate(this % rvV)
+		if(allocated(this % rvW))         deallocate(this % rvW)
+		if(allocated(this % rvT))         deallocate(this % rvT)
+		allocate(this % rvTimeStamp(n))
+		allocate(this % rvU(n))
+		allocate(this % rvV(n))
+		allocate(this % rvW(n))
+		allocate(this % rvT(n))
+		
+		! Assign values
+		this % rvTimeStamp = rvTimeStamp
+		this % rvU         = rvU
+		this % rvV         = rvV
+		this % rvW         = rvW
+		this % rvT         = rvT
+		this % isValid     = .true.
+		
+	end function sd_BuildFromVectors
+	
+	
 	function sd_ReadSonicLib(this, iLUN, sFileName, iOS) result(iRetCode)
 	
 		! Routine arguments
