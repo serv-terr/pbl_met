@@ -80,6 +80,7 @@ module pbl_wind
 		procedure	:: readSonicLib		=> sd_ReadSonicLib
 		procedure	:: size				=> sd_Size
 		procedure	:: valid			=> sd_Valid
+		procedure	:: averages			=> sd_Averages
 	end type SonicData
 	
 contains
@@ -947,6 +948,141 @@ contains
 		end do
 		
 	end function sd_Valid
+	
+	
+	function sd_Averages(this, iAveragingTime, rvTimeStamp, rmVel, rvT, raCovVel, rmCovT, rvVarT) result(iRetCode)
+	
+		! Routine arguments
+		class(SonicData), intent(in)						:: this				! Current ultrasonic anemometer data set
+		integer, intent(in)									:: iAveragingTime	! Averaging period (s, positive, proper divisor of 3600)
+		real(8), dimension(:), allocatable, intent(out)		:: rvTimeStamp		! Output time stamps
+		real, dimension(:,:), allocatable, intent(out)		:: rmVel			! Time series of mean velocities (m/s)
+		real, dimension(:), allocatable, intent(out)		:: rvT				! Time series of mean temperatures (°C)
+		real, dimension(:,:,:), allocatable, intent(out)	:: raCovVel			! Time series of momentum covariances (m2/s2)
+		real, dimension(:,:), allocatable, intent(out)		:: rmCovT			! Time series of covariances between velocities and temperature (m°C/s)
+		real, dimension(:), allocatable, intent(out)		:: rvVarT			! Time series of temperature variances (°C2)
+		integer												:: iRetCode
+		
+		! Locals
+		integer								:: iErrCode
+		integer, dimension(:), allocatable	:: ivNumData
+		integer, dimension(:), allocatable	:: ivTimeIndex
+		real(8), dimension(:), allocatable	:: rvAggregTimeStamp
+		integer								:: i
+		integer								:: iIndex
+		integer								:: iMaxBlock
+		integer								:: iNumBlocks
+		real(8)								:: rBaseTime
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something is to be done
+		if(this % valid() <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(iAveragingTime <= 0 .or. mod(3600, iAveragingTime) /= 0) then
+			iRetCode = 2
+			return
+		end if
+		iNumBlocks = 3600 / iAveragingTime
+		
+		! Construct time-based index, and allocate workspace based on it
+		iErrCode = timeLinearIndex(this % rvTimeStamp, iAveragingTime, ivTimeIndex, rvAggregTimeStamp)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		iMaxBlock = maxval(ivTimeIndex)
+		if(iMaxBlock <= 0) then
+			iRetCode = 4
+			return
+		end if
+		if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
+		if(allocated(rmVel))       deallocate(rmVel)
+		if(allocated(rvT))         deallocate(rvT)
+		if(allocated(raCovVel))    deallocate(raCovVel)
+		if(allocated(rmCovT))      deallocate(rmCovT)
+		if(allocated(rvVarT))      deallocate(rvVarT)
+		allocate( &
+			rvTimeStamp(iMaxBlock), &
+			rmVel(iMaxBlock,3), rvT(iMaxBlock), &
+			raCovVel(iMaxBlock,3,3), rmCovT(iMaxBlock,3), rvVarT(iMaxBlock) &
+		)
+		allocate(ivNumData(iMaxBlock))
+		
+		! Pre-assign time stamps
+		rBaseTime = real(floor(minval(this % rvTimeStamp, mask=.valid. this % rvTimeStamp) / iAveragingTime, kind=8) &
+						* iAveragingTime, kind=8)
+		rvTimeStamp = [(rBaseTime + (i-1)*real(iAveragingTime, kind=8), i = 1, iNumBlocks)]
+		
+		! Compute the desired statistics
+		! -1- Phase one: Accumulate
+		ivNumData = 0
+		rmVel     = 0.
+		rvT       = 0.
+		raCovVel  = 0.
+		rmCovT    = 0.
+		do i = 1, size(ivTimeIndex)
+			if(ivTimeIndex(i) > 0) then
+				iIndex = ivTimeIndex(i)
+				if( &
+					.valid. this % rvTimeStamp(i) .and. &
+					.valid. this % rvU(i) .and. &
+					.valid. this % rvV(i) .and. &
+					.valid. this % rvW(i) .and. &
+					.valid. this % rvT(i) &
+				) then
+					! Update count
+					ivNumData(iIndex) = ivNumData(iIndex) + 1
+					! Update first order accumulators
+					rmVel(iIndex, 1)       = rmVel(iIndex, 1)       + this % rvU(i)
+					rmVel(iIndex, 2)       = rmVel(iIndex, 2)       + this % rvV(i)
+					rmVel(iIndex, 3)       = rmVel(iIndex, 3)       + this % rvW(i)
+					rvT(iIndex)            = rvT(iIndex)            + this % rvT(i)
+					! Update second order accumulators
+					raCovVel(iIndex, 1, 1) = raCovVel(iIndex, 1, 1) + this % rvU(i) ** 2
+					raCovVel(iIndex, 2, 2) = raCovVel(iIndex, 2, 2) + this % rvV(i) ** 2
+					raCovVel(iIndex, 3, 3) = raCovVel(iIndex, 3, 3) + this % rvW(i) ** 2
+					rvVarT(iIndex)         = rvVarT(iIndex)         + this % rvT(i) ** 2
+					raCovVel(iIndex, 1, 2) = raCovVel(iIndex, 1, 2) + this % rvU(i) * this % rvV(i)
+					raCovVel(iIndex, 1, 3) = raCovVel(iIndex, 1, 3) + this % rvU(i) * this % rvW(i)
+					raCovVel(iIndex, 2, 3) = raCovVel(iIndex, 2, 3) + this % rvV(i) * this % rvW(i)
+					rmCovT(iIndex, 1)      = rmCovT(iIndex, 1)      + this % rvU(i) * this % rvT(i)
+					rmCovT(iIndex, 2)      = rmCovT(iIndex, 2)      + this % rvV(i) * this % rvT(i)
+					rmCovT(iIndex, 3)      = rmCovT(iIndex, 3)      + this % rvW(i) * this % rvT(i)
+				end if
+			end if
+		end do
+		! -1- Phase two: Render
+		do i = 1, iMaxBlock
+			if(ivNumData(i) > 0) then
+				rmVel(i,:)      = rmVel(i,:) / ivNumData(i)
+				rvT(i)          = rvT(i) / ivNumData(i)
+				raCovVel(i,1,1) = raCovVel(i,1,1) / ivNumData(i) - rmVel(i, 1) ** 2
+				raCovVel(i,2,2) = raCovVel(i,2,2) / ivNumData(i) - rmVel(i, 2) ** 2
+				raCovVel(i,3,3) = raCovVel(i,3,3) / ivNumData(i) - rmVel(i, 3) ** 2
+				rvVarT(i)       = rvVarT(i) / ivNumData(i) - rvT(i) ** 2
+				raCovVel(i,1,2) = raCovVel(i,1,2) / ivNumData(i) - rmVel(i, 1) * rmVel(i, 2)
+				raCovVel(i,1,3) = raCovVel(i,1,3) / ivNumData(i) - rmVel(i, 1) * rmVel(i, 3)
+				raCovVel(i,2,3) = raCovVel(i,2,3) / ivNumData(i) - rmVel(i, 2) * rmVel(i, 3)
+				raCovVel(i,2,1) = raCovVel(i,1,2)
+				raCovVel(i,3,1) = raCovVel(i,1,3)
+				raCovVel(i,3,2) = raCovVel(i,2,3)
+				rmCovT(i,1)     = rmCovT(i,1) / ivNumData(i) - rmVel(i, 1) * rvT(i)
+				rmCovT(i,2)     = rmCovT(i,2) / ivNumData(i) - rmVel(i, 2) * rvT(i)
+				rmCovT(i,3)     = rmCovT(i,3) / ivNumData(i) - rmVel(i, 3) * rvT(i)
+			else
+				rmVel(i,:)      = NaN
+				rvT(i)          = NaN
+				raCovVel(i,:,:) = NaN
+				rvVarT(i)       = NaN
+				rmCovT(i,:)     = NaN
+			end if
+		end do
+		
+	end function sd_Averages
 
 	! *********************
 	! * Internal routines *
