@@ -1147,6 +1147,29 @@ contains
 		end do
 		print *
 		
+		! Test 3: Compute hourly means on SonicLib file read
+		print *, "Test 3: 10-minutes means from SonicLib file"
+		iRetCode = tSonic % averages( &
+			600, &
+			rvTimeStamp, &
+			rmVel, rvT, &
+			raCovVel, rmCovT, rvVarT &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		print *, "Num data = ", size(rvTimeStamp), "  (expected: 6)"
+		do i = 1, size(rvTimeStamp)
+			iRetCode = dt % fromEpoch(rvTimeStamp(i))
+			print *
+			print *, dt % toISO()
+			print *, "Wind: ", rmVel(i,:)
+			print *, "Temp: ", rvT(i)
+			print *, "Cov(vel):"
+			call print33(raCovVel(i,:,:))
+			print *, "Cov(Temp): ", rmCovT(i,:)
+			print *, "Var(Temp): ", rvVarT(i)
+		end do
+		print *
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
