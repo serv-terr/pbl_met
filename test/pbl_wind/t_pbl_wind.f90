@@ -1147,7 +1147,7 @@ contains
 		end do
 		print *
 		
-		! Test 3: Compute hourly means on SonicLib file read
+		! Test 3: Compute 10-minutes means on SonicLib file read
 		print *, "Test 3: 10-minutes means from SonicLib file"
 		iRetCode = tSonic % averages( &
 			600, &
@@ -1168,6 +1168,17 @@ contains
 			print *, "Cov(Temp): ", rmCovT(i,:)
 			print *, "Var(Temp): ", rvVarT(i)
 		end do
+		print *
+		
+		! Test 4: Compute 7-min means on SonicLib file read
+		print *, "Test 4: 7-minutes means from SonicLib file"
+		iRetCode = tSonic % averages( &
+			420, &
+			rvTimeStamp, &
+			rmVel, rvT, &
+			raCovVel, rmCovT, rvVarT &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: non-zero, as 420s does not divide 3600s exactly)"
 		print *
 		
 	end subroutine tst_SonicData
