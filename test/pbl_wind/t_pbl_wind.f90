@@ -1089,7 +1089,7 @@ contains
 		real, dimension(3,3), intent(in)	:: rmVal
 		
 		! Locals
-		integer	:: i, j
+		integer	:: i
 		
 		! Print values, matrix form
 		do i = 1, 3
@@ -1221,6 +1221,29 @@ contains
 		print *, "Test 6: 30-min means from artificial data"
 		iRetCode = tSonic % averages( &
 			1800, &
+			rvTimeStamp, &
+			rmVel, rvT, &
+			raCovVel, rmCovT, rvVarT &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		print *, "Num data = ", size(rvTimeStamp), "  (expected: 1)"
+		do i = 1, size(rvTimeStamp)
+			iRetCode = dt % fromEpoch(rvTimeStamp(i))
+			print *
+			print *, dt % toISO()
+			print *, "Wind: ", rmVel(i,:)
+			print *, "Temp: ", rvT(i)
+			print *, "Cov(vel):"
+			call print33(raCovVel(i,:,:))
+			print *, "Cov(Temp): ", rmCovT(i,:)
+			print *, "Var(Temp): ", rvVarT(i)
+		end do
+		print *
+		
+		! Test 7: 15-min mean on artificial data
+		print *, "Test 7: 15-min means from artificial data"
+		iRetCode = tSonic % averages( &
+			900, &
 			rvTimeStamp, &
 			rmVel, rvT, &
 			raCovVel, rmCovT, rvVarT &
