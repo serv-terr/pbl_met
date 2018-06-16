@@ -1115,6 +1115,11 @@ contains
 		real, dimension(:,:), allocatable	:: rmCovT
 		type(DateTime)						:: dt
 		integer								:: i
+		real(8), dimension(:), allocatable	:: rvTimeSt
+		real, dimension(:), allocatable		:: rvU
+		real, dimension(:), allocatable		:: rvV
+		real, dimension(:), allocatable		:: rvW
+		real, dimension(:), allocatable		:: rvTemp
 		
 		! Test 1: Read and count an existing SonicLib file name
 		print *, "Test 1: Read SonicLib file"
@@ -1179,6 +1184,37 @@ contains
 			raCovVel, rmCovT, rvVarT &
 		)
 		print *, "Return code = ", iRetCode, "  (expected: non-zero, as 420s does not divide 3600s exactly)"
+		print *
+		
+		! Test 5: hourly mean on artificial data
+		allocate(rvTimeSt(60), rvU(60), rvV(60), rvW(60), rvTemp(60))
+		dt = DateTime(2000, 3, 8, 12, 0, 0.0d0)
+		rvTimeSt = [(dt % toEpoch() + (i-1)*60.d0, i = 1, 60)]
+		rvU      = [(real((i-1)/15), i = 1, 60)]
+		rvV      = [(real((i-1)/30), i = 1, 60)]
+		rvW      = [(real((i-1)/10), i = 1, 60)]
+		rvTemp   = 0.
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		print *, "Test 5: hourly means from artificial data"
+		iRetCode = tSonic % averages( &
+			3600, &
+			rvTimeStamp, &
+			rmVel, rvT, &
+			raCovVel, rmCovT, rvVarT &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		print *, "Num data = ", size(rvTimeStamp), "  (expected: 1)"
+		do i = 1, size(rvTimeStamp)
+			iRetCode = dt % fromEpoch(rvTimeStamp(i))
+			print *
+			print *, dt % toISO()
+			print *, "Wind: ", rmVel(i,:)
+			print *, "Temp: ", rvT(i)
+			print *, "Cov(vel):"
+			call print33(raCovVel(i,:,:))
+			print *, "Cov(Temp): ", rmCovT(i,:)
+			print *, "Var(Temp): ", rvVarT(i)
+		end do
 		print *
 		
 	end subroutine tst_SonicData
