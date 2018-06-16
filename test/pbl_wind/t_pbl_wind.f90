@@ -1263,6 +1263,29 @@ contains
 		end do
 		print *
 		
+		! Test 8: 10-min mean on artificial data
+		print *, "Test 8: 10-min means from artificial data"
+		iRetCode = tSonic % averages( &
+			600, &
+			rvTimeStamp, &
+			rmVel, rvT, &
+			raCovVel, rmCovT, rvVarT &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		print *, "Num data = ", size(rvTimeStamp), "  (expected: 1)"
+		do i = 1, size(rvTimeStamp)
+			iRetCode = dt % fromEpoch(rvTimeStamp(i))
+			print *
+			print *, dt % toISO()
+			print *, "Wind: ", rmVel(i,:)
+			print *, "Temp: ", rvT(i)
+			print *, "Cov(vel):"
+			call print33(raCovVel(i,:,:))
+			print *, "Cov(Temp): ", rmCovT(i,:)
+			print *, "Var(Temp): ", rvVarT(i)
+		end do
+		print *
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
