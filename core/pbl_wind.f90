@@ -77,6 +77,7 @@ module pbl_wind
 		real, dimension(:), allocatable, private	:: rvW
 		real, dimension(:), allocatable, private	:: rvT
 	contains
+		procedure	:: buildFromVectors	=> sd_BuildFromVectors
 		procedure	:: readSonicLib		=> sd_ReadSonicLib
 		procedure	:: size				=> sd_Size
 		procedure	:: valid			=> sd_Valid
