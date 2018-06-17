@@ -683,37 +683,50 @@ contains
 	end function CompareWindRoses
 	
 
-	function VelDirMean(vel, dir, scalar, rvVel, iNumClasses, iClassType) result(rmMean)
+	function VelDirMean(vel, dir, scalar, rvVel, iNumClasses, iClassType, rmMean) result(iRetCode)
 	
 		! Routine arguments
-		real, dimension(:), intent(in)				:: vel			! Wind speed observations (m/s)
-		real, dimension(:), intent(in)				:: dir			! Wind direction observations (°)
-		real, dimension(:), intent(in)				:: scalar		! Any scalar quantity (any unit; invalid values as NaN)
-		real, dimension(:), intent(in)				:: rvVel		! Wind speed class limits as in ClassVel (m/s)
-		integer, intent(in)							:: iNumClasses	! Number f direction classes as in ClassDir
-		integer, intent(in)							:: iClassType	! Type of direction classes as in ClassDir
-		real, dimension(size(rvVel)+1,iNumClasses)	:: rmMean		! Mean of scalar according to wind speed and direction classes 
+		real, dimension(:), intent(in)					:: vel			! Wind speed observations (m/s)
+		real, dimension(:), intent(in)					:: dir			! Wind direction observations (°)
+		real, dimension(:), intent(in)					:: scalar		! Any scalar quantity (any unit; invalid values as NaN)
+		real, dimension(:), intent(in)					:: rvVel		! Wind speed class limits as in ClassVel (m/s)
+		integer, intent(in)								:: iNumClasses	! Number f direction classes as in ClassDir
+		integer, intent(in)								:: iClassType	! Type of direction classes as in ClassDir
+		real, dimension(:,:), allocatable, intent(out)	:: rmMean		! Mean of scalar according to wind speed and direction classes
+		integer											:: iRetCode
 		
 		! Locals
-		integer, dimension(size(vel))					:: ivVelClass
-		integer, dimension(size(dir))					:: ivDirClass
-		integer, dimension(size(rvVel)+1,iNumClasses)	:: imNumValues
-		integer											:: i
+		integer, dimension(size(vel))			:: ivVelClass
+		integer, dimension(size(dir))			:: ivDirClass
+		integer									:: i
+		integer, dimension(:,:), allocatable	:: imNumValues
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
 		
 		! Clean up, and check the call makes sense
-		rmMean = NaN
-		imNumValues = 0
-		if(size(dir) /= size(vel) .or. size(scalar) /= size(vel)) return
+		if(size(dir) /= size(vel) .or. size(scalar) /= size(vel)) then
+			iRetCode = 1
+			return
+		end if
+		if(size(rvVel) <= 0 .or. iNumClasses <= 0) then
+			iRetCode = 2
+			return
+		end if
+		if(allocated(rmMean)) deallocate(rmMean)
+		allocate(rmMean(size(rvVel)+1,iNumClasses))
+		allocate(imNumValues(size(rvVel)+1,iNumClasses))
 		
 		! Classify wind speed and direction
 		ivVelClass = ClassVelVector(vel, rvVel)
 		ivDirClass = ClassDirVector(dir, iNumClasses, iClassType)
 		
 		! Count occurrences in any class
-		rmMean = 0.
+		rmMean      = 0.
+		imNumValues = 0
 		do i = 1, size(vel)
 			if(ivVelClass(i) > 0 .and. ivDirClass(i) > 0 .and. (.not.isnan(scalar(i)))) then
-				rmMean(ivVelClass(i),ivDirClass(i)) = rmMean(ivVelClass(i),ivDirClass(i)) + scalar(i)
+				rmMean(ivVelClass(i),ivDirClass(i))      = rmMean(ivVelClass(i),ivDirClass(i)) + scalar(i)
 				imNumValues(ivVelClass(i),ivDirClass(i)) = imNumValues(ivVelClass(i),ivDirClass(i)) + 1
 			end if
 		end do
