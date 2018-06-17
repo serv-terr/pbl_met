@@ -28,6 +28,7 @@ program t_pbl_wind
 	call tst_WindRose()
 	call tst_CompareWindRoses()
 	call tst_SonicData()
+	call tst_VelDirMean()
 	
 contains
 
@@ -1310,5 +1311,38 @@ contains
 		print *
 		
 	end subroutine tst_SonicData
+	
+	
+	subroutine tst_VelDirMean()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		real, dimension(:), allocatable		:: vel, dir, scalar
+		integer								:: iRetCode
+		integer								:: i
+		real, dimension(:,:), allocatable	:: rmMean
+		
+		! Test 1: Classify a velocity-dependent scalar
+		allocate(vel(16384), dir(16384), scalar(16384))
+		call random_number(dir)
+		dir = dir * 360.
+		call random_number(vel)
+		vel = vel * 5.
+		scalar = vel
+		print *, 'Test 1: Classify velocity-dependent scalar'
+		iRetCode = VelDirMean(vel, dir, scalar, [0.5, 1.5, 2.5, 3.5, 4.5], 16, WDCLASS_ZERO_BASED, rmMean)
+		print *, 'Return code: ', iRetCode, '   (expected: 0)'
+		print *
+		print *, 'Speed.cls, Min(mean(scalar)), Max(mean(scalar))'
+		do i = 1, 6
+			print *, i, minval(rmMean(i,:)), maxval(rmMean(i,:))
+		end do
+		
+		! Leave
+		deallocate(vel, dir, scalar)
+		
+	end subroutine tst_VelDirMean
 	
 end program t_pbl_wind
