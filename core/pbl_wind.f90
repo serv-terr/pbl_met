@@ -705,12 +705,16 @@ contains
 		iRetCode = 0
 		
 		! Clean up, and check the call makes sense
-		if(size(dir) /= size(vel) .or. size(scalar) /= size(vel)) then
+		if(size(dir) <= 0 .or. size(vel) <= 0 .or. size(scalar) <= 0) then
 			iRetCode = 1
 			return
 		end if
-		if(size(rvVel) <= 0 .or. iNumClasses <= 0) then
+		if(size(dir) /= size(vel) .or. size(scalar) /= size(vel)) then
 			iRetCode = 2
+			return
+		end if
+		if(size(rvVel) <= 0 .or. iNumClasses <= 0) then
+			iRetCode = 3
 			return
 		end if
 		if(allocated(rmMean)) deallocate(rmMean)
