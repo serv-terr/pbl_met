@@ -23,11 +23,143 @@ module Modos
 	! Data types
 	
 	type ModosData
-		character(len=512), dimension(:), allocatable	:: svLines
-		integer											:: iSensorType	! MDS_SODAR, MDS_SODAR_RASS, MDS_MRR2
-		integer, dimension(:), allocatable				:: ivBlockIdx	! Indices of block starts
-		integer, dimension(:), allocatable				:: ivBlockLen	! Indices of block lengths
+		character(len=512), dimension(:), allocatable, private	:: svLines
+		integer, private										:: iSensorType	! MDS_SODAR, MDS_SODAR_RASS, MDS_MRR2
+		integer, dimension(:), allocatable, private				:: ivBlockIdx	! Indices of block starts
+		integer, dimension(:), allocatable, private				:: ivBlockLen	! Indices of block lengths
+	contains
+		procedure	:: load	=> mds_load
 	end type ModosData
+	
+	! Constants
+	
+	integer, parameter	:: MDS_SODAR      = 1
+	integer, parameter	:: MDS_SODAR_RASS = 2
+	integer, parameter	:: MDS_MRR2       = 3
+	
+contains
+
+	function mds_load(this, iLUN, sFileName) result(iRetCode)
+	
+		! Routine arguments
+		class(ModosData), intent(out)	:: this
+		integer, intent(in)				:: iLUN
+		character(len=*), intent(in)	:: sFileName
+		integer							:: iRetCode
+		
+		! Locals
+		integer					:: iErrCode
+		character(len=512)		:: sBuffer
+		integer					:: iNumLines
+		integer					:: iLine
+		integer					:: iNumBlocks
+		integer					:: iBlock
+		integer, dimension(3)	:: ivBlockTypeCount
+		integer					:: iPos
+		character(len=6)		:: sTemp
+		real					:: rTemp
+		integer					:: iNumPositiveCounts
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Count lines in MODOS file
+		open(iLUN, file=sFileName, status='old', action='read', iostat=iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 1
+			return
+		end if
+		iNumLines = 0
+		do
+			read(iLUN, "(a)", iostat=iErrCode) sBuffer
+			if(iErrCode /= 0) exit
+			iNumLines = iNumLines + 1
+		end do
+		if(iNumLines <= 0) then
+			iRetCode = 2
+			close(iLUN)
+			return
+		end if
+		! Post-condition: Input file contains at least 'iNumLines' text lines
+		
+		! Reserve workspace
+		if(allocated(this % svlines)) deallocate(this % svLines)
+		allocate(this % svLines(iNumLines))
+		
+		! Read lines into workspace
+		rewind(iLUN)
+		do iLine = 1, iNumLines
+			read(iLUN, "(a)") this % svLines(iLine)
+		end do
+		close(iLUN)
+		
+		! Locate SDR and MRR lines - that is, block headers, into file
+		iNumBlocks = 0
+		do iLine = 1, iNumLines
+			if(this % svLines(iLine)(1:3) == 'MRR' .or. this % svLines(iLine)(1:3) == 'SDR') then
+				iNumBlocks = iNumBlocks + 1
+			end if
+		end do
+		if(iNumBlocks <= 0) then
+			iRetCode = 3
+			return
+		end if
+		if(allocated(this % ivBlockIdx)) deallocate(this % ivBlockIdx)
+		if(allocated(this % ivBlockLen)) deallocate(this % ivBlockLen)
+		allocate(this % ivBlockIdx(iNumBlocks))
+		allocate(this % ivBlockLen(iNumBlocks))
+		iBlock = 0
+		do iLine = 1, iNumLines
+			if(this % svLines(iLine)(1:3) == 'MRR' .or. this % svLines(iLine)(1:3) == 'SDR') then
+				iBlock = iBlock + 1
+				this % ivBlockIdx(iBlock) = iLine
+			end if
+		end do
+		do iBlock = 1, iNumBlocks - 1
+			this % ivBlockLen(iBlock) = this % ivBlockIdx(iBlock+1) - this % ivBlockIdx(iBlock)
+		end do
+		this % ivBlockLen(iNumBlocks) = iNumLines - this % ivBlockIdx(iNumBlocks) + 1
+		
+		! Check whether all blocks are the same
+		ivBlockTypeCount = 0
+		do iBlock = 1, iNumBlocks
+			if(this % svLines(this % ivBlockIdx(iBlock))(1:3) == "SDR") then
+				iPos = index(this % svLines(this % ivBlockIdx(iBlock)), "TMP")
+				if(iPos > 0) then
+					sTemp = this % svLines(this % ivBlockIdx(iBlock))(iPos+3:iPos+8)
+					read(sTemp, *, iostat=iErrCode) rTemp
+					if(iErrCode == 0) then
+						if(rTemp <= 0) then
+							ivBlockTypeCount(MDS_SODAR) = ivBlockTypeCount(MDS_SODAR) + 1
+						else
+							ivBlockTypeCount(MDS_SODAR_RASS) = ivBlockTypeCount(MDS_SODAR_RASS) + 1
+						end if
+					end if
+				end if
+			elseif(this % svLines(this % ivBlockIdx(iBlock))(1:3) == "MRR") then
+				ivBlockTypeCount(MDS_MRR2) = ivBlockTypeCount(MDS_MRR2) + 1
+			end if
+		end do
+		if(sum(ivBlockTypeCount) /= iNumBlocks) then
+			iRetCode = 4
+			return
+		end if
+		iNumPositiveCounts = count(ivBlockTypeCount > 0)
+		if(iNumPositiveCounts /= 1) then
+			iRetCode = 5
+			return
+		end if
+		if(ivBlockTypeCount(MDS_SODAR) > 0) then
+			this % iSensorType = MDS_SODAR
+		elseif(ivBlockTypeCount(MDS_SODAR_RASS) > 0) then
+			this % iSensorType = MDS_SODAR_RASS
+		elseif(ivBlockTypeCount(MDS_MRR2) > 0) then
+			this % iSensorType = MDS_MRR2
+		else
+			this % iSensorType = 0
+		end if
+		
+	end function mds_load
 
 end module Modos
 
