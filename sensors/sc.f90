@@ -15,10 +15,14 @@ program SodarChecker
 	! Locals
 	integer			:: iRetCode
 	type(ModosData)	:: tSodar
+	integer			:: iSensorType
 	
 	! Test 1: Read SDR data from SODAR-only station
 	iRetCode = tSodar % load(10, "0616.sdr")
 	print *, "Test 1: Get SDR data from SODAR-only station"
 	print *, "Return code: ", iRetCode, "  (expected:0)"
+	iSensorType = tSodar % getSensorType()
+	print *, "Sensor type = ", iSensorType, "  (expected:", MDS_SODAR, ")"
+	print *
 
 end program SodarChecker
