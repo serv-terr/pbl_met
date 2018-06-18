@@ -27,9 +27,11 @@ module Modos
 		integer, private										:: iSensorType	! MDS_SODAR, MDS_SODAR_RASS, MDS_MRR2
 		integer, dimension(:), allocatable, private				:: ivBlockIdx	! Indices of block starts
 		integer, dimension(:), allocatable, private				:: ivBlockLen	! Indices of block lengths
+		integer, dimension(6)									:: ivErrorMask	! Error mask for each antenna
 	contains
 		procedure	:: load	         => mds_load
 		procedure	:: getSensorType => mds_getSensorType
+		procedure	:: setErrorMasks => mds_setErrorMasks
 	end type ModosData
 	
 	! Constants
@@ -66,6 +68,7 @@ contains
 		! Assume success (will falsify on failure); and, initialize type of sensor to unknown, just in case of failure
 		iRetCode           = 0
 		this % iSensorType = 0
+		this % ivErrorMask = 0	! All data transmitted (default)
 		
 		! Count lines in MODOS file
 		open(iLUN, file=sFileName, status='old', action='read', iostat=iErrCode)
@@ -181,6 +184,38 @@ contains
 		iSensorType = this % iSensorType
 		
 	end function mds_getSensorType
+	
+	
+	function mds_setErrorMasks(this, iMask1, iMask2, iMask3, iMask4, iMask5, iMaskR) result(iRetCode)
+	
+		! Routine arguments
+		class(ModosData), intent(out)	:: this
+		integer, intent(in)				:: iMask1
+		integer, intent(in)				:: iMask2
+		integer, intent(in)				:: iMask3
+		integer, intent(in)				:: iMask4
+		integer, intent(in)				:: iMask5
+		integer, intent(in)				:: iMaskR
+		integer							:: iRetCode
+		
+		! Locals
+		! --none--
+		
+		! Constants
+		integer, parameter	:: MSK_ERRORS = b'111111111111'	! Only 12 less significant bits used in MODOS (SODAR/RASS) files
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Assign masks, after having set their unused bits to 0
+		this % ivErrorMask(1) = IAND(iMask1, MSK_ERRORS)
+		this % ivErrorMask(2) = IAND(iMask2, MSK_ERRORS)
+		this % ivErrorMask(3) = IAND(iMask3, MSK_ERRORS)
+		this % ivErrorMask(4) = IAND(iMask4, MSK_ERRORS)
+		this % ivErrorMask(5) = IAND(iMask5, MSK_ERRORS)
+		this % ivErrorMask(6) = IAND(iMaskR, MSK_ERRORS)
+		
+	end function mds_setErrorMasks
 
 end module Modos
 
