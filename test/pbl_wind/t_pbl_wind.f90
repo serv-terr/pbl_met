@@ -1418,6 +1418,17 @@ contains
 		print *, 'Return code: ', iRetCode, '   (expected: non-zero)'
 		print *
 		
+		! Test 7: Classify a direction-dependent scalar, with zero-length direction
+		deallocate(vel,dir)
+		allocate(vel(16384),dir(0))
+		call random_number(vel)
+		vel = vel * 5.
+		scalar = vel
+		print *, 'Test 7: Classify direction-dependent scalar, with zero-length direction'
+		iRetCode = VelDirMean(vel, dir, scalar, [0.5, 1.5, 2.5, 3.5, 4.5], 16, WDCLASS_ZERO_BASED, rmMean)
+		print *, 'Return code: ', iRetCode, '   (expected: non-zero)'
+		print *
+		
 		! Leave
 		deallocate(vel, dir, scalar)
 		
