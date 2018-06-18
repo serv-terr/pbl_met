@@ -28,7 +28,8 @@ module Modos
 		integer, dimension(:), allocatable, private				:: ivBlockIdx	! Indices of block starts
 		integer, dimension(:), allocatable, private				:: ivBlockLen	! Indices of block lengths
 	contains
-		procedure	:: load	=> mds_load
+		procedure	:: load	         => mds_load
+		procedure	:: getSensorType => mds_getSensorType
 	end type ModosData
 	
 	! Constants
@@ -62,8 +63,9 @@ contains
 		real					:: rTemp
 		integer					:: iNumPositiveCounts
 		
-		! Assume success (will falsify on failure)
-		iRetCode = 0
+		! Assume success (will falsify on failure); and, initialize type of sensor to unknown, just in case of failure
+		iRetCode           = 0
+		this % iSensorType = 0
 		
 		! Count lines in MODOS file
 		open(iLUN, file=sFileName, status='old', action='read', iostat=iErrCode)
@@ -164,6 +166,21 @@ contains
 		end if
 		
 	end function mds_load
+	
+	
+	function mds_getSensorType(this) result(iSensorType)
+	
+		! Routine arguments
+		class(ModosData), intent(in)	:: this
+		integer							:: iSensorType
+		
+		! Locals
+		! --none--
+		
+		! Retrieve the information piece desired
+		iSensorType = this % iSensorType
+		
+	end function mds_getSensorType
 
 end module Modos
 
