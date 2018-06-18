@@ -52,10 +52,12 @@ contains
 		character(len=512)		:: sBuffer
 		integer					:: iNumLines
 		integer					:: iLine
+		integer					:: i
 		integer					:: iNumBlocks
 		integer					:: iBlock
 		integer, dimension(3)	:: ivBlockTypeCount
-		integer					:: iPos
+		integer					:: iRassLine
+		integer					:: iFrom, iTo
 		character(len=6)		:: sTemp
 		real					:: rTemp
 		integer					:: iNumPositiveCounts
@@ -124,17 +126,19 @@ contains
 		ivBlockTypeCount = 0
 		do iBlock = 1, iNumBlocks
 			if(this % svLines(this % ivBlockIdx(iBlock))(1:3) == "SDR") then
-				iPos = index(this % svLines(this % ivBlockIdx(iBlock)), "TMP")
-				if(iPos > 0) then
-					sTemp = this % svLines(this % ivBlockIdx(iBlock))(iPos+3:iPos+8)
-					read(sTemp, *, iostat=iErrCode) rTemp
-					if(iErrCode == 0) then
-						if(rTemp <= 0) then
-							ivBlockTypeCount(MDS_SODAR) = ivBlockTypeCount(MDS_SODAR) + 1
-						else
-							ivBlockTypeCount(MDS_SODAR_RASS) = ivBlockTypeCount(MDS_SODAR_RASS) + 1
-						end if
+				iRassLine = 0
+				iFrom     = this % ivBlockIdx(iBlock) + this % ivBlockLen(iBlock) - 1
+				iTo       = max(this % ivBlockIdx(iBlock) + this % ivBlockLen(iBlock) - 4, this % ivBlockIdx(iBlock))
+				do i = iFrom, iTo, -1
+					if(this % svLines(i)(1:3) == 'ERR') then
+						iRassLine = i
+						exit
 					end if
+				end do
+				if(iRassLine > 0) then
+					ivBlockTypeCount(MDS_SODAR_RASS) = ivBlockTypeCount(MDS_SODAR_RASS) + 1
+				else
+					ivBlockTypeCount(MDS_SODAR) = ivBlockTypeCount(MDS_SODAR) + 1
 				end if
 			elseif(this % svLines(this % ivBlockIdx(iBlock))(1:3) == "MRR") then
 				ivBlockTypeCount(MDS_MRR2) = ivBlockTypeCount(MDS_MRR2) + 1
