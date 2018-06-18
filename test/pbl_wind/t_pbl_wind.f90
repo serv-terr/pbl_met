@@ -1374,6 +1374,23 @@ contains
 		end do
 		print *
 		
+		! Test 4: Classify a direction-dependent scalar, with an invalid scalar
+		call random_number(dir)
+		dir = dir * 360.
+		call random_number(vel)
+		vel = vel * 5.
+		scalar = dir
+		scalar(1) = NaN
+		print *, 'Test 4: Classify direction-dependent scalar, with one invalid scalar'
+		iRetCode = VelDirMean(vel, dir, scalar, [0.5, 1.5, 2.5, 3.5, 4.5], 16, WDCLASS_ZERO_BASED, rmMean)
+		print *, 'Return code: ', iRetCode, '   (expected: 0)'
+		print *
+		print *, 'Dir.cls, Min(mean(scalar)), Max(mean(scalar))'
+		do i = 1, 16
+			print *, i, minval(rmMean(:,i)), maxval(rmMean(:,i))
+		end do
+		print *
+		
 		! Leave
 		deallocate(vel, dir, scalar)
 		
