@@ -1357,6 +1357,23 @@ contains
 		end do
 		print *
 		
+		! Test 3: Classify a direction-dependent scalar, with an invalid wind
+		call random_number(dir)
+		dir = dir * 360.
+		call random_number(vel)
+		vel = vel * 5.
+		vel(1) = NaN
+		scalar = dir
+		print *, 'Test 3: Classify direction-dependent scalar, with one invalid wind'
+		iRetCode = VelDirMean(vel, dir, scalar, [0.5, 1.5, 2.5, 3.5, 4.5], 16, WDCLASS_ZERO_BASED, rmMean)
+		print *, 'Return code: ', iRetCode, '   (expected: 0)'
+		print *
+		print *, 'Dir.cls, Min(mean(scalar)), Max(mean(scalar))'
+		do i = 1, 16
+			print *, i, minval(rmMean(:,i)), maxval(rmMean(:,i))
+		end do
+		print *
+		
 		! Leave
 		deallocate(vel, dir, scalar)
 		
