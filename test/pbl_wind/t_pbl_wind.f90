@@ -1441,6 +1441,32 @@ contains
 		print *, 'Return code: ', iRetCode, '   (expected: non-zero)'
 		print *
 		
+		! Test 9: Classify a direction-dependent scalar, with different-length inputs
+		deallocate(vel,dir,scalar)
+		allocate(vel(16384),dir(16384), scalar(16385))
+		call random_number(vel)
+		vel = vel * 5.
+		call random_number(dir)
+		dir = dir * 360.
+		scalar = 1.
+		print *, 'Test 9: Classify a direction-dependent scalar, with different-length inputs'
+		iRetCode = VelDirMean(vel, dir, scalar, [0.5, 1.5, 2.5, 3.5, 4.5], 16, WDCLASS_ZERO_BASED, rmMean)
+		print *, 'Return code: ', iRetCode, '   (expected: non-zero)'
+		print *
+		
+		! Test 10: Classify a direction-dependent scalar, with all zero-length inputs
+		deallocate(vel,dir,scalar)
+		allocate(vel(0),dir(0), scalar(0))
+		print *, 'Test 10: Classify direction-dependent scalar, with all zero-length inputs'
+		iRetCode = VelDirMean(vel, dir, scalar, [0.5, 1.5, 2.5, 3.5, 4.5], 16, WDCLASS_ZERO_BASED, rmMean)
+		print *, 'Return code: ', iRetCode, '   (expected: non-zero)'
+		print *
+		print *, 'Dir.cls, Min(mean(scalar)), Max(mean(scalar))'
+		do i = 1, 16
+			print *, i, minval(rmMean(:,i)), maxval(rmMean(:,i))
+		end do
+		print *
+		
 		! Leave
 		deallocate(vel, dir, scalar)
 		
