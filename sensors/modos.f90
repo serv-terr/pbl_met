@@ -8,6 +8,8 @@
 !
 module Modos
 
+	use pbl_met
+
 	implicit none
 	
 	private
@@ -216,6 +218,81 @@ contains
 		this % ivErrorMask(6) = IAND(iMaskR, MSK_ERRORS)
 		
 	end function mds_setErrorMasks
+	
+	! **********************
+	! * Internal functions *
+	! **********************
+	
+	! Parse values, without knowing how many they are in advance; typically
+	! used for heights, whose number is fixed based on sensor programming.
+	!
+	! In this case, we may take for granted all data are present and valid,
+	! so all we have to do is reading them all - if any is found missing,
+	! an error is issued.
+	function GetValues(sLine, iSensorType, rvValues) result(iRetCode)
+	
+		! Routine arguments
+		character(len=*), intent(in)					:: sLine
+		integer, intent(in)								:: iSensorType
+		real, dimension(:), allocatable, intent(out)	:: rvValues
+		integer											:: iRetCode
+		
+		! Locals
+		integer				:: iFieldLen
+		character(len=16)	:: sField
+		integer				:: iFrom, iTo
+		integer				:: i
+		integer				:: iNumFields
+		integer				:: iErrCode
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check line length to be compatible with the identified file type
+		if(iSensorType == MDS_MRR2) then
+			iFieldLen = 7
+		elseif(iSensorType == MDS_SODAR .or. iSensorType == MDS_SODAR_RASS) then
+			iFieldLen = 6
+		else
+			iRetCode = 1
+			return
+		end if
+		if(mod(len_trim(sLine)-3, iFieldLen) /= 0) then
+			iRetCode = 2
+			return
+		end if
+		iNumFields = (len_trim(sLine)-3) / iFieldLen
+		if(iNumFields <= 0) then
+			iRetCode = 3
+			return
+		end if
+		if(allocated(rvValues)) deallocate(rvValues)
+		allocate(rvValues(iNumFields))
+		
+		! Try decoding all fields
+		do i = 1, iNumFields
+			iFrom  = 3 + (i-1)*iFieldLen
+			iTo    = iFrom + iFieldLen - 1
+			sField = sLine(iFrom:iTo)
+			if(sField == ' ') then
+				rvValues(i) = NaN
+				cycle
+			end if
+			read(sField, *, iostat=iErrCode) rvValues(i)
+			if(iErrCode /= 0) then
+				rvValues(i) = NaN
+				cycle
+			end if
+		end do
+		
+		! Check all data read are valid (they are expected to be for this call)
+		if(any(.invalid.rvValues)) then
+			iRetCode = 4
+			return
+		end if
+		! Post condition: No data was found invalid, just return
+		
+	end function GetValues
 
 end module Modos
 
