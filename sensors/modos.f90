@@ -294,5 +294,61 @@ contains
 		
 	end function GetHeights
 	
+	
+	! Capture (i.e. attempt reading, and assign invalid if missing) floating point values from
+	! a data line, knowing in advance how many they are
+	function CaptureValues(sLine, iNumFields, iSensorType, rvValues) result(iRetCode)
+	
+		! Routine arguments
+		character(len=*), intent(in)					:: sLine
+		integer, intent(in)								:: iNumFields
+		integer, intent(in)								:: iSensorType
+		real, dimension(:), allocatable, intent(out)	:: rvValues
+		integer											:: iRetCode
+		
+		! Locals
+		integer				:: iFieldLen
+		character(len=16)	:: sField
+		integer				:: iFrom, iTo
+		integer				:: i
+		integer				:: iErrCode
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check line length to be compatible with the identified file type
+		if(iSensorType == MDS_MRR2) then
+			iFieldLen = 7
+		elseif(iSensorType == MDS_SODAR .or. iSensorType == MDS_SODAR_RASS) then
+			iFieldLen = 6
+		else
+			iRetCode = 1
+			return
+		end if
+		if(mod(len_trim(sLine)-3, iFieldLen) /= 0) then
+			iRetCode = 2
+			return
+		end if
+		if(allocated(rvValues)) deallocate(rvValues)
+		allocate(rvValues(iNumFields))
+		
+		! Try decoding all fields
+		do i = 1, iNumFields
+			iFrom  = 3 + (i-1)*iFieldLen
+			iTo    = iFrom + iFieldLen - 1
+			sField = sLine(iFrom:iTo)
+			if(sField == ' ') then
+				rvValues(i) = NaN
+				cycle
+			end if
+			read(sField, *, iostat=iErrCode) rvValues(i)
+			if(iErrCode /= 0) then
+				rvValues(i) = NaN
+				cycle
+			end if
+		end do
+		
+	end function CaptureValues
+
 end module Modos
 
