@@ -16,6 +16,7 @@ program SodarChecker
 	integer			:: iRetCode
 	type(ModosData)	:: tSodar
 	integer			:: iSensorType
+	integer			:: iNumChanges
 	
 	! Test 1: Read SDR data from SODAR-only station
 	iRetCode = tSodar % load(10, "0616.sdr")
@@ -23,6 +24,13 @@ program SodarChecker
 	print *, "Return code: ", iRetCode, "  (expected:0)"
 	iSensorType = tSodar % getSensorType()
 	print *, "Sensor type = ", iSensorType, "  (expected:", MDS_SODAR, ")"
+	print *
+	
+	! Test 2: Count heights changes (a subset of configuration changes)
+	print *, "Test 2: Count height changes"
+	iRetCode = tSodar % getNumHeightChanges(iNumChanges)
+	print *, "Return code: ", iRetCode, "  (expected:0)"
+	print *, "Num.changes: ", iNumChanges, "  (expected:0)"
 	print *
 
 end program SodarChecker
