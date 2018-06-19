@@ -229,12 +229,12 @@ contains
 	! In this case, we may take for granted all data are present and valid,
 	! so all we have to do is reading them all - if any is found missing,
 	! an error is issued.
-	function GetValues(sLine, iSensorType, rvValues) result(iRetCode)
+	function GetHeights(sLine, iSensorType, ivHeights) result(iRetCode)
 	
 		! Routine arguments
 		character(len=*), intent(in)					:: sLine
 		integer, intent(in)								:: iSensorType
-		real, dimension(:), allocatable, intent(out)	:: rvValues
+		integer, dimension(:), allocatable, intent(out)	:: ivHeights
 		integer											:: iRetCode
 		
 		! Locals
@@ -266,8 +266,8 @@ contains
 			iRetCode = 3
 			return
 		end if
-		if(allocated(rvValues)) deallocate(rvValues)
-		allocate(rvValues(iNumFields))
+		if(allocated(ivHeights)) deallocate(ivHeights)
+		allocate(ivHeights(iNumFields))
 		
 		! Try decoding all fields
 		do i = 1, iNumFields
@@ -275,24 +275,24 @@ contains
 			iTo    = iFrom + iFieldLen - 1
 			sField = sLine(iFrom:iTo)
 			if(sField == ' ') then
-				rvValues(i) = NaN
+				ivHeights(i) = -9999
 				cycle
 			end if
-			read(sField, *, iostat=iErrCode) rvValues(i)
+			read(sField, *, iostat=iErrCode) ivHeights(i)
 			if(iErrCode /= 0) then
-				rvValues(i) = NaN
+				ivHeights(i) = -9999
 				cycle
 			end if
 		end do
 		
 		! Check all data read are valid (they are expected to be for this call)
-		if(any(.invalid.rvValues)) then
+		if(any(ivHeights <= -9999)) then
 			iRetCode = 4
 			return
 		end if
 		! Post condition: No data was found invalid, just return
 		
-	end function GetValues
-
+	end function GetHeights
+	
 end module Modos
 
