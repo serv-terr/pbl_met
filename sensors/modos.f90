@@ -26,14 +26,20 @@ module Modos
 	
 	type ModosData
 		character(len=512), dimension(:), allocatable, private	:: svLines
-		integer, private										:: iSensorType	! MDS_SODAR, MDS_SODAR_RASS, MDS_MRR2
-		integer, dimension(:), allocatable, private				:: ivBlockIdx	! Indices of block starts
-		integer, dimension(:), allocatable, private				:: ivBlockLen	! Indices of block lengths
-		integer, dimension(6)									:: ivErrorMask	! Error mask for each antenna
+		integer, private										:: iSensorType = 0	! MDS_SODAR, MDS_SODAR_RASS, MDS_MRR2
+		integer, dimension(:), allocatable, private				:: ivBlockIdx		! Indices of block starts
+		integer, dimension(:), allocatable, private				:: ivBlockLen		! Indices of block lengths
+		integer, dimension(6), private							:: ivErrorMask		! Error mask for each antenna
 	contains
-		procedure	:: load	         => mds_load
-		procedure	:: getSensorType => mds_getSensorType
-		procedure	:: setErrorMasks => mds_setErrorMasks
+		! Non-default constructors
+		procedure	:: load	         		=> mds_load
+		! Basic enquiry
+		procedure	:: getSensorType 		=> mds_getSensorType
+		procedure	:: getNumHeightChanges	=> mds_getNumHeightChanges
+		! Data retrieval
+		procedure	:: setErrorMasks 		=> mds_setErrorMasks
+		! Low-level auxiliaries
+		procedure	:: getLineIndex			=> mds_getLineIndex
 	end type ModosData
 	
 	! Constants
@@ -188,6 +194,77 @@ contains
 	end function mds_getSensorType
 	
 	
+	function mds_getNumHeightChanges(this, iNumChanges) result(iRetCode)
+	
+		! Routine arguments
+		class(ModosData), intent(in)	:: this
+		integer, intent(out)			:: iNumChanges
+		integer							:: iRetCode
+		
+		! Locals
+		integer, dimension(:), allocatable	:: ivNewHeight, ivOldHeight
+		integer								:: iErrCode
+		integer								:: i
+		integer								:: iHeightIdx
+		integer								:: iBlock
+		logical								:: lDiffer
+		
+		! Assume success (will falsify on failure)
+		iRetCode    = 0
+		iNumChanges = 0
+		
+		! Check something can be made
+		if(this % iSensorType <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(.not.allocated(this % svLines) .or. .not.allocated(this % ivBlockIdx) .or. .not.allocated(this % ivBlockLen)) then
+			iRetCode = 2
+			return
+		end if
+		
+		! Get heights from first block
+		iHeightIdx = this % getLineIndex(1, 'H  ')
+		iErrCode = GetHeights(this % svLines(iHeightIdx), this % iSensorType, ivOldHeight)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		
+		! Check all heights from following blocks are the same as the preceding one, counting the
+		! changes
+		do iBlock = 2, size(this % ivBlockIdx)
+		
+			! Get new height set
+			iHeightIdx = this % getLineIndex(iBlock, 'H  ')
+			iErrCode = GetHeights(this % svLines(iHeightIdx), this % iSensorType, ivNewHeight)
+			if(iErrCode /= 0) then
+				iRetCode = 4
+				return
+			end if
+			
+			! Compare old height set: if different size, or different contents, then a
+			! configuration change has occurred
+			if(size(ivNewHeight) /= size(ivOldHeight)) then
+				lDiffer = .true.
+				deallocate(ivOldHeight)
+				allocate(ivOldHeight(size(ivNewHeight)))
+				ivOldHeight = ivNewHeight
+			elseif(any(ivNewHeight /= ivOldHeight)) then
+				lDiffer = .true.
+				ivOldHeight = ivNewHeight
+			else
+				lDiffer = .false.
+			end if
+			
+			! Increase count, if necessary
+			if(lDiffer) iNumChanges = iNumChanges + 1
+			
+		end do
+		
+	end function mds_getNumHeightChanges
+	
+	
 	function mds_setErrorMasks(this, iMask1, iMask2, iMask3, iMask4, iMask5, iMaskR) result(iRetCode)
 	
 		! Routine arguments
@@ -218,6 +295,31 @@ contains
 		this % ivErrorMask(6) = IAND(iMaskR, MSK_ERRORS)
 		
 	end function mds_setErrorMasks
+	
+	
+	function mds_getLineIndex(this, iBlock, sLineType) result(iLineIdx)
+	
+		! Routine arguments
+		class(ModosData), intent(in)	:: this
+		integer, intent(in)				:: iBlock
+		character(len=3), intent(in)	:: sLineType
+		integer							:: iLineIdx
+		
+		! Locals
+		integer		:: i
+		
+		! Assume the index is not found (will set it on success)
+		iLineIdx = -9999
+		
+		! Search the line in block beginning with 'sLineType'
+		do i = this % ivBlockIdx(1), this % ivBlockIdx(1) + this % ivBlockLen(1) - 1
+			if(this % svLines(i)(1:3) == sLineType) then
+				iLineIdx = i
+				exit
+			end if
+		end do
+		
+	end function mds_getLineIndex
 	
 	! **********************
 	! * Internal functions *
