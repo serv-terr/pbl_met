@@ -1,11 +1,11 @@
-sc : sc.o modos.o
-	gfortran -o sc sc.o modos.o
+sc : sc.o modos.o ../pbl_met.a
+	gfortran -fcheck=all -O0 -J ..  -o sc sc.o modos.o ../pbl_met.a
 
 sc.o : sc.f90 modos.mod
-	gfortran -c sc.f90
+	gfortran -fcheck=all -O0 -J .. -c sc.f90
 	
 modos.o modos.mod : modos.f90
-	gfortran -c modos.f90
+	gfortran -fcheck=all -O0 -J .. -c modos.f90
 
 clean :
 	rm *.mod
