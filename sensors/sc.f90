@@ -9,14 +9,20 @@
 program SodarChecker
 
 	use modos
+	use pbl_met
 	
 	implicit none
 	
 	! Locals
-	integer			:: iRetCode
-	type(ModosData)	:: tSodar
-	integer			:: iSensorType
-	integer			:: iNumChanges
+	integer								:: iRetCode
+	integer								:: i
+	type(ModosData)						:: tSodar
+	type(DateTime)						:: tDate
+	integer								:: iSensorType
+	integer								:: iNumChanges
+	real(8), dimension(:), allocatable	:: rvTimeStamp
+	integer, dimension(:), allocatable	:: ivTimeStep
+	character(len=23)					:: sDateTime
 	
 	! Test 1: Read SDR data from SODAR-only station
 	iRetCode = tSodar % load(10, "0616.sdr")
@@ -32,5 +38,18 @@ program SodarChecker
 	print *, "Return code: ", iRetCode, "  (expected:0)"
 	print *, "Num.changes: ", iNumChanges, "  (expected:0)"
 	print *
+	
+	! Test 3: Get list of block time stamp and durations
+	print *, "Test 3: Get block time stamps and delta times"
+	print *
+	iRetCode = tSodar % getBlockInfo(rvTimeStamp, ivTimeStep)
+	print *, "Return code: ", iRetCode, "  (expected:0)"
+	print *
+	print *, "Date, Time.Step"
+	do i = 1, size(rvTimeStamp)
+		iRetCode = tDate % fromEpoch(rvTimeStamp(i))
+		sDateTime = tDate % toISO()
+		print *, sDateTime, ",", ivTimeStep(i)
+	end do
 
 end program SodarChecker
