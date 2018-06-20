@@ -36,6 +36,7 @@ module Modos
 		! Basic enquiry
 		procedure	:: getSensorType 		=> mds_getSensorType
 		procedure	:: getNumHeightChanges	=> mds_getNumHeightChanges
+		procedure	:: getBlockInfo			=> mds_getBlockInfo
 		! Data retrieval
 		procedure	:: setErrorMasks 		=> mds_setErrorMasks
 		! Low-level auxiliaries
@@ -263,6 +264,63 @@ contains
 		end do
 		
 	end function mds_getNumHeightChanges
+	
+	
+	function mds_getBlockInfo(this, rvTimeStamp, ivTimeStep) result(iRetCode)
+	
+		! Routine arguments
+		class(ModosData), intent(in)					:: this
+		real(8), dimension(:), allocatable, intent(out)	:: rvTimeStamp
+		integer, dimension(:), allocatable, intent(out)	:: ivTimeStep
+		integer											:: iRetCode
+		
+		! Locals
+		integer			:: iErrCode
+		integer			:: i
+		integer			:: iBlkIdx
+		integer			:: n
+		integer			:: iDeltaTime
+		integer			:: iYear, iMonth, iDay, iHour, iMinute, iSecond
+		real(8)			:: rSecond
+		type(DateTime)	:: tDate
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(this % iSensorType <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(.not.allocated(this % svLines) .or. .not.allocated(this % ivBlockIdx) .or. .not.allocated(this % ivBlockLen)) then
+			iRetCode = 2
+			return
+		end if
+		n = size(this % ivBlockIdx)
+		
+		! Reserve workspace
+		if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
+		if(allocated(ivTimeStep)) deallocate(ivTimeStep)
+		allocate(rvTimeStamp(n))
+		allocate(ivTimeStep(n))
+		
+		! Iterate over block prefixes, and retrieve the information desired
+		do i = 1, size(this % ivBlockIdx)
+			iBlkIdx = this % ivBlockIdx(i)
+			read(this % svLines(iBlkIdx), "(4x,6i2,8x,i6)", iostat=iErrCode) iYear, iMonth, iDay, iHour, iMinute, iSecond, iDeltaTime
+			if(iErrCode == 0) then
+				iYear = iYear + 2000
+				rSecond = iSecond
+				tDate = DateTime(iYear, iMonth, iDay, iHour, iMinute, rSecond)
+				rvTimeStamp(i) = tDate % toEpoch()
+				ivTimeStep(i)  = iDeltaTime
+			else
+				rvTimeStamp(i) = NaN_8
+				ivTimeStep(i)  = -9999
+			end if
+		end do
+		
+	end function mds_getBlockInfo
 	
 	
 	function mds_setErrorMasks(this, iMask1, iMask2, iMask3, iMask4, iMask5, iMaskR) result(iRetCode)
