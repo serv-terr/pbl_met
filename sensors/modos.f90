@@ -30,6 +30,9 @@ module Modos
 		integer, dimension(:), allocatable, private				:: ivBlockIdx		! Indices of block starts
 		integer, dimension(:), allocatable, private				:: ivBlockLen		! Indices of block lengths
 		integer, dimension(6), private							:: ivErrorMask		! Error mask for each antenna
+		logical, dimension(6), private							:: lvPresent		! Spectra, antenna activation mask
+		real, dimension(32,44,6), private						:: raPower			! Spectra, actual back-scattered power
+		integer, private										:: iNumSpHeights	! Number of heights used for spectra (include the two noise heights)
 	contains
 		! Non-default constructors
 		procedure	:: load	         		=> mds_load
@@ -39,6 +42,7 @@ module Modos
 		procedure	:: getBlockInfo			=> mds_getBlockInfo
 		! Data retrieval
 		procedure	:: setErrorMasks 		=> mds_setErrorMasks
+		procedure	:: getSodarSpectra		=> mds_getSodarSpectra
 		! Low-level auxiliaries
 		procedure	:: getLineIndex			=> mds_getLineIndex
 	end type ModosData
@@ -176,6 +180,10 @@ contains
 		else
 			this % iSensorType = 0
 		end if
+		
+		! Set initial number of spectra heights to zero, indicating
+		! block spectra have not yet been retrieved
+		this % iNumSpHeights = 0
 		
 	end function mds_load
 	
@@ -321,6 +329,108 @@ contains
 		end do
 		
 	end function mds_getBlockInfo
+	
+	
+	function mds_getSodarSpectra(this, iBlock) result(iRetCode)
+	
+		! Routine arguments
+		class(ModosData), intent(inout)		:: this
+		integer, intent(in)					:: iBlock
+		integer								:: iRetCode
+		
+		! Locals
+		integer								:: iErrCode
+		integer								:: n
+		integer								:: i
+		integer								:: iLevel
+		integer								:: iAntenna
+		character							:: cLevel
+		character							:: cAntenna
+		integer, dimension(:), allocatable	:: ivHeights
+		real, dimension(:), allocatable		:: rvValues
+		character(len=3)					:: sLineType
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not.allocated(this % ivBlockIdx)) then
+			! Modos data have not yet been loaded from file
+			iRetCode = 1
+			return
+		end if
+		if(this % iSensorType <= 0 .or. this % iSensorType == MDS_MRR2) then
+			! Data are filled, but, this is surely not a SODAR or SODAR/RASS
+			iRetCode = 2
+			return
+		end if
+		n = size(this % ivBlockIdx)
+		if(n <= 0) then
+			! Data are filled, of SODAR or SODAR/RASS type, but no complete/valid block was loaded from file
+			! (may happen, occasionally)
+			iRetCode = 3
+			return
+		end if
+		if(iBlock < 1 .or. iBlock > n) then
+			! Data are filled, of SODAR(/RASS) type, and some blocks exist, but the block
+			! index for which we want to retrieve data is wrong
+			iRetCode = 4
+			return
+		end if
+		
+		! Load spectral data
+		this % raPower = NaN
+		iErrCode = GetHeights(this % svLines(this % ivBlockIdx(iBlock) + 1), MDS_SODAR, ivHeights)
+		if(iErrCode /= 0) then
+			iRetCode = 5
+			return
+		end if
+		this % iNumSpHeights = size(ivHeights)
+		i = this % ivBlockIdx(iBlock) + 2
+		do
+			sLineType = this % svLines(i)(1:3)
+			if(sLineType(1:1) == 'F') then
+			
+				! This is a spectral line. Characters in positions 2 and 3 of sLineType indicate which
+				! line, and which antenna
+				cLevel = sLineType(2:2)
+				if(cLevel >= '0' .and. cLevel <= '9') then
+					iLevel = ichar(cLevel) - ichar('0') + 1
+				else
+					iLevel = ichar(cLevel) - ichar('A') + 1 + 10
+				end if
+				cAntenna = sLineType(3:3)
+				if(cAntenna /= 'R') then
+					iAntenna = ichar(cAntenna) - ichar('0') + 1
+				else
+					iAntenna = 6
+				end if
+				
+				! Load actual data
+				iErrCode = CaptureValues( &
+					this % svLines(i), &
+					this % iNumSpHeights, &
+					MDS_SODAR, &
+					rvValues &
+				)
+				if(iErrCode /= 0) then
+					iRetCode = 6
+					return
+				end if
+				this % raPower(iLevel, 1:this % iNumSpHeights, iAntenna) = rvValues
+				
+				! Scan next line
+				i = i + 1
+				
+			else
+			
+				! Block ended: exit, so that scan may proceed to the next
+				exit
+				
+			end if
+		end do
+		
+	end function mds_getSodarSpectra
 	
 	
 	function mds_setErrorMasks(this, iMask1, iMask2, iMask3, iMask4, iMask5, iMaskR) result(iRetCode)
