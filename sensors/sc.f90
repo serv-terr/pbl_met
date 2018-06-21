@@ -51,5 +51,17 @@ program SodarChecker
 		sDateTime = tDate % toISO()
 		print *, sDateTime, ",", ivTimeStep(i)
 	end do
+	
+	! Test 4: Read all spectra, in sequence
+	print *, "Test 4: Read spectra in sequence"
+	print *
+	print *, "Date, Ret.Code, Time.Step"
+	do i = 1, size(rvTimeStamp)
+		iRetCode = tDate % fromEpoch(rvTimeStamp(i))
+		sDateTime = tDate % toISO()
+		iRetCode = tSodar % getSodarSpectra(i)
+		print *, sDateTime, ",", iRetCode, ",", ivTimeStep(i)
+	end do
+	print *
 
 end program SodarChecker
