@@ -403,7 +403,7 @@ contains
 				end if
 				cAntenna = sLineType(3:3)
 				if(cAntenna /= 'R') then
-					iAntenna = ichar(cAntenna) - ichar('0') + 1
+					iAntenna = ichar(cAntenna) - ichar('0')
 				else
 					iAntenna = 6
 				end if
