@@ -35,16 +35,18 @@ module Modos
 		integer, private										:: iNumSpHeights	! Number of heights used for spectra (include the two noise heights)
 	contains
 		! Non-default constructors
-		procedure	:: load	         		=> mds_load
+		procedure	:: load	         			=> mds_load
 		! Basic enquiry
-		procedure	:: getSensorType 		=> mds_getSensorType
-		procedure	:: getNumHeightChanges	=> mds_getNumHeightChanges
-		procedure	:: getBlockInfo			=> mds_getBlockInfo
+		procedure	:: getSensorType 			=> mds_getSensorType
+		procedure	:: getNumHeightChanges		=> mds_getNumHeightChanges
+		procedure	:: getBlockInfo				=> mds_getBlockInfo
 		! Data retrieval
-		procedure	:: setErrorMasks 		=> mds_setErrorMasks
-		procedure	:: getSodarSpectra		=> mds_getSodarSpectra
+		procedure	:: setErrorMasks 			=> mds_setErrorMasks
+		procedure	:: getSodarSpectra			=> mds_getSodarSpectra
+		! Spectra evaluation and diagnostics
+		procedure	:: sodarSpectraAvailability	=> mds_SodarSpectraAvailability
 		! Low-level auxiliaries
-		procedure	:: getLineIndex			=> mds_getLineIndex
+		procedure	:: getLineIndex				=> mds_getLineIndex
 	end type ModosData
 	
 	! Constants
@@ -488,6 +490,38 @@ contains
 		end do
 		
 	end function mds_getLineIndex
+	
+	
+	function mds_SodarSpectraAvailability(this, rvAvailability) result(iRetCode)
+	
+		! Routine arguments
+		class(ModosData), intent(in)	:: this
+		real, dimension(6), intent(out)	:: rvAvailability
+		integer							:: iRetCode
+		
+		! Locals
+		integer		:: i
+		integer		:: iNumValid
+		integer		:: iNumTotal
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(this % iNumSpHeights <= 0) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Count valid and total data, per single antenna, and convert them to
+		! a unique availability fraction (0 to 1 valued)
+		iNumTotal = 32*this % iNumSpHeights
+		do i = 1, 6
+			iNumValid = count(.valid.this % raPower(:,:,i))
+			rvAvailability(i) = float(iNumValid) / float(iNumTotal)
+		end do
+		
+	end function mds_SodarSpectraAvailability
 	
 	! **********************
 	! * Internal functions *
