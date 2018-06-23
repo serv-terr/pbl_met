@@ -663,7 +663,7 @@ contains
 		
 		! Try decoding all fields
 		do i = 1, iNumFields
-			iFrom  = 3 + (i-1)*iFieldLen
+			iFrom  = 3 + (i-1)*iFieldLen + 1
 			iTo    = iFrom + iFieldLen - 1
 			sField = sLine(iFrom:iTo)
 			if(sField == ' ') then
@@ -726,7 +726,7 @@ contains
 		
 		! Try decoding all fields
 		do i = 1, iNumFields
-			iFrom  = 3 + (i-1)*iFieldLen
+			iFrom  = 3 + (i-1)*iFieldLen + 1
 			iTo    = iFrom + iFieldLen - 1
 			sField = sLine(iFrom:iTo)
 			if(sField == ' ') then
@@ -787,7 +787,7 @@ contains
 		
 		! Try decoding all fields
 		do i = 1, iNumFields
-			iFrom  = 3 + (i-1)*iFieldLen
+			iFrom  = 3 + (i-1)*iFieldLen + 1
 			iTo    = iFrom + iFieldLen - 1
 			sField = sLine(iFrom:iTo)
 			if(sField == ' ') then
