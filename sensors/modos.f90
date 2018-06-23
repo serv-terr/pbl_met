@@ -35,18 +35,19 @@ module Modos
 		integer, private										:: iNumSpHeights	! Number of heights used for spectra (include the two noise heights)
 	contains
 		! Non-default constructors
-		procedure	:: load	         			=> mds_load
+		procedure	:: load	         			   => mds_load
 		! Basic enquiry
-		procedure	:: getSensorType 			=> mds_getSensorType
-		procedure	:: getNumHeightChanges		=> mds_getNumHeightChanges
-		procedure	:: getBlockInfo				=> mds_getBlockInfo
+		procedure	:: getSensorType 			   => mds_getSensorType
+		procedure	:: getNumHeightChanges		   => mds_getNumHeightChanges
+		procedure	:: getBlockInfo				   => mds_getBlockInfo
 		! Data retrieval
-		procedure	:: setErrorMasks 			=> mds_setErrorMasks
-		procedure	:: getSodarSpectra			=> mds_getSodarSpectra
+		procedure	:: setErrorMasks 			   => mds_setErrorMasks
+		procedure	:: getSodarSpectra			   => mds_getSodarSpectra
 		! Spectra evaluation and diagnostics
-		procedure	:: sodarSpectraAvailability	=> mds_SodarSpectraAvailability
+		procedure	:: sodarSpectraAvailability	   => mds_SodarSpectraAvailability
+		procedure	:: sodarSpectraNoiseIndicators => mds_SodarSpectraNoiseIndicators
 		! Low-level auxiliaries
-		procedure	:: getLineIndex				=> mds_getLineIndex
+		procedure	:: getLineIndex				   => mds_getLineIndex
 	end type ModosData
 	
 	! Constants
@@ -522,6 +523,98 @@ contains
 		end do
 		
 	end function mds_SodarSpectraAvailability
+	
+	
+	function mds_SodarSpectraNoiseIndicators( &
+		this, &
+		rvNoiseLevel, &
+		rvTop, &
+		rvBottom &
+	) result(iRetCode)
+	
+		! Routine arguments
+		class(ModosData), intent(in)	:: this
+		real, dimension(6), intent(out)	:: rvNoiseLevel
+		real, dimension(6), intent(out)	:: rvTop
+		real, dimension(6), intent(out)	:: rvBottom
+		integer							:: iRetCode
+		
+		! Locals
+		integer					:: iAntenna
+		integer					:: iNoiseIndex1
+		integer					:: iNoiseIndex2
+		logical, dimension(6)	:: lvPresent
+		real, dimension(32)		:: rvNoise1
+		real, dimension(32)		:: rvNoise2
+		integer					:: n
+		real					:: rMean1
+		real					:: rMean2
+		real					:: rPeak1
+		real					:: rPeak2
+		real					:: rBase1
+		real					:: rBase2
+		real					:: rTotVar1
+		real					:: rTotVar2
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(this % iNumSpHeights <= 0) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Set-up the noise indices
+		iNoiseIndex1 = this % iNumSpHeights - 1
+		iNoiseIndex2 = this % iNumSpHeights
+		
+		! Scan antennas in spectra, and check they are active or not
+		do iAntenna = 1, 6
+			lvPresent(iAntenna) = count(.valid.this % raPower(:,:,iAntenna)) > 0
+		end do
+		
+		! Retrive noise-related quantities
+		do iAntenna = 1, 6
+			if(lvPresent(iAntenna)) then
+				rvNoise1 = this % raPower(:,iNoiseIndex1,iAntenna)
+				rvNoise2 = this % raPower(:,iNoiseIndex2,iAntenna)
+				n = count(.valid.rvNoise1)
+				if(n > 0) then
+					rMean1 = sum(rvNoise1, mask=.valid.rvNoise1) / n
+					rPeak1 = maxval(rvNoise1, mask=.valid.rvNoise1)
+					rBase1 = minval(rvNoise1, mask=.valid.rvNoise1)
+				else
+					rMean1 = NaN
+					rPeak1 = NaN
+					rBase1 = NaN
+				end if
+				n = count(.valid.rvNoise2)
+				if(n > 0) then
+					rMean2 = sum(rvNoise2, mask=.valid.rvNoise2) / n
+					rPeak2 = maxval(rvNoise2, mask=.valid.rvNoise2)
+					rBase2 = minval(rvNoise2, mask=.valid.rvNoise2)
+				else
+					rMean2 = NaN
+					rPeak2 = NaN
+					rBase2 = NaN
+				end if
+				rTotVar1 = 0.
+				rTotVar2 = 0.
+			else
+				rMean1 = NaN
+				rPeak1 = NaN
+				rBase1 = NaN
+				rMean2 = NaN
+				rPeak2 = NaN
+				rBase2 = NaN
+			end if
+			rvNoiseLevel(iAntenna) = (rMean1 + rMean2) / 2.
+			rvTop(iAntenna)        = max(rPeak1, rPeak2)
+			rvBottom(iAntenna)     = min(rPeak1, rPeak2)
+		end do
+		
+	end function mds_SodarSpectraNoiseIndicators
 	
 	! **********************
 	! * Internal functions *
