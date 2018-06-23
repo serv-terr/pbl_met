@@ -529,7 +529,8 @@ contains
 		this, &
 		rvNoiseLevel, &
 		rvTop, &
-		rvBottom &
+		rvBottom, &
+		rvMeanVariation &
 	) result(iRetCode)
 	
 		! Routine arguments
@@ -537,6 +538,7 @@ contains
 		real, dimension(6), intent(out)	:: rvNoiseLevel
 		real, dimension(6), intent(out)	:: rvTop
 		real, dimension(6), intent(out)	:: rvBottom
+		real, dimension(6), intent(out)	:: rvMeanVariation
 		integer							:: iRetCode
 		
 		! Locals
@@ -547,6 +549,9 @@ contains
 		real, dimension(32)		:: rvNoise1
 		real, dimension(32)		:: rvNoise2
 		integer					:: n
+		integer					:: i
+		integer					:: iNumValid
+		real					:: rDelta
 		real					:: rMean1
 		real					:: rMean2
 		real					:: rPeak1
@@ -555,6 +560,8 @@ contains
 		real					:: rBase2
 		real					:: rTotVar1
 		real					:: rTotVar2
+		real, dimension(6)		:: rvMeanVar1
+		real, dimension(6)		:: rvMeanVar2
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -609,10 +616,35 @@ contains
 				rPeak2 = NaN
 				rBase2 = NaN
 			end if
+			rvMeanVar1(iAntenna) = 0.
+			iNumValid            = 0
+			do i = 2, 32
+				rDelta = abs(rvNoise1(i) - rvNoise1(i-1))
+				if(.valid.rDelta) then
+					rvMeanVar1(iAntenna) = rvMeanVar1(iAntenna) + rDelta
+					iNumValid            = iNumValid + 1
+				end if
+			end do
+			if(iNumValid > 0) then
+				rvMeanVar1(iAntenna) = rvMeanVar1(iAntenna) / iNumValid
+			end if
+			rvMeanVar2(iAntenna) = 0.
+			iNumValid            = 0
+			do i = 2, 32
+				rDelta = abs(rvNoise2(i) - rvNoise2(i-1))
+				if(.valid.rDelta) then
+					rvMeanVar1(iAntenna) = rvMeanVar1(iAntenna) + rDelta
+					iNumValid            = iNumValid + 1
+				end if
+			end do
+			if(iNumValid > 0) then
+				rvMeanVar2(iAntenna) = rvMeanVar2(iAntenna) / iNumValid
+			end if
 			rvNoiseLevel(iAntenna) = (rMean1 + rMean2) / 2.
 			rvTop(iAntenna)        = max(rPeak1, rPeak2)
 			rvBottom(iAntenna)     = min(rPeak1, rPeak2)
 		end do
+		rvMeanVariation = (rvMeanVar1 + rvMeanVar2) / 2.0
 		
 	end function mds_SodarSpectraNoiseIndicators
 	
