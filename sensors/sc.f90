@@ -24,6 +24,9 @@ program SodarChecker
 	integer, dimension(:), allocatable	:: ivTimeStep
 	character(len=23)					:: sDateTime
 	real, dimension(6)					:: rvAvailability
+	real, dimension(6)					:: rvNoise
+	real, dimension(6)					:: rvTop
+	real, dimension(6)					:: rvBottom
 	
 	! Test 1: Read SDR data from SODAR-only station
 	iRetCode = tSodar % load(10, "0616.sdr")
@@ -63,10 +66,11 @@ program SodarChecker
 		iRetCode = tSodar % getSodarSpectra(i)
 		print *, sDateTime, ",", iRetCode, ",", ivTimeStep(i)
 		iRetCode = tSodar % sodarSpectraAvailability(rvAvailability)
+		iRetCode = tSodar % sodarSpectraNoiseIndicators(rvNoise, rvTop, rvBottom)
 		print *
 		do j = 1, 6
 			if(rvAvailability(j) > 0.) then
-				print *, j, "Avail.=",rvAvailability(j)
+				print *, j, rvAvailability(j), rvNoise(j), rvTop(j), rvBottom(j)
 			end if
 		end do
 		print *
