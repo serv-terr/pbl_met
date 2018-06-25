@@ -46,6 +46,7 @@ module Modos
 		! Spectra evaluation and diagnostics
 		procedure	:: sodarSpectraAvailability	   => mds_SodarSpectraAvailability
 		procedure	:: sodarSpectraNoiseIndicators => mds_SodarSpectraNoiseIndicators
+		procedure	:: sodarWindSeries             => mds_SodarWindSeries
 		! Low-level auxiliaries
 		procedure	:: getLineIndex				   => mds_getLineIndex
 	end type ModosData
@@ -647,6 +648,138 @@ contains
 		rvMeanVariation = (rvMeanVar1 + rvMeanVar2) / 2.0
 		
 	end function mds_SodarSpectraNoiseIndicators
+	
+	
+	function mds_SodarWindSeries(this, iHeight, iHeightDelta, rvTimeStamp, rvVel, rvDir) result(iRetCode)
+	
+		! Routine arguments
+		class(ModosData), intent(in)					:: this
+		integer, intent(in)								:: iHeight
+		integer, intent(in)								:: iHeightDelta
+		real(8), dimension(:), allocatable, intent(out)	:: rvTimeStamp
+		real, dimension(:), allocatable, intent(out)	:: rvVel
+		real, dimension(:), allocatable, intent(out)	:: rvDir
+		integer											:: iRetCode
+		
+		! Locals
+		integer								:: iErrCode
+		integer								:: iLastHeight
+		integer								:: n
+		integer								:: i
+		integer								:: j
+		integer								:: iClosestHeight
+		integer, dimension(1)				:: ivClosest
+		integer, dimension(:), allocatable	:: ivTimeStep
+		integer, dimension(:), allocatable	:: ivHeights
+		real, dimension(:), allocatable		:: rvValues
+		integer, dimension(:), allocatable	:: ivErrors
+		integer, dimension(:), allocatable	:: ivErr1
+		integer, dimension(:), allocatable	:: ivErr2
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not.allocated(this % ivBlockIdx) .or. .not.allocated(this % ivBlockLen)) then
+			iRetCode = 1
+			return
+		end if
+		if(size(this % ivBlockIdx) <= 0 .or. size(this % ivBlockLen) <= 0) then
+			iRetCode = 2
+			return
+		end if
+		n = size(this % ivBlockIdx)
+		if(this % iSensorType <= 0 .or. this % iSensorType == MDS_MRR2) then
+			! Data are filled, but, this is surely not a SODAR or SODAR/RASS
+			iRetCode = 3
+			return
+		end if
+		
+		! Get block information
+		iErrCode = this % getBlockInfo(rvTimeStamp, ivTimeStep)
+		
+		! Reserve any other workspace
+		if(allocated(rvVel)) deallocate(rvVel)
+		if(allocated(rvDir)) deallocate(rvDir)
+		allocate(rvVel(n))
+		allocate(rvDir(n))
+		
+		! Iterate over blocks, and get data from height in range
+		do i = 1, n
+		
+			! Get this block's heights, and locate the closest among them to the one desired
+			iErrCode = GetHeights(this % svLines(this % ivBlockIdx(i)), this % iSensorType, ivHeights)
+			if(iErrCode /= 0) then
+				rvVel(i) = NaN
+				rvDir(i) = NaN
+				cycle
+			end if
+			ivClosest = minloc(abs(ivHeights - iHeight))
+			iClosestHeight = ivHeights(ivClosest(1))
+			if(abs(iClosestHeight - iHeight) > iHeightDelta) then
+				rvVel(i) = NaN
+				rvDir(i) = NaN
+				cycle
+			end if
+			iLastHeight = size(ivHeights) - 2
+			
+			! Find wind speed and direction
+			j = this % getLineIndex(i, "V  ")
+			if(j > 0) then
+				iErrCode = CaptureValues(this % svLines(j), iLastHeight, this % iSensorType, rvValues)
+				if(iErrCode == 0) then
+					rvVel(i) = rvValues(ivClosest(1))
+				else
+					rvVel(i) = NaN
+				end if
+			else
+				rvVel(i) = NaN
+			end if
+			j = this % getLineIndex(i, "D  ")
+			if(j > 0) then
+				iErrCode = CaptureValues(this % svLines(j), iLastHeight, this % iSensorType, rvValues)
+				if(iErrCode == 0) then
+					rvDir(i) = rvValues(ivClosest(1))
+				else
+					rvDir(i) = NaN
+				end if
+			else
+				rvDir(i) = NaN
+			end if
+			
+			! Get error lines for antennas 1 and 2
+			j = this % getLineIndex(i, "ER1")
+			if(j > 0) then
+				iErrCode = GetErrors(this % svLines(j), this % iSensorType, ivErrors)
+				if(iErrCode == 0) then
+					ivErr1(i) = ivErrors(ivClosest(1))
+				else
+					ivErr1(i) = 0
+				end if
+			else
+				ivErr1(i) = 0
+			end if
+			j = this % getLineIndex(i, "ER2")
+			if(j > 0) then
+				iErrCode = GetErrors(this % svLines(j), this % iSensorType, ivErrors)
+				if(iErrCode == 0) then
+					ivErr2(i) = ivErrors(ivClosest(1))
+				else
+					ivErr2(i) = 0
+				end if
+			else
+				ivErr2(i) = 0
+			end if
+			
+			! Invalidate value, if error for this data match with error mask
+			if(ior(iand(ivErr1(i), this % ivErrorMask(1)), iand(ivErr2(i), this % ivErrorMask(2))) > 0) then
+				rvVel(i) = NaN
+				rvDir(i) = NaN
+			end if
+			
+		end do
+
+	end function mds_SodarWindSeries
 	
 	! **********************
 	! * Internal functions *
