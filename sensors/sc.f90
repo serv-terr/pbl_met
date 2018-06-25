@@ -28,6 +28,14 @@ program SodarChecker
 	real, dimension(6)					:: rvTop
 	real, dimension(6)					:: rvBottom
 	real, dimension(6)					:: rvMeanVariation
+	real, dimension(:), allocatable		:: rvVel070
+	real, dimension(:), allocatable		:: rvDir070
+	real, dimension(:), allocatable		:: rvVel170
+	real, dimension(:), allocatable		:: rvDir170
+	real, dimension(:), allocatable		:: rvVel270
+	real, dimension(:), allocatable		:: rvDir270
+	real, dimension(:), allocatable		:: rvVel370
+	real, dimension(:), allocatable		:: rvDir370
 	
 	! Test 1: Read SDR data from SODAR-only station
 	iRetCode = tSodar % load(10, "0616.sdr")
@@ -75,6 +83,30 @@ program SodarChecker
 			end if
 		end do
 		print *
+	end do
+	print *
+	
+	! Test 5: Generate horizontal wind time series at various heights
+	print *, "Test 5: Generate wind series"
+	iRetCode = tSodar % sodarWindSeries(70, 10, rvTimeStamp, rvVel070, rvDir070)
+	print *, "Return code for  70m: ", iRetCode, "  (expected: 0)"
+	iRetCode = tSodar % sodarWindSeries(170, 10, rvTimeStamp, rvVel170, rvDir170)
+	print *, "Return code for 170m: ", iRetCode, "  (expected: 0)"
+	iRetCode = tSodar % sodarWindSeries(270, 10, rvTimeStamp, rvVel270, rvDir270)
+	print *, "Return code for 270m: ", iRetCode, "  (expected: 0)"
+	iRetCode = tSodar % sodarWindSeries(370, 10, rvTimeStamp, rvVel370, rvDir370)
+	print *, "Return code for 370m: ", iRetCode, "  (expected: 0)"
+	print *
+	print *, "Date, Vel(70m), Dir(70m), Vel(170m), Dir(170m), Vel(270m), Dir(270m), Vel(370m), Dir(370m)"
+	do i = 1, size(rvTimeStamp)
+		iRetCode = tDate % fromEpoch(rvTimeStamp(i))
+		sDateTime = tDate % toISO()
+		print "(a, 8(',',f6.1))", &
+			sDateTime, &
+			rvVel070(i), rvDir070(i), &
+			rvVel170(i), rvDir170(i), &
+			rvVel270(i), rvDir270(i), &
+			rvVel370(i), rvDir370(i)
 	end do
 	print *
 
