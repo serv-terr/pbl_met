@@ -36,6 +36,7 @@ module Modos
 		real, dimension(2)										:: rvSampling		! Spectral bandwidth
 		real													:: rTemperature		! Reference temperature
 		real, dimension(32,6), private							:: rmFrequency		! Frequency, associated to spectral lines
+		real, dimension(32,6), private							:: rmDopplerSpeed	! Speed corresponding to the Doppler shift at computed frequencies
 		integer, private										:: iNumSpHeights	! Number of heights used for spectra (include the two noise heights)
 	contains
 		! Non-default constructors
@@ -451,9 +452,15 @@ contains
 				end if
 				do i = 1, 32
 					this % rmFrequency(i, iAntenna) = this % ivMixing(iAntenna) - rBandwidth / 2. + (i-1)*rBandwidth/32.
+					this % rmDopplerSpeed(i, iAntenna) = &
+						(this % rmFrequency(i, iAntenna) - this % ivMixing(iAntenna)) / &
+						(this % rmFrequency(i, iAntenna) + this % ivMixing(iAntenna)) * &
+						20.05*sqrt(this % rTemperature + 273.15)
 				end do
 			end do
 		else
+			this % rmFrequency    = NaN
+			this % rmDopplerSpeed = NaN
 		end if
 		
 	end function mds_getSodarSpectra
