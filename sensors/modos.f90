@@ -32,6 +32,10 @@ module Modos
 		integer, dimension(6), private							:: ivErrorMask		! Error mask for each antenna
 		logical, dimension(6), private							:: lvPresent		! Spectra, antenna activation mask
 		real, dimension(32,44,6), private						:: raPower			! Spectra, actual back-scattered power
+		integer, dimension(6)									:: ivMixing			! Emission (carrier) frequency
+		real, dimension(2)										:: rvSampling		! Spectral bandwidth
+		real													:: rTemperature		! Reference temperature
+		real, dimension(32,6), private							:: rmFrequency		! Frequency, associated to spectral lines
 		integer, private										:: iNumSpHeights	! Number of heights used for spectra (include the two noise heights)
 	contains
 		! Non-default constructors
@@ -353,6 +357,7 @@ contains
 		integer, dimension(:), allocatable	:: ivHeights
 		real, dimension(:), allocatable		:: rvValues
 		character(len=3)					:: sLineType
+		real								:: rBandwidth
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -433,6 +438,23 @@ contains
 				
 			end if
 		end do
+		
+		! Get frequencies
+		read(this % svLines(this % ivBlockIdx(iBlock)), "(130x,6i6,4x,2f6.1,72x,f6.2)", iostat=iErrCode) &
+			this % ivMixing, this % rvSampling, this % rTemperature
+		if(iErrCode == 0) then
+			do iAntenna = 1, 6
+				if(iAntenna <= 5) then
+					rBandwidth = this % rvSampling(1)
+				else
+					rBandwidth = this % rvSampling(2)
+				end if
+				do i = 1, 32
+					this % rmFrequency(i, iAntenna) = this % ivMixing(iAntenna) - rBandwidth / 2. + (i-1)*rBandwidth/32.
+				end do
+			end do
+		else
+		end if
 		
 	end function mds_getSodarSpectra
 	
