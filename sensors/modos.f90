@@ -483,8 +483,12 @@ contains
 		! Assume the index is not found (will set it on success)
 		iLineIdx = -9999
 		
+		! Check something can be made
+		if(.not.allocated(this % ivBlockIdx) .or. .not.allocated(this % ivBlockLen)) return
+		if(iBlock <= 0 .or. iBlock > size(this % ivBlockIdx)) return
+		
 		! Search the line in block beginning with 'sLineType'
-		do i = this % ivBlockIdx(1), this % ivBlockIdx(1) + this % ivBlockLen(1) - 1
+		do i = this % ivBlockIdx(iBlock), this % ivBlockIdx(iBlock) + this % ivBlockLen(iBlock) - 1
 			if(this % svLines(i)(1:3) == sLineType) then
 				iLineIdx = i
 				exit
