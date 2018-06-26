@@ -701,14 +701,18 @@ contains
 		! Reserve any other workspace
 		if(allocated(rvVel)) deallocate(rvVel)
 		if(allocated(rvDir)) deallocate(rvDir)
+		if(allocated(ivErr1)) deallocate(ivErr1)
+		if(allocated(ivErr2)) deallocate(ivErr2)
 		allocate(rvVel(n))
 		allocate(rvDir(n))
+		allocate(ivErr1(n))
+		allocate(ivErr2(n))
 		
 		! Iterate over blocks, and get data from height in range
 		do i = 1, n
 		
 			! Get this block's heights, and locate the closest among them to the one desired
-			iErrCode = GetHeights(this % svLines(this % ivBlockIdx(i)), this % iSensorType, ivHeights)
+			iErrCode = GetHeights(this % svLines(this % ivBlockIdx(i) + 1), this % iSensorType, ivHeights)
 			if(iErrCode /= 0) then
 				rvVel(i) = NaN
 				rvDir(i) = NaN
