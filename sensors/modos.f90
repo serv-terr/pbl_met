@@ -52,6 +52,7 @@ module Modos
 		procedure	:: sodarSpectraAvailability	   => mds_SodarSpectraAvailability
 		procedure	:: sodarSpectraNoiseIndicators => mds_SodarSpectraNoiseIndicators
 		procedure	:: sodarWindSeries             => mds_SodarWindSeries
+		procedure	:: sodarTestRadialSpeed        => mds_SodarTestRadialSpeed
 		! Low-level auxiliaries
 		procedure	:: getLineIndex				   => mds_getLineIndex
 	end type ModosData
@@ -464,6 +465,116 @@ contains
 		end if
 		
 	end function mds_getSodarSpectra
+	
+	
+	function mds_SodarTestRadialSpeed( &
+		this, &
+		iBlock, &
+		iRadial, &
+		ivSpectralLineMax, &
+		rvRadialVel, &
+		rvMeasuredRadialVel, &
+		ivHeights, &
+		rvDelta &
+	) result(iRetCode)
+	
+		! Routine arguments
+		class(ModosData), intent(in)					:: this
+		integer, intent(in)								:: iBlock
+		integer, intent(in)								:: iRadial
+		integer, dimension(:), allocatable, intent(out)	:: ivSpectralLineMax
+		real, dimension(:), allocatable, intent(out)	:: rvRadialVel
+		real, dimension(:), allocatable, intent(out)	:: rvMeasuredRadialVel
+		integer, dimension(:), allocatable, intent(out)	:: ivHeights
+		real, dimension(:), allocatable, intent(out)	:: rvDelta
+		integer											:: iRetCode
+		
+		! Locals
+		integer					:: iErrCode
+		integer					:: i
+		integer					:: j
+		integer					:: n
+		integer, dimension(1)	:: ivPos
+		integer					:: iLastHeight
+		real					:: c			! Speed of sound
+		real					:: rFcarrier	! Carrier frequency
+		real					:: rFmax		! Frequency corresponding to the maximum power found
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not.allocated(this % ivBlockIdx)) then
+			! Modos data have not yet been loaded from file
+			iRetCode = 1
+			return
+		end if
+		if(this % iSensorType <= 0 .or. this % iSensorType == MDS_MRR2) then
+			! Data are filled, but, this is surely not a SODAR or SODAR/RASS
+			iRetCode = 2
+			return
+		end if
+		if(size(this % ivBlockIdx) <= 0) then
+			! Data are filled, of SODAR or SODAR/RASS type, but no complete/valid block was loaded from file
+			! (may happen, occasionally)
+			iRetCode = 3
+			return
+		end if
+		if(iRadial < 1 .or. iRadial > 6) then
+			iRetCode = 4
+			return
+		end if
+		
+		! Reserve workspace
+		n = this % iNumSpHeights - 2
+		if(allocated(ivSpectralLineMax))   deallocate(ivSpectralLineMax)
+		if(allocated(rvRadialVel))         deallocate(rvRadialVel)
+		if(allocated(rvMeasuredRadialVel)) deallocate(rvMeasuredRadialVel)
+		if(allocated(ivHeights))           deallocate(ivHeights)
+		if(allocated(rvDelta))             deallocate(ivHeights)
+		allocate(ivSpectralLineMax(n))
+		allocate(rvRadialVel(n))
+		allocate(rvDelta(n))
+		
+		! Iterate over frequency lines
+		c = 20.05 * sqrt(this % rTemperature + 273.15)
+		rFcarrier = this % ivMixing(iRadial)
+		if(count(.valid.this % raPower(:,:,iRadial)) > 0) then
+			do i = 1, n
+				ivPos = maxloc(this % raPower(:,i,iRadial), mask=.valid.this % raPower(:,i,iRadial))
+				if(ivPos(1) > 0) then
+					rFmax = this % rmFrequency(ivPos(1),iRadial)
+					rvRadialVel(i) = (rFmax - rFcarrier) / (rFmax + rFcarrier) * c
+					ivSpectralLineMax(i) = ivPos(1)
+				else
+					rvRadialVel(i) = NaN
+					ivSpectralLineMax(i) = 0
+				end if
+			end do
+		end if
+		
+		! Get velocity along radial 1, as in standard Metek test for SODAR driver
+		j = this % getLineIndex(iBlock, "VR1")
+		iLastHeight = this % iNumSpHeights - 2
+		if(j > 0) then
+			iErrCode = CaptureValues(this % svLines(j), iLastHeight, this % iSensorType, rvMeasuredRadialVel)
+			if(iErrCode /= 0) then
+				iRetCode = 5
+				return
+			end if
+		end if
+		
+		! Get heights
+		iErrCode = GetHeights(this % svLines(this % ivBlockIdx(iBlock) + 1), this % iSensorType, ivHeights)
+		if(iErrCode /= 0) then
+			iRetCode = 6
+			return
+		end if
+		
+		! Compute the difference between estimated and measured speed
+		rvDelta = rvMeasuredRadialVel - rvRadialVel
+		
+	end function mds_SodarTestRadialSpeed
 	
 	
 	function mds_setErrorMasks(this, iMask1, iMask2, iMask3, iMask4, iMask5, iMaskR) result(iRetCode)
