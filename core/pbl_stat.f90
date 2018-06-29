@@ -105,6 +105,7 @@ module pbl_stat
     	procedure, public	:: aggregatePeriodic				=> tsAggregatePeriodic
     	! Smoothers
     	procedure, public	:: movingAverage					=> tsMovingAverage
+    	procedure, public	:: movingStdDev						=> tsMovingStdDev
     end type TimeSeries
     
     ! Constants
@@ -3221,6 +3222,150 @@ contains
 		this % rvValue     = rvMeanValue
 
 	end function tsMovingAverage
+	
+	
+	! Create a new time series which is the moving-stddev of another
+	function tsMovingStdDev(this, ts, rTimeWidth, iMode) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(out)	:: this			! The time series we want to build
+		type(TimeSeries), intent(in)	:: ts			! Time series containing the original data
+		real(8), intent(in)				:: rTimeWidth	! Width of the entire time span desired (s)
+		integer, intent(in), optional	:: iMode		! MA_ALLDATA (default): use all data; MA_STRICT: use only data with whole left and right sub-intervals
+		integer							:: iRetCode
+		
+		! Locals
+		real(8)								:: rDeltaTime
+		real(8), dimension(:), allocatable	:: rvTimeStamp
+		real, dimension(:), allocatable		:: rvValue
+		real, dimension(:), allocatable		:: rvMeanValue
+		real, dimension(:), allocatable		:: rvMeanSquaredValue
+		integer, dimension(:), allocatable	:: ivNumValid
+		integer								:: iFirst, iLast
+		integer								:: iFrom, iTo
+		integer								:: iNumValues
+		integer								:: n, i, j
+		integer								:: iWellSpaced
+		integer								:: iErrCode
+		type(TimeSeries)					:: ts1
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(rTimeWidth <= 0.d0) then
+			iRetCode = 1
+			return
+		end if
+		
+		! First of all, check the input time series is well spaced; if it is, but with
+		! hidden gaps, make them evident
+		iWellSpaced = ts % timeIsWellSpaced(rDeltaTime)
+		if(iWellSpaced == 0) then
+			iErrCode = ts % getTimeStamp(rvTimeStamp)
+			if(iErrCode /= 0) then
+				iRetCode = 3
+				return
+			end if
+			iErrCode = ts % getValues(rvValue)
+			if(iErrCode /= 0) then
+				iRetCode = 4
+				return
+			end if
+		elseif(iWellSpaced == 1) then
+			iErrCode = ts1 % CreateFromTimeSeries(ts, .true.)
+			if(iErrCode /= 0) then
+				iRetCode = 2
+				return
+			end if
+			iErrCode = ts1 % getTimeStamp(rvTimeStamp)
+			if(iErrCode /= 0) then
+				iRetCode = 3
+				return
+			end if
+			iErrCode = ts1 % getValues(rvValue)
+			if(iErrCode /= 0) then
+				iRetCode = 4
+				return
+			end if
+		elseif(iWellSpaced < 0 .or. iWellSpaced > 1) then
+			iRetCode = 5
+			return
+		end if
+		if(size(rvTimeStamp) < 1) then
+			iRetCode = 6
+			deallocate(rvTimeStamp, rvValue)
+			return
+		end if
+		! Post-condition: rvTimeStamp and rvValue both allocated, and with at least one element;
+		!                 additionally, rvTimeStamp is well-spaced and monotonic, and the rvValue
+		! vector "may" contain gaps.
+		
+		! Convert time width in the number of items to take before and after the current
+		! time series element. If it is zero or less, copy the input series as it is
+		n = size(rvTimeStamp)
+		iNumValues = floor(rTimeWidth / (2.*rDeltaTime))
+		if(iNumValues < 1) then
+			if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+			if(allocated(this % rvValue))     deallocate(this % rvValue)
+			allocate(this % rvTimeStamp(size(rvTimeStamp)))
+			allocate(this % rvValue(size(rvValue)))
+			this % rvTimeStamp = rvTimeStamp
+			this % rvValue     = rvValue
+			deallocate(rvTimeStamp, rvValue)
+			return
+		end if
+		
+		! Set initial and final indices to consider
+		if(present(iMode)) then
+			if(iMode == MA_STRICT) then
+				iFirst = 1 + iNumValues
+				iLast  = n - iNumValues
+				if(iFirst >= iLast) then
+					iRetCode = 7
+					deallocate(rvTimeStamp, rvValue)
+					return
+				end if
+			elseif(iMode == MA_ALLDATA) then
+				iFirst = 1
+				iLast  = n
+			else
+				iRetCode = 7
+				deallocate(rvTimeStamp, rvValue)
+				return
+			end if
+		else	! Default: MA_ALLDATA
+			iFirst = 1
+			iLast  = n
+		end if
+		
+		! Compute the desired time series, taking into account
+		! the number of valid values in averaging
+		allocate(ivNumValid(iLast-iFirst+1), rvMeanValue(iLast-iFirst+1), rvMeanSquaredValue(iLast-iFirst+1))
+		j = 1
+		do i = iFirst, iLast
+			iFrom = max(i - iNumValues, 1)
+			iTo   = min(i + iNumValues, n)
+			ivNumValid(j) = count(.valid.rvValue(iFrom:iTo))
+			if(ivNumValid(j) > 0) then
+				rvMeanValue(j)        = sum(rvValue(iFrom:iTo), mask = .valid.rvValue(iFrom:iTo)) / ivNumValid(j)
+				rvMeanSquaredValue(j) = sum(rvValue(iFrom:iTo)**2, mask = .valid.rvValue(iFrom:iTo)) / ivNumValid(j)
+			else
+				rvMeanValue(j)        = NaN
+				rvMeanSquaredValue(j) = NaN
+			end if
+			j = j + 1
+		end do
+		
+		! Fill current series with new averaged values
+		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(allocated(this % rvValue))     deallocate(this % rvValue)
+		allocate(this % rvTimeStamp(size(rvTimeStamp)))
+		allocate(this % rvValue(size(rvValue)))
+		this % rvTimeStamp = rvTimeStamp(iFirst:iLast)
+		this % rvValue     = sqrt(rvMeanSquaredValue - rvMeanValue**2)
+
+	end function tsMovingStdDev
 	
 	! *********************
 	! * Internal routines *
