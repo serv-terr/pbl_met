@@ -34,9 +34,10 @@ module pbl_stat
     ! 4. Cross-covariance, cross-correlation and related
     public	:: CrossCov
     public	:: CrossCorr
-    ! 5. Utilities
+    ! 5. Peak detection
+    ! 6. Utilities
     public	:: RemoveLinearTrend
-    ! 6. Time series
+    ! 7. Time series
     public	:: TimeSeries
     public	:: TDELTA_YEAR
     public	:: TDELTA_MONTH
