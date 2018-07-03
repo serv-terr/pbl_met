@@ -6,6 +6,8 @@
 !
 program play_with_peak_detect
 
+	use pbl_met
+
 	implicit none
 	
 	! Locals
