@@ -17,6 +17,8 @@ program play_with_peak_detect
 	integer, dimension(:), allocatable	:: signals
 	real, dimension(:), allocatable		:: avgFilter
 	real, dimension(:), allocatable		:: stdFilter
+	integer								:: iThreshold
+	real								:: threshold
 	
 	! Generate spiky signal
 	call random_number(rvX)
@@ -24,12 +26,16 @@ program play_with_peak_detect
 	rvX(512) = 5.
 	rvX(1024) = 5.
 	
-	! Locate spikes
-	iRetCode = FindPeaks_Simple(rvX, 10, 4., 0.1, signals, avgFilter, stdFilter)
-	do i = 1, 1024
-		if(signals(i) /= 0) print *, i
+	! Locate spikes using increasing threshold
+	print  *, 'Threshold, Num.Peaks'
+	do iThreshold = 1, 50
+		threshold = iThreshold / 10.
+		iRetCode = FindPeaks_Simple(rvX, 10, threshold, 0.1, signals, avgFilter, stdFilter)
+		print "(f4.1, ',', i4)", threshold, count(signals /= 0)
 	end do
-	print *,signals
+	!do i = 1, 1024
+	!	if(signals(i) /= 0) print *, i
+	!end do
 
 contains
 
