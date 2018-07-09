@@ -19,20 +19,25 @@ program play_with_peak_detect
 	real, dimension(:), allocatable		:: stdFilter
 	integer								:: iThreshold
 	real								:: threshold
+	character(len=256)					:: sBuffer
 	
-	! Generate spiky signal
-	call random_number(rvX)
-	rvX(256) = 5.
-	rvX(512) = 5.
-	rvX(1024) = 5.
+	! Get signal
+	open(10, file="peaky.csv", status="old", action="read")
+	read(10, "(a)") sBuffer
+	do i = 1, 1024
+		read(10, *) rvX(i)
+	end do
+	close(10)
 	
 	! Locate spikes using increasing threshold
 	print  *, 'Threshold, Num.Peaks'
+	open(10, file="peasy.out.csv", status="unknown", ation="write")
 	do iThreshold = 1, 50
 		threshold = iThreshold / 10.
 		iRetCode = FindPeaks_Simple(rvX, 10, threshold, 0.1, signals, avgFilter, stdFilter)
-		print "(f4.1, ',', i4)", threshold, count(signals /= 0)
+		write(10, "(f4.1, ',', i4)") threshold, count(signals /= 0)
 	end do
+	close(10)
 	!do i = 1, 1024
 	!	if(signals(i) /= 0) print *, i
 	!end do
