@@ -30,8 +30,8 @@ program play_with_peak_detect
 	close(10)
 	
 	! Locate spikes using increasing threshold
-	print  *, 'Threshold, Num.Peaks'
 	open(10, file="peasy.out.csv", status="unknown", ation="write")
+	write(10,"('Threshold, Num.Peaks')")
 	do iThreshold = 1, 50
 		threshold = iThreshold / 10.
 		iRetCode = FindPeaks_Simple(rvX, 10, threshold, 0.1, signals, avgFilter, stdFilter)
