@@ -30,7 +30,7 @@ program play_with_peak_detect
 	close(10)
 	
 	! Locate spikes using increasing threshold
-	open(10, file="peasy.out.csv", status="unknown", ation="write")
+	open(10, file="peaky.out.csv", status="unknown", action="write")
 	write(10,"('Threshold, Num.Peaks')")
 	do iThreshold = 1, 50
 		threshold = iThreshold / 10.
