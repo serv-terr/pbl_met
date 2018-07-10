@@ -20,6 +20,7 @@ program play_with_peak_detect
 	integer								:: iThreshold
 	real								:: threshold
 	character(len=256)					:: sBuffer
+	character(len=256)					:: sFileName
 	
 	! Get signal
 	open(10, file="peaky.csv", status="old", action="read")
@@ -36,11 +37,17 @@ program play_with_peak_detect
 		threshold = iThreshold / 10.
 		iRetCode = FindPeaks_Simple(rvX, 10, threshold, 0.1, signals, avgFilter, stdFilter)
 		write(10, "(f4.1, ',', i4)") threshold, count(signals /= 0)
+		if(mod(iThreshold, 100) == 0) then
+			write(sFileName, "('peaky.',i2.2,'.csv')") iThreshold/10
+			open(11, file=sFileName, status='unknown', action='write')
+			write(11, "('Index, Value, PeakType')")
+			do i = 1, 1024
+				write(11,"(i4,',',f9.4,',',i1)") i, rvX(i), signals(i)
+			end do
+			close(11)
+		end if
 	end do
 	close(10)
-	!do i = 1, 1024
-	!	if(signals(i) /= 0) print *, i
-	!end do
 
 contains
 
