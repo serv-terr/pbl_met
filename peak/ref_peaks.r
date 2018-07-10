@@ -14,3 +14,22 @@ generate.peaky <- function(n,m,s, n.peaks=1, level=5) {
   return(x)
   
 }
+
+show.peaky <- function() {
+  d <- read.csv("peaky.csv")
+  png(file="peaky.png", width=800, height=600)
+  plot(d$x, type="l", xlab="Time (s)", ylab="Simulated C (mmol/mol)")
+  dev.off()
+}
+
+get.peaks <- function(level) {
+  f.name <- sprintf("peaky.%2.2d.csv", level)
+  d <- read.csv(f.name)
+  peaks <- which(d$PeakType > 0)
+  e <- d[peaks,]
+  fig.name <- sprintf("peaky.%2.2d.png", level)
+  png(file=fig.name, width=800, height=600)
+  plot(d$Index, d$Value, type="l", xlab="Time (s)", ylab="Simulated C (mmol/mol)")
+  points(e$Index, e$Value, col="red", pch=20, cex=1.5)
+  dev.off()
+}
