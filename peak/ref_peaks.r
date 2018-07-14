@@ -50,7 +50,52 @@ get.peaks <- function(level) {
   e <- d[peaks,]
   fig.name <- sprintf("peaky.%2.2d.png", level)
   png(file=fig.name, width=800, height=600)
-  plot(d$Index, d$Value, type="l", xlab="Time (s)", ylab="Simulated C (mmol/mol)")
+  plot(d$Index, d$Value, type="l", xlab="Time (s)", ylab="Simulated C")
   points(e$Index, e$Value, col="red", pch=20, cex=1.5)
   dev.off()
+}
+
+get.peaks.0 <- function(level) {
+  f.name <- sprintf("peaky.beta0.%2.2d.csv", level)
+  d <- read.csv(f.name)
+  peaks <- which(d$PeakType > 0)
+  e <- d[peaks,]
+  fig.name <- sprintf("peaky.beta0.%2.2d.png", level)
+  png(file=fig.name, width=800, height=600)
+  plot(d$Index, d$Value, type="l", xlab="Time (s)", ylab="Simulated C")
+  points(e$Index, e$Value, col="red", pch=20, cex=1.5)
+  dev.off()
+}
+
+get.peaks.1 <- function(level) {
+  f.name <- sprintf("peaky.beta1.%2.2d.csv", level)
+  d <- read.csv(f.name)
+  peaks <- which(d$PeakType > 0)
+  e <- d[peaks,]
+  fig.name <- sprintf("peaky.beta1.%2.2d.png", level)
+  png(file=fig.name, width=800, height=600)
+  plot(d$Index, d$Value, type="l", xlab="Time (s)", ylab="Simulated C")
+  points(e$Index, e$Value, col="red", pch=20, cex=1.5)
+  dev.off()
+}
+
+make.plots <- function() {
+  get.peaks(3)
+  get.peaks(10)
+  get.peaks(20)
+  get.peaks(30)
+  get.peaks(40)
+  get.peaks(50)
+  get.peaks.0(3)
+  get.peaks.0(10)
+  get.peaks.0(20)
+  get.peaks.0(30)
+  get.peaks.0(40)
+  get.peaks.0(50)
+  get.peaks.1(3)
+  get.peaks.1(10)
+  get.peaks.1(20)
+  get.peaks.1(30)
+  get.peaks.1(40)
+  get.peaks.1(50)
 }
