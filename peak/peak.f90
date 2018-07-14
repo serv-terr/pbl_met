@@ -33,16 +33,16 @@ program play_with_peak_detect
 	! Locate spikes using increasing threshold
 	open(10, file="peaky.out.csv", status="unknown", action="write")
 	write(10,"('Threshold, Num.Negative.Peaks, Num.Positive.Peaks')")
-	do iThreshold = 1, 400
+	do iThreshold = 1, 500
 		threshold = iThreshold / 10.
 		iRetCode = FindPeaks_Simple(rvX, 10, threshold, 0.1, signals, avgFilter, stdFilter)
 		write(10, "(f4.1, 2(',', i4))") threshold, count(signals < 0), count(signals > 0)
-		if(mod(iThreshold, 100) == 0) then
+		if(mod(iThreshold, 100) == 0 .or. iThreshold==30) then
 			write(sFileName, "('peaky.',i2.2,'.csv')") iThreshold/10
 			open(11, file=sFileName, status='unknown', action='write')
-			write(11, "('Index, Value, PeakType')")
+			write(11, "('Index, Value, PeakType, Avg.Filter, Std.Filter')")
 			do i = 1, 1024
-				write(11,"(i4,',',f9.4,',',i1)") i, rvX(i), signals(i)
+				write(11,"(i4,',',f9.4,',',i2,2(',',f9.4))") i, rvX(i), signals(i), avgFilter(i), stdFilter(i)
 			end do
 			close(11)
 		end if
@@ -52,16 +52,35 @@ program play_with_peak_detect
 	! Locate spikes using increasing threshold
 	open(10, file="peaky.beta1.out.csv", status="unknown", action="write")
 	write(10,"('Threshold, Num.Negative.Peaks, Num.Positive.Peaks')")
-	do iThreshold = 1, 400
+	do iThreshold = 1, 500
 		threshold = iThreshold / 10.
 		iRetCode = FindPeaks_Simple(rvX, 10, threshold, 1.0, signals, avgFilter, stdFilter)
 		write(10, "(f4.1, 2(',', i4))") threshold, count(signals < 0), count(signals > 0)
-		if(mod(iThreshold, 100) == 0) then
+		if(mod(iThreshold, 100) == 0 .or. iThreshold==30) then
 			write(sFileName, "('peaky.beta1.',i2.2,'.csv')") iThreshold/10
 			open(11, file=sFileName, status='unknown', action='write')
-			write(11, "('Index, Value, PeakType')")
+			write(11, "('Index, Value, PeakType, Avg.Filter, Std.Filter')")
 			do i = 1, 1024
-				write(11,"(i4,',',f9.4,',',i1)") i, rvX(i), signals(i)
+				write(11,"(i4,',',f9.4,',',i2,2(',',f9.4))") i, rvX(i), signals(i), avgFilter(i), stdFilter(i)
+			end do
+			close(11)
+		end if
+	end do
+	close(10)
+
+	! Locate spikes using increasing threshold
+	open(10, file="peaky.beta0.out.csv", status="unknown", action="write")
+	write(10,"('Threshold, Num.Negative.Peaks, Num.Positive.Peaks')")
+	do iThreshold = 1, 500
+		threshold = iThreshold / 10.
+		iRetCode = FindPeaks_Simple(rvX, 10, threshold, 0.0, signals, avgFilter, stdFilter)
+		write(10, "(f4.1, 2(',', i4))") threshold, count(signals < 0), count(signals > 0)
+		if(mod(iThreshold, 100) == 0 .or. iThreshold==30) then
+			write(sFileName, "('peaky.beta0.',i2.2,'.csv')") iThreshold/10
+			open(11, file=sFileName, status='unknown', action='write')
+			write(11, "('Index, Value, PeakType, Avg.Filter, Std.Filter')")
+			do i = 1, 1024
+				write(11,"(i4,',',f9.4,',',i2,2(',',f9.4))") i, rvX(i), signals(i), avgFilter(i), stdFilter(i)
 			end do
 			close(11)
 		end if
