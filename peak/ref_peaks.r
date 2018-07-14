@@ -15,6 +15,27 @@ generate.peaky <- function(n,m,s, n.peaks=1, level=5) {
   
 }
 
+
+exceedances <- function(n, l.mu, l.sigma) {
+  
+  # Build the log-normal sample using the parameters specified
+  x <- rlnorm(n, l.mu, l.sigma)
+  
+  # Build a normal sample having same size, and parameters as the series 'x'
+  y <- rnorm(n, mean(x), sd(x))
+
+  # Count exceedances in both cases, using a same increasing threshold
+  x.exc <- numeric(10)
+  y.exc <- numeric(10)
+  for(s in 1:10) {
+    x.exc[s] <- sum(x-mean(x) > s*sd(x))
+    y.exc[s] <- sum(y-mean(x) > s*sd(x))
+  }
+  out <- data.frame(x.exc = x.exc, y.exc = y.exc)
+  return(out)
+  
+}
+
 show.peaky <- function() {
   d <- read.csv("peaky.csv")
   png(file="peaky.png", width=800, height=600)
