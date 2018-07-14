@@ -51,6 +51,8 @@ get.peaks <- function(level) {
   fig.name <- sprintf("peaky.%2.2d.png", level)
   png(file=fig.name, width=800, height=600)
   plot(d$Index, d$Value, type="l", xlab="Time (s)", ylab="Simulated C")
+  lines(d$Index, d$Avg.Filter+d$Std.Filter, lwd=2, col="red")
+  lines(d$Index, d$Avg.Filter+d$Std.Filter*level, lwd=1, col="pink")
   points(e$Index, e$Value, col="red", pch=20, cex=1.5)
   dev.off()
 }
@@ -63,6 +65,8 @@ get.peaks.0 <- function(level) {
   fig.name <- sprintf("peaky.beta0.%2.2d.png", level)
   png(file=fig.name, width=800, height=600)
   plot(d$Index, d$Value, type="l", xlab="Time (s)", ylab="Simulated C")
+  lines(d$Index, d$Avg.Filter+d$Std.Filter, lwd=2, col="red")
+  lines(d$Index, d$Avg.Filter+d$Std.Filter*level, lwd=1, col="pink")
   points(e$Index, e$Value, col="red", pch=20, cex=1.5)
   dev.off()
 }
@@ -75,6 +79,8 @@ get.peaks.1 <- function(level) {
   fig.name <- sprintf("peaky.beta1.%2.2d.png", level)
   png(file=fig.name, width=800, height=600)
   plot(d$Index, d$Value, type="l", xlab="Time (s)", ylab="Simulated C")
+  lines(d$Index, d$Avg.Filter+d$Std.Filter, lwd=2, col="red")
+  lines(d$Index, d$Avg.Filter+d$Std.Filter*level, lwd=1, col="pink")
   points(e$Index, e$Value, col="red", pch=20, cex=1.5)
   dev.off()
 }
