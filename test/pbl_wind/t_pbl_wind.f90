@@ -1084,235 +1084,6 @@ contains
 	end subroutine tst_CompareWindRoses
 	
 	
-	subroutine print33(rmVal)
-	
-		! Routine arguments
-		real, dimension(3,3), intent(in)	:: rmVal
-		
-		! Locals
-		integer	:: i
-		
-		! Print values, matrix form
-		do i = 1, 3
-			print "(f7.4,2(',',f7.4))", rmVal(i,:)
-		end do
-		
-	end subroutine print33
-	
-
-	subroutine tst_SonicData()
-	
-		! Routine arguments
-		! --none--
-		
-		! Locals
-		type(SonicData)						:: tSonic
-		integer								:: iRetCode
-		real(8), dimension(:), allocatable	:: rvTimeStamp
-		real, dimension(:), allocatable		:: rvT
-		real, dimension(:), allocatable		:: rvVarT
-		real, dimension(:,:), allocatable	:: rmVel
-		real, dimension(:,:,:), allocatable	:: raCovVel
-		real, dimension(:,:), allocatable	:: rmCovT
-		type(DateTime)						:: dt
-		integer								:: i
-		real(8), dimension(:), allocatable	:: rvTimeSt
-		real, dimension(:), allocatable		:: rvU
-		real, dimension(:), allocatable		:: rvV
-		real, dimension(:), allocatable		:: rvW
-		real, dimension(:), allocatable		:: rvTemp
-		
-		! Test 1: Read and count an existing SonicLib file name
-		print *, "Test 1: Read SonicLib file"
-		iRetCode = tSonic % readSonicLib(10, "20130308.12.csv", OS_UNIX)
-		print *, "Return code: ", iRetCode, " (expected: 0)"
-		print *, "Size:        ", tSonic % size(), " (expected: > 0)"
-		print *, "Valid:       ", tSonic % valid(), " (expected: > 0)"
-		print *
-		
-		! Test 2: Compute hourly means on SonicLib file read
-		print *, "Test 2: Hourly means from SonicLib file"
-		iRetCode = tSonic % averages( &
-			3600, &
-			rvTimeStamp, &
-			rmVel, rvT, &
-			raCovVel, rmCovT, rvVarT &
-		)
-		print *, "Return code = ", iRetCode, "  (expected: 0)"
-		print *, "Num data = ", size(rvTimeStamp), "  (expected: 1)"
-		do i = 1, size(rvTimeStamp)
-			iRetCode = dt % fromEpoch(rvTimeStamp(i))
-			print *
-			print *, dt % toISO()
-			print *, "Wind: ", rmVel(i,:)
-			print *, "Temp: ", rvT(i)
-			print *, "Cov(vel):"
-			call print33(raCovVel(i,:,:))
-			print *, "Cov(Temp): ", rmCovT(i,:)
-			print *, "Var(Temp): ", rvVarT(i)
-		end do
-		print *
-		
-		! Test 3: Compute 10-minutes means on SonicLib file read
-		print *, "Test 3: 10-minutes means from SonicLib file"
-		iRetCode = tSonic % averages( &
-			600, &
-			rvTimeStamp, &
-			rmVel, rvT, &
-			raCovVel, rmCovT, rvVarT &
-		)
-		print *, "Return code = ", iRetCode, "  (expected: 0)"
-		print *, "Num data = ", size(rvTimeStamp), "  (expected: 6)"
-		do i = 1, size(rvTimeStamp)
-			iRetCode = dt % fromEpoch(rvTimeStamp(i))
-			print *
-			print *, dt % toISO()
-			print *, "Wind: ", rmVel(i,:)
-			print *, "Temp: ", rvT(i)
-			print *, "Cov(vel):"
-			call print33(raCovVel(i,:,:))
-			print *, "Cov(Temp): ", rmCovT(i,:)
-			print *, "Var(Temp): ", rvVarT(i)
-		end do
-		print *
-		
-		! Test 4: Compute 7-min means on SonicLib file read
-		print *, "Test 4: 7-minutes means from SonicLib file"
-		iRetCode = tSonic % averages( &
-			420, &
-			rvTimeStamp, &
-			rmVel, rvT, &
-			raCovVel, rmCovT, rvVarT &
-		)
-		print *, "Return code = ", iRetCode, "  (expected: non-zero, as 420s does not divide 3600s exactly)"
-		print *
-		
-		! Test 5: hourly mean on artificial data
-		allocate(rvTimeSt(60), rvU(60), rvV(60), rvW(60), rvTemp(60))
-		dt = DateTime(2000, 3, 8, 12, 0, 0.0d0)
-		rvTimeSt = [(dt % toEpoch() + (i-1)*60.d0, i = 1, 60)]
-		rvU      = [(real((i-1)/15), i = 1, 60)]
-		rvV      = [(real((i-1)/30), i = 1, 60)]
-		rvW      = [(real((i-1)/10), i = 1, 60)]
-		rvTemp   = 0.
-		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
-		print *, "Test 5: hourly means from artificial data"
-		iRetCode = tSonic % averages( &
-			3600, &
-			rvTimeStamp, &
-			rmVel, rvT, &
-			raCovVel, rmCovT, rvVarT &
-		)
-		print *, "Return code = ", iRetCode, "  (expected: 0)"
-		print *, "Num data = ", size(rvTimeStamp), "  (expected: 1)"
-		do i = 1, size(rvTimeStamp)
-			iRetCode = dt % fromEpoch(rvTimeStamp(i))
-			print *
-			print *, dt % toISO()
-			print *, "Wind: ", rmVel(i,:)
-			print *, "Temp: ", rvT(i)
-			print *, "Cov(vel):"
-			call print33(raCovVel(i,:,:))
-			print *, "Cov(Temp): ", rmCovT(i,:)
-			print *, "Var(Temp): ", rvVarT(i)
-		end do
-		print *
-		
-		! Test 6: 30-min mean on artificial data
-		print *, "Test 6: 30-min means from artificial data"
-		iRetCode = tSonic % averages( &
-			1800, &
-			rvTimeStamp, &
-			rmVel, rvT, &
-			raCovVel, rmCovT, rvVarT &
-		)
-		print *, "Return code = ", iRetCode, "  (expected: 0)"
-		print *, "Num data = ", size(rvTimeStamp), "  (expected: 1)"
-		do i = 1, size(rvTimeStamp)
-			iRetCode = dt % fromEpoch(rvTimeStamp(i))
-			print *
-			print *, dt % toISO()
-			print *, "Wind: ", rmVel(i,:)
-			print *, "Temp: ", rvT(i)
-			print *, "Cov(vel):"
-			call print33(raCovVel(i,:,:))
-			print *, "Cov(Temp): ", rmCovT(i,:)
-			print *, "Var(Temp): ", rvVarT(i)
-		end do
-		print *
-		
-		! Test 7: 15-min mean on artificial data
-		print *, "Test 7: 15-min means from artificial data"
-		iRetCode = tSonic % averages( &
-			900, &
-			rvTimeStamp, &
-			rmVel, rvT, &
-			raCovVel, rmCovT, rvVarT &
-		)
-		print *, "Return code = ", iRetCode, "  (expected: 0)"
-		print *, "Num data = ", size(rvTimeStamp), "  (expected: 1)"
-		do i = 1, size(rvTimeStamp)
-			iRetCode = dt % fromEpoch(rvTimeStamp(i))
-			print *
-			print *, dt % toISO()
-			print *, "Wind: ", rmVel(i,:)
-			print *, "Temp: ", rvT(i)
-			print *, "Cov(vel):"
-			call print33(raCovVel(i,:,:))
-			print *, "Cov(Temp): ", rmCovT(i,:)
-			print *, "Var(Temp): ", rvVarT(i)
-		end do
-		print *
-		
-		! Test 8: 10-min mean on artificial data
-		print *, "Test 8: 10-min means from artificial data"
-		iRetCode = tSonic % averages( &
-			600, &
-			rvTimeStamp, &
-			rmVel, rvT, &
-			raCovVel, rmCovT, rvVarT &
-		)
-		print *, "Return code = ", iRetCode, "  (expected: 0)"
-		print *, "Num data = ", size(rvTimeStamp), "  (expected: 1)"
-		do i = 1, size(rvTimeStamp)
-			iRetCode = dt % fromEpoch(rvTimeStamp(i))
-			print *
-			print *, dt % toISO()
-			print *, "Wind: ", rmVel(i,:)
-			print *, "Temp: ", rvT(i)
-			print *, "Cov(vel):"
-			call print33(raCovVel(i,:,:))
-			print *, "Cov(Temp): ", rmCovT(i,:)
-			print *, "Var(Temp): ", rvVarT(i)
-		end do
-		print *
-		
-		! Test 9: 5-min mean on artificial data
-		print *, "Test 9: 5-min means from artificial data"
-		iRetCode = tSonic % averages( &
-			300, &
-			rvTimeStamp, &
-			rmVel, rvT, &
-			raCovVel, rmCovT, rvVarT &
-		)
-		print *, "Return code = ", iRetCode, "  (expected: 0)"
-		print *, "Num data = ", size(rvTimeStamp), "  (expected: 1)"
-		do i = 1, size(rvTimeStamp)
-			iRetCode = dt % fromEpoch(rvTimeStamp(i))
-			print *
-			print *, dt % toISO()
-			print *, "Wind: ", rmVel(i,:)
-			print *, "Temp: ", rvT(i)
-			print *, "Cov(vel):"
-			call print33(raCovVel(i,:,:))
-			print *, "Cov(Temp): ", rmCovT(i,:)
-			print *, "Var(Temp): ", rvVarT(i)
-		end do
-		print *
-		
-	end subroutine tst_SonicData
-	
-	
 	subroutine tst_VelDirMean()
 	
 		! Routine arguments
@@ -1461,15 +1232,125 @@ contains
 		iRetCode = VelDirMean(vel, dir, scalar, [0.5, 1.5, 2.5, 3.5, 4.5], 16, WDCLASS_ZERO_BASED, rmMean)
 		print *, 'Return code: ', iRetCode, '   (expected: non-zero)'
 		print *
-		print *, 'Dir.cls, Min(mean(scalar)), Max(mean(scalar))'
-		do i = 1, 16
-			print *, i, minval(rmMean(:,i)), maxval(rmMean(:,i))
-		end do
-		print *
 		
 		! Leave
 		deallocate(vel, dir, scalar)
 		
 	end subroutine tst_VelDirMean
+	
+	
+	subroutine tst_SonicData()
+	
+		! Routine arguments
+		! --none--
+		
+		! Locals
+		type(SonicData)						:: tSonic
+		type(EddyCovData)					:: tEc
+		integer								:: iRetCode
+		integer								:: i
+		type(DateTime)						:: dt
+		real(8), dimension(:), allocatable	:: rvTimeSt
+		real, dimension(:), allocatable		:: rvU
+		real, dimension(:), allocatable		:: rvV
+		real, dimension(:), allocatable		:: rvW
+		real, dimension(:), allocatable		:: rvTemp
+		
+		! Test 1: Read and count an existing SonicLib file name
+		print *, "Test 1: Read SonicLib file"
+		iRetCode = tSonic % readSonicLib(10, "20130308.12.csv", OS_UNIX)
+		print *, "Return code: ", iRetCode, " (expected: 0)"
+		print *, "Size:        ", tSonic % size(), " (expected: > 0)"
+		print *, "Valid:       ", tSonic % valid(), " (expected: > 0)"
+		print *
+		
+		! Test 2: Compute hourly means on SonicLib file read
+		print *, "Test 2: Hourly means from SonicLib file"
+		iRetCode = tSonic % averages( &
+			3600, &
+			tEc &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		iRetCode = tEc % dump()
+		print *
+		
+		! Test 3: Compute 10-minutes means on SonicLib file read
+		print *, "Test 3: 10-minutes means from SonicLib file"
+		iRetCode = tSonic % averages( &
+			600, &
+			tEc &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		iRetCode = tEc % dump()
+		print *
+		
+		! Test 4: Compute 7-min means on SonicLib file read
+		print *, "Test 4: 7-minutes means from SonicLib file"
+		iRetCode = tSonic % averages( &
+			420, &
+			tEc &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: non-zero, as 420s does not divide 3600s exactly)"
+		print *
+		
+		! Test 5: hourly mean on artificial data
+		allocate(rvTimeSt(60), rvU(60), rvV(60), rvW(60), rvTemp(60))
+		dt = DateTime(2000, 3, 8, 12, 0, 0.0d0)
+		rvTimeSt = [(dt % toEpoch() + (i-1)*60.d0, i = 1, 60)]
+		rvU      = [(real((i-1)/15), i = 1, 60)]
+		rvV      = [(real((i-1)/30), i = 1, 60)]
+		rvW      = [(real((i-1)/10), i = 1, 60)]
+		rvTemp   = 0.
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		print *, "Test 5: hourly means from artificial data"
+		iRetCode = tSonic % averages( &
+			3600, &
+			tEc &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		iRetCode = tEc % dump()
+		print *
+		
+		! Test 6: 30-min mean on artificial data
+		print *, "Test 6: 30-min means from artificial data"
+		iRetCode = tSonic % averages( &
+			1800, &
+			tEc &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		iRetCode = tEc % dump()
+		print *
+		
+		! Test 7: 15-min mean on artificial data
+		print *, "Test 7: 15-min means from artificial data"
+		iRetCode = tSonic % averages( &
+			900, &
+			tEc &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		iRetCode = tEc % dump()
+		print *
+		
+		! Test 8: 10-min mean on artificial data
+		print *, "Test 8: 10-min means from artificial data"
+		iRetCode = tSonic % averages( &
+			600, &
+			tEc &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		iRetCode = tEc % dump()
+		print *
+		
+		! Test 9: 5-min mean on artificial data
+		print *, "Test 9: 5-min means from artificial data"
+		iRetCode = tSonic % averages( &
+			300, &
+			tEc &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		iRetCode = tEc % dump()
+		print *
+		
+	end subroutine tst_SonicData
 	
 end program t_pbl_wind
