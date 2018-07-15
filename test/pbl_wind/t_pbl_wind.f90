@@ -27,8 +27,8 @@ program t_pbl_wind
 	call tst_UnitDir()
 	call tst_WindRose()
 	call tst_CompareWindRoses()
-	call tst_SonicData()
 	call tst_VelDirMean()
+	call tst_SonicData()
 	
 contains
 
