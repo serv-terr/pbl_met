@@ -1207,6 +1207,7 @@ contains
 		
 		! Locals
 		integer			:: i
+		integer			:: j
 		type(DateTime)	:: dt
 		
 		! Assume success (will falsify on failure)
@@ -1230,7 +1231,9 @@ contains
 				print *, "Wind: ", this % rmVel(i,:)
 				print *, "Temp: ", this % rvT(i)
 				print *, "Cov(vel):"
-				call print33(this % raCovVel(i,:,:))
+				do j = 1, 3
+					print "(f7.4,2(',',f7.4))", this % raCovVel(i,j,:)
+				end do
 				print *, "Cov(Temp): ", this % rmCovT(i,:)
 				print *, "Var(Temp): ", this % rvVarT(i)
 			end do
@@ -1248,23 +1251,6 @@ contains
 	! * Internal routines *
 	! *********************
 	
-	! Print a 3x3 matrix, for use in ec_Dump
-	subroutine print33(rmVal)
-	
-		! Routine arguments
-		real, dimension(3,3), intent(in)	:: rmVal
-		
-		! Locals
-		integer	:: i
-		
-		! Print values, matrix form
-		do i = 1, 3
-			print "(f7.4,2(',',f7.4))", rmVal(i,:)
-		end do
-		
-	end subroutine print33
-	
-
 	! Transform horizontal wind components wind from polar to cartesian form
 	! (speed is surely greater than 1.e-6)
 	subroutine uvWind(vel, dir, u, v)
