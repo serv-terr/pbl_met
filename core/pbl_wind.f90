@@ -96,7 +96,8 @@ module pbl_wind
 		real, dimension(:,:), allocatable, private		:: rmCovT			! Time series of covariances between velocities and temperature (m°C/s)
 		real, dimension(:), allocatable, private		:: rvVarT			! Time series of temperature variances (°C2)
 	contains
-		procedure	:: dump => ec_Dump
+		procedure	:: clean	=> ec_Clean
+		procedure	:: dump		=> ec_Dump
 	end type EddyCovData
 	
 contains
@@ -1083,13 +1084,11 @@ contains
 			iRetCode = 4
 			return
 		end if
-		if(allocated(tEc % rvTimeStamp)) deallocate(tEc % rvTimeStamp)
-		if(allocated(tEc % ivNumData))   deallocate(tEc % ivNumData)
-		if(allocated(tEc % rmVel))       deallocate(tEc % rmVel)
-		if(allocated(tEc % rvT))         deallocate(tEc % rvT)
-		if(allocated(tEc % raCovVel))    deallocate(tEc % raCovVel)
-		if(allocated(tEc % rmCovT))      deallocate(tEc % rmCovT)
-		if(allocated(tEc % rvVarT))      deallocate(tEc % rvVarT)
+		iErrCode = tEc % clean()
+		if(iErrCode /= 0) then
+			iRetCode = 5
+			return
+		end if
 		allocate( &
 			tEc % rvTimeStamp(iMaxBlock), tEc % ivNumData(iMaxBlock), &
 			tEc % rmVel(iMaxBlock,3), tEc % rvT(iMaxBlock), &
@@ -1168,6 +1167,36 @@ contains
 		end do
 		
 	end function sd_Averages
+	
+	
+	function ec_Clean(this) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(inout)	:: this
+		integer								:: iRetCode
+		
+		! Locals
+		! --none--
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Set completion indicators to .false.
+		this % isPrimed = .false.
+		this % isFilled = .false.
+		
+		! Clean out the input part
+		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(allocated(this % ivNumData))   deallocate(this % ivNumData)
+		if(allocated(this % rmVel))       deallocate(this % rmVel)
+		if(allocated(this % rvT))         deallocate(this % rvT)
+		if(allocated(this % raCovVel))    deallocate(this % raCovVel)
+		if(allocated(this % rmCovT))      deallocate(this % rmCovT)
+		if(allocated(this % rvVarT))      deallocate(this % rvVarT)
+		
+		! Clean outputs
+		
+	end function ec_Clean
 	
 	
 	function ec_Dump(this) result(iRetCode)
