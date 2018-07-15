@@ -86,9 +86,10 @@ module pbl_wind
 	end type SonicData
 	
 	type EddyCovData
-		logical, private								:: isPrimed		! .true. when "averages" are available
-		logical, private								:: isFilled		! .true. when eddy covariance data are available
-		real(8), dimension(:), allocatable, private		:: rvTimeStamp
+		logical, private								:: isPrimed			! .true. when "averages" are available
+		logical, private								:: isFilled			! .true. when eddy covariance data are available
+		real(8), dimension(:), allocatable, private		:: rvTimeStamp		! Time stamp averages
+		integer, dimension(:), allocatable, private		:: ivNumData		! Number of (valid) data having contributed to the "averages"
 		real, dimension(:,:), allocatable, private		:: rmVel			! Time series of mean velocities (m/s)
 		real, dimension(:), allocatable, private		:: rvT				! Time series of mean temperatures (°C)
 		real, dimension(:,:,:), allocatable, private	:: raCovVel			! Time series of momentum covariances (m2/s2)
@@ -1049,7 +1050,6 @@ contains
 		
 		! Locals
 		integer								:: iErrCode
-		integer, dimension(:), allocatable	:: ivNumData
 		integer, dimension(:), allocatable	:: ivTimeIndex
 		real(8), dimension(:), allocatable	:: rvAggregTimeStamp
 		integer								:: i
@@ -1084,17 +1084,17 @@ contains
 			return
 		end if
 		if(allocated(tEc % rvTimeStamp)) deallocate(tEc % rvTimeStamp)
+		if(allocated(tEc % ivNumData))   deallocate(tEc % ivNumData)
 		if(allocated(tEc % rmVel))       deallocate(tEc % rmVel)
 		if(allocated(tEc % rvT))         deallocate(tEc % rvT)
 		if(allocated(tEc % raCovVel))    deallocate(tEc % raCovVel)
 		if(allocated(tEc % rmCovT))      deallocate(tEc % rmCovT)
 		if(allocated(tEc % rvVarT))      deallocate(tEc % rvVarT)
 		allocate( &
-			tEc % rvTimeStamp(iMaxBlock), &
+			tEc % rvTimeStamp(iMaxBlock), tEc % ivNumData(iMaxBlock), &
 			tEc % rmVel(iMaxBlock,3), tEc % rvT(iMaxBlock), &
 			tEc % raCovVel(iMaxBlock,3,3), tEc % rmCovT(iMaxBlock,3), tEc % rvVarT(iMaxBlock) &
 		)
-		allocate(ivNumData(iMaxBlock))
 		
 		! Pre-assign time stamps
 		rBaseTime = real(floor(minval(this % rvTimeStamp, mask=.valid. this % rvTimeStamp) / iAveragingTime, kind=8) &
@@ -1103,7 +1103,7 @@ contains
 		
 		! Compute the desired statistics
 		! -1- Phase one: Accumulate
-		ivNumData = 0
+		tEc % ivNumData = 0
 		tEc % rmVel     = 0.
 		tEc % rvT       = 0.
 		tEc % raCovVel  = 0.
@@ -1120,7 +1120,7 @@ contains
 					.valid. this % rvT(i) &
 				) then
 					! Update count
-					ivNumData(iIndex) = ivNumData(iIndex) + 1
+					tEc % ivNumData(iIndex) = tEc % ivNumData(iIndex) + 1
 					! Update first order accumulators
 					tEc % rmVel(iIndex, 1)       = tEc % rmVel(iIndex, 1)       + this % rvU(i)
 					tEc % rmVel(iIndex, 2)       = tEc % rmVel(iIndex, 2)       + this % rvV(i)
@@ -1142,22 +1142,22 @@ contains
 		end do
 		! -1- Phase two: Render
 		do i = 1, iMaxBlock
-			if(ivNumData(i) > 0) then
-				tEc % rmVel(i,:)      = tEc % rmVel(i,:) / ivNumData(i)
-				tEc % rvT(i)          = tEc % rvT(i) / ivNumData(i)
-				tEc % raCovVel(i,1,1) = tEc % raCovVel(i,1,1) / ivNumData(i) - tEc % rmVel(i, 1) ** 2
-				tEc % raCovVel(i,2,2) = tEc % raCovVel(i,2,2) / ivNumData(i) - tEc % rmVel(i, 2) ** 2
-				tEc % raCovVel(i,3,3) = tEc % raCovVel(i,3,3) / ivNumData(i) - tEc % rmVel(i, 3) ** 2
-				tEc % rvVarT(i)       = tEc % rvVarT(i) / ivNumData(i) - tEc % rvT(i) ** 2
-				tEc % raCovVel(i,1,2) = tEc % raCovVel(i,1,2) / ivNumData(i) - tEc % rmVel(i, 1) * tEc % rmVel(i, 2)
-				tEc % raCovVel(i,1,3) = tEc % raCovVel(i,1,3) / ivNumData(i) - tEc % rmVel(i, 1) * tEc % rmVel(i, 3)
-				tEc % raCovVel(i,2,3) = tEc % raCovVel(i,2,3) / ivNumData(i) - tEc % rmVel(i, 2) * tEc % rmVel(i, 3)
+			if(tEc % ivNumData(i) > 0) then
+				tEc % rmVel(i,:)      = tEc % rmVel(i,:) / tEc % ivNumData(i)
+				tEc % rvT(i)          = tEc % rvT(i) / tEc % ivNumData(i)
+				tEc % raCovVel(i,1,1) = tEc % raCovVel(i,1,1) / tEc % ivNumData(i) - tEc % rmVel(i, 1) ** 2
+				tEc % raCovVel(i,2,2) = tEc % raCovVel(i,2,2) / tEc % ivNumData(i) - tEc % rmVel(i, 2) ** 2
+				tEc % raCovVel(i,3,3) = tEc % raCovVel(i,3,3) / tEc % ivNumData(i) - tEc % rmVel(i, 3) ** 2
+				tEc % rvVarT(i)       = tEc % rvVarT(i) / tEc % ivNumData(i) - tEc % rvT(i) ** 2
+				tEc % raCovVel(i,1,2) = tEc % raCovVel(i,1,2) / tEc % ivNumData(i) - tEc % rmVel(i, 1) * tEc % rmVel(i, 2)
+				tEc % raCovVel(i,1,3) = tEc % raCovVel(i,1,3) / tEc % ivNumData(i) - tEc % rmVel(i, 1) * tEc % rmVel(i, 3)
+				tEc % raCovVel(i,2,3) = tEc % raCovVel(i,2,3) / tEc % ivNumData(i) - tEc % rmVel(i, 2) * tEc % rmVel(i, 3)
 				tEc % raCovVel(i,2,1) = tEc % raCovVel(i,1,2)
 				tEc % raCovVel(i,3,1) = tEc % raCovVel(i,1,3)
 				tEc % raCovVel(i,3,2) = tEc % raCovVel(i,2,3)
-				tEc % rmCovT(i,1)     = tEc % rmCovT(i,1) / ivNumData(i) - tEc % rmVel(i, 1) * tEc % rvT(i)
-				tEc % rmCovT(i,2)     = tEc % rmCovT(i,2) / ivNumData(i) - tEc % rmVel(i, 2) * tEc % rvT(i)
-				tEc % rmCovT(i,3)     = tEc % rmCovT(i,3) / ivNumData(i) - tEc % rmVel(i, 3) * tEc % rvT(i)
+				tEc % rmCovT(i,1)     = tEc % rmCovT(i,1) / tEc % ivNumData(i) - tEc % rmVel(i, 1) * tEc % rvT(i)
+				tEc % rmCovT(i,2)     = tEc % rmCovT(i,2) / tEc % ivNumData(i) - tEc % rmVel(i, 2) * tEc % rvT(i)
+				tEc % rmCovT(i,3)     = tEc % rmCovT(i,3) / tEc % ivNumData(i) - tEc % rmVel(i, 3) * tEc % rvT(i)
 			else
 				tEc % rmVel(i,:)      = NaN
 				tEc % rvT(i)          = NaN
@@ -1193,11 +1193,11 @@ contains
 		! Print input section
 		if(this % isPrimed) then
 			print *, 'Input section ---------------------------------------'
-			print *, "Num data = ", size(this % rvTimeStamp)
+			print *, "Num time steps = ", size(this % rvTimeStamp)
 			do i = 1, size(this % rvTimeStamp)
 				iRetCode = dt % fromEpoch(this % rvTimeStamp(i))
 				print *
-				print *, dt % toISO()
+				print *, dt % toISO(), '   Number of raw data in current step : ', this % ivNumData(i)
 				print *, "Wind: ", this % rmVel(i,:)
 				print *, "Temp: ", this % rvT(i)
 				print *, "Cov(vel):"
