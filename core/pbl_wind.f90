@@ -42,6 +42,7 @@ module pbl_wind
 	public	:: DirMean
 	! 4. Data types
 	public	:: SonicData
+	public	:: EddyCovData
 	
 	! Public constants
 	integer, parameter	:: WCONV_SAME               = 0
@@ -83,6 +84,19 @@ module pbl_wind
 		procedure	:: valid			=> sd_Valid
 		procedure	:: averages			=> sd_Averages
 	end type SonicData
+	
+	type EddyCovData
+		logical, private								:: isPrimed		! .true. when "averages" are available
+		logical, private								:: isFilled		! .true. when eddy covariance data are available
+		real(8), dimension(:), allocatable, private		:: rvTimeStamp
+		real, dimension(:,:), allocatable, private		:: rmVel			! Time series of mean velocities (m/s)
+		real, dimension(:), allocatable, private		:: rvT				! Time series of mean temperatures (°C)
+		real, dimension(:,:,:), allocatable, private	:: raCovVel			! Time series of momentum covariances (m2/s2)
+		real, dimension(:,:), allocatable, private		:: rmCovT			! Time series of covariances between velocities and temperature (m°C/s)
+		real, dimension(:), allocatable, private		:: rvVarT			! Time series of temperature variances (°C2)
+	contains
+		procedure	:: dump => ec_Dump
+	end type EddyCovData
 	
 contains
 
@@ -1025,17 +1039,12 @@ contains
 	end function sd_Valid
 	
 	
-	function sd_Averages(this, iAveragingTime, rvTimeStamp, rmVel, rvT, raCovVel, rmCovT, rvVarT) result(iRetCode)
+	function sd_Averages(this, iAveragingTime, tEc) result(iRetCode)
 	
 		! Routine arguments
 		class(SonicData), intent(in)						:: this				! Current ultrasonic anemometer data set
 		integer, intent(in)									:: iAveragingTime	! Averaging period (s, positive, proper divisor of 3600)
-		real(8), dimension(:), allocatable, intent(out)		:: rvTimeStamp		! Output time stamps
-		real, dimension(:,:), allocatable, intent(out)		:: rmVel			! Time series of mean velocities (m/s)
-		real, dimension(:), allocatable, intent(out)		:: rvT				! Time series of mean temperatures (°C)
-		real, dimension(:,:,:), allocatable, intent(out)	:: raCovVel			! Time series of momentum covariances (m2/s2)
-		real, dimension(:,:), allocatable, intent(out)		:: rmCovT			! Time series of covariances between velocities and temperature (m°C/s)
-		real, dimension(:), allocatable, intent(out)		:: rvVarT			! Time series of temperature variances (°C2)
+		type(EddyCovData), intent(out)						:: tEc				! Eddy covariance data, input fields only are output
 		integer												:: iRetCode
 		
 		! Locals
@@ -1074,31 +1083,32 @@ contains
 			iRetCode = 4
 			return
 		end if
-		if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
-		if(allocated(rmVel))       deallocate(rmVel)
-		if(allocated(rvT))         deallocate(rvT)
-		if(allocated(raCovVel))    deallocate(raCovVel)
-		if(allocated(rmCovT))      deallocate(rmCovT)
-		if(allocated(rvVarT))      deallocate(rvVarT)
+		if(allocated(tEc % rvTimeStamp)) deallocate(tEc % rvTimeStamp)
+		if(allocated(tEc % rmVel))       deallocate(tEc % rmVel)
+		if(allocated(tEc % rvT))         deallocate(tEc % rvT)
+		if(allocated(tEc % raCovVel))    deallocate(tEc % raCovVel)
+		if(allocated(tEc % rmCovT))      deallocate(tEc % rmCovT)
+		if(allocated(tEc % rvVarT))      deallocate(tEc % rvVarT)
 		allocate( &
-			rvTimeStamp(iMaxBlock), &
-			rmVel(iMaxBlock,3), rvT(iMaxBlock), &
-			raCovVel(iMaxBlock,3,3), rmCovT(iMaxBlock,3), rvVarT(iMaxBlock) &
+			tEc % rvTimeStamp(iMaxBlock), &
+			tEc % rmVel(iMaxBlock,3), tEc % rvT(iMaxBlock), &
+			tEc % raCovVel(iMaxBlock,3,3), tEc % rmCovT(iMaxBlock,3), tEc % rvVarT(iMaxBlock) &
 		)
 		allocate(ivNumData(iMaxBlock))
 		
 		! Pre-assign time stamps
 		rBaseTime = real(floor(minval(this % rvTimeStamp, mask=.valid. this % rvTimeStamp) / iAveragingTime, kind=8) &
 						* iAveragingTime, kind=8)
-		rvTimeStamp = [(rBaseTime + (i-1)*real(iAveragingTime, kind=8), i = 1, iNumBlocks)]
+		tEc % rvTimeStamp = [(rBaseTime + (i-1)*real(iAveragingTime, kind=8), i = 1, iNumBlocks)]
 		
 		! Compute the desired statistics
 		! -1- Phase one: Accumulate
 		ivNumData = 0
-		rmVel     = 0.
-		rvT       = 0.
-		raCovVel  = 0.
-		rmCovT    = 0.
+		tEc % rmVel     = 0.
+		tEc % rvT       = 0.
+		tEc % raCovVel  = 0.
+		tEc % rmCovT    = 0.
+		tEc % isPrimed  = .true.
 		do i = 1, size(ivTimeIndex)
 			if(ivTimeIndex(i) > 0) then
 				iIndex = ivTimeIndex(i)
@@ -1112,57 +1122,120 @@ contains
 					! Update count
 					ivNumData(iIndex) = ivNumData(iIndex) + 1
 					! Update first order accumulators
-					rmVel(iIndex, 1)       = rmVel(iIndex, 1)       + this % rvU(i)
-					rmVel(iIndex, 2)       = rmVel(iIndex, 2)       + this % rvV(i)
-					rmVel(iIndex, 3)       = rmVel(iIndex, 3)       + this % rvW(i)
-					rvT(iIndex)            = rvT(iIndex)            + this % rvT(i)
+					tEc % rmVel(iIndex, 1)       = tEc % rmVel(iIndex, 1)       + this % rvU(i)
+					tEc % rmVel(iIndex, 2)       = tEc % rmVel(iIndex, 2)       + this % rvV(i)
+					tEc % rmVel(iIndex, 3)       = tEc % rmVel(iIndex, 3)       + this % rvW(i)
+					tEc % rvT(iIndex)            = tEc % rvT(iIndex)            + this % rvT(i)
 					! Update second order accumulators
-					raCovVel(iIndex, 1, 1) = raCovVel(iIndex, 1, 1) + this % rvU(i) ** 2
-					raCovVel(iIndex, 2, 2) = raCovVel(iIndex, 2, 2) + this % rvV(i) ** 2
-					raCovVel(iIndex, 3, 3) = raCovVel(iIndex, 3, 3) + this % rvW(i) ** 2
-					rvVarT(iIndex)         = rvVarT(iIndex)         + this % rvT(i) ** 2
-					raCovVel(iIndex, 1, 2) = raCovVel(iIndex, 1, 2) + this % rvU(i) * this % rvV(i)
-					raCovVel(iIndex, 1, 3) = raCovVel(iIndex, 1, 3) + this % rvU(i) * this % rvW(i)
-					raCovVel(iIndex, 2, 3) = raCovVel(iIndex, 2, 3) + this % rvV(i) * this % rvW(i)
-					rmCovT(iIndex, 1)      = rmCovT(iIndex, 1)      + this % rvU(i) * this % rvT(i)
-					rmCovT(iIndex, 2)      = rmCovT(iIndex, 2)      + this % rvV(i) * this % rvT(i)
-					rmCovT(iIndex, 3)      = rmCovT(iIndex, 3)      + this % rvW(i) * this % rvT(i)
+					tEc % raCovVel(iIndex, 1, 1) = tEc % raCovVel(iIndex, 1, 1) + this % rvU(i) ** 2
+					tEc % raCovVel(iIndex, 2, 2) = tEc % raCovVel(iIndex, 2, 2) + this % rvV(i) ** 2
+					tEc % raCovVel(iIndex, 3, 3) = tEc % raCovVel(iIndex, 3, 3) + this % rvW(i) ** 2
+					tEc % rvVarT(iIndex)         = tEc % rvVarT(iIndex)         + this % rvT(i) ** 2
+					tEc % raCovVel(iIndex, 1, 2) = tEc % raCovVel(iIndex, 1, 2) + this % rvU(i) * this % rvV(i)
+					tEc % raCovVel(iIndex, 1, 3) = tEc % raCovVel(iIndex, 1, 3) + this % rvU(i) * this % rvW(i)
+					tEc % raCovVel(iIndex, 2, 3) = tEc % raCovVel(iIndex, 2, 3) + this % rvV(i) * this % rvW(i)
+					tEc % rmCovT(iIndex, 1)      = tEc % rmCovT(iIndex, 1)      + this % rvU(i) * this % rvT(i)
+					tEc % rmCovT(iIndex, 2)      = tEc % rmCovT(iIndex, 2)      + this % rvV(i) * this % rvT(i)
+					tEc % rmCovT(iIndex, 3)      = tEc % rmCovT(iIndex, 3)      + this % rvW(i) * this % rvT(i)
 				end if
 			end if
 		end do
 		! -1- Phase two: Render
 		do i = 1, iMaxBlock
 			if(ivNumData(i) > 0) then
-				rmVel(i,:)      = rmVel(i,:) / ivNumData(i)
-				rvT(i)          = rvT(i) / ivNumData(i)
-				raCovVel(i,1,1) = raCovVel(i,1,1) / ivNumData(i) - rmVel(i, 1) ** 2
-				raCovVel(i,2,2) = raCovVel(i,2,2) / ivNumData(i) - rmVel(i, 2) ** 2
-				raCovVel(i,3,3) = raCovVel(i,3,3) / ivNumData(i) - rmVel(i, 3) ** 2
-				rvVarT(i)       = rvVarT(i) / ivNumData(i) - rvT(i) ** 2
-				raCovVel(i,1,2) = raCovVel(i,1,2) / ivNumData(i) - rmVel(i, 1) * rmVel(i, 2)
-				raCovVel(i,1,3) = raCovVel(i,1,3) / ivNumData(i) - rmVel(i, 1) * rmVel(i, 3)
-				raCovVel(i,2,3) = raCovVel(i,2,3) / ivNumData(i) - rmVel(i, 2) * rmVel(i, 3)
-				raCovVel(i,2,1) = raCovVel(i,1,2)
-				raCovVel(i,3,1) = raCovVel(i,1,3)
-				raCovVel(i,3,2) = raCovVel(i,2,3)
-				rmCovT(i,1)     = rmCovT(i,1) / ivNumData(i) - rmVel(i, 1) * rvT(i)
-				rmCovT(i,2)     = rmCovT(i,2) / ivNumData(i) - rmVel(i, 2) * rvT(i)
-				rmCovT(i,3)     = rmCovT(i,3) / ivNumData(i) - rmVel(i, 3) * rvT(i)
+				tEc % rmVel(i,:)      = tEc % rmVel(i,:) / ivNumData(i)
+				tEc % rvT(i)          = tEc % rvT(i) / ivNumData(i)
+				tEc % raCovVel(i,1,1) = tEc % raCovVel(i,1,1) / ivNumData(i) - tEc % rmVel(i, 1) ** 2
+				tEc % raCovVel(i,2,2) = tEc % raCovVel(i,2,2) / ivNumData(i) - tEc % rmVel(i, 2) ** 2
+				tEc % raCovVel(i,3,3) = tEc % raCovVel(i,3,3) / ivNumData(i) - tEc % rmVel(i, 3) ** 2
+				tEc % rvVarT(i)       = tEc % rvVarT(i) / ivNumData(i) - tEc % rvT(i) ** 2
+				tEc % raCovVel(i,1,2) = tEc % raCovVel(i,1,2) / ivNumData(i) - tEc % rmVel(i, 1) * tEc % rmVel(i, 2)
+				tEc % raCovVel(i,1,3) = tEc % raCovVel(i,1,3) / ivNumData(i) - tEc % rmVel(i, 1) * tEc % rmVel(i, 3)
+				tEc % raCovVel(i,2,3) = tEc % raCovVel(i,2,3) / ivNumData(i) - tEc % rmVel(i, 2) * tEc % rmVel(i, 3)
+				tEc % raCovVel(i,2,1) = tEc % raCovVel(i,1,2)
+				tEc % raCovVel(i,3,1) = tEc % raCovVel(i,1,3)
+				tEc % raCovVel(i,3,2) = tEc % raCovVel(i,2,3)
+				tEc % rmCovT(i,1)     = tEc % rmCovT(i,1) / ivNumData(i) - tEc % rmVel(i, 1) * tEc % rvT(i)
+				tEc % rmCovT(i,2)     = tEc % rmCovT(i,2) / ivNumData(i) - tEc % rmVel(i, 2) * tEc % rvT(i)
+				tEc % rmCovT(i,3)     = tEc % rmCovT(i,3) / ivNumData(i) - tEc % rmVel(i, 3) * tEc % rvT(i)
 			else
-				rmVel(i,:)      = NaN
-				rvT(i)          = NaN
-				raCovVel(i,:,:) = NaN
-				rvVarT(i)       = NaN
-				rmCovT(i,:)     = NaN
+				tEc % rmVel(i,:)      = NaN
+				tEc % rvT(i)          = NaN
+				tEc % raCovVel(i,:,:) = NaN
+				tEc % rvVarT(i)       = NaN
+				tEc % rmCovT(i,:)     = NaN
 			end if
 		end do
 		
 	end function sd_Averages
-
+	
+	
+	function ec_Dump(this) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)	:: this
+		integer							:: iRetCode
+		
+		! Locals
+		integer			:: i
+		type(DateTime)	:: dt
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check there is something to dump
+		if(.not. this % isPrimed) then
+			print *, '-- Structure has not been primed with input data --'
+			iRetCode = 1
+			return
+		end if
+		
+		! Print input section
+		if(this % isPrimed) then
+			print *, 'Input section ---------------------------------------'
+			print *, "Num data = ", size(this % rvTimeStamp)
+			do i = 1, size(this % rvTimeStamp)
+				iRetCode = dt % fromEpoch(this % rvTimeStamp(i))
+				print *
+				print *, dt % toISO()
+				print *, "Wind: ", this % rmVel(i,:)
+				print *, "Temp: ", this % rvT(i)
+				print *, "Cov(vel):"
+				call print33(this % raCovVel(i,:,:))
+				print *, "Cov(Temp): ", this % rmCovT(i,:)
+				print *, "Var(Temp): ", this % rvVarT(i)
+			end do
+		end if
+		
+		! Print output section, if it exists
+		
+		! Leave
+		print *, '-----------------------------------------------------'
+		
+	end function ec_Dump
+	
+	
 	! *********************
 	! * Internal routines *
 	! *********************
 	
+	! Print a 3x3 matrix, for use in ec_Dump
+	subroutine print33(rmVal)
+	
+		! Routine arguments
+		real, dimension(3,3), intent(in)	:: rmVal
+		
+		! Locals
+		integer	:: i
+		
+		! Print values, matrix form
+		do i = 1, 3
+			print "(f7.4,2(',',f7.4))", rmVal(i,:)
+		end do
+		
+	end subroutine print33
+	
+
 	! Transform horizontal wind components wind from polar to cartesian form
 	! (speed is surely greater than 1.e-6)
 	subroutine uvWind(vel, dir, u, v)
