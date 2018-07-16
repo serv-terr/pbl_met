@@ -86,15 +86,29 @@ module pbl_wind
 	end type SonicData
 	
 	type EddyCovData
+		! Status section
 		logical, private								:: isPrimed			! .true. when "averages" are available
 		logical, private								:: isFilled			! .true. when eddy covariance data are available
+		! Common-to-all data
 		real(8), dimension(:), allocatable, private		:: rvTimeStamp		! Time stamp averages
 		integer, dimension(:), allocatable, private		:: ivNumData		! Number of (valid) data having contributed to the "averages"
+		! Input section (data entering here through SonicData % averages(...) member function
 		real, dimension(:,:), allocatable, private		:: rmVel			! Time series of mean velocities (m/s)
 		real, dimension(:), allocatable, private		:: rvT				! Time series of mean temperatures (°C)
 		real, dimension(:,:,:), allocatable, private	:: raCovVel			! Time series of momentum covariances (m2/s2)
 		real, dimension(:,:), allocatable, private		:: rmCovT			! Time series of covariances between velocities and temperature (m°C/s)
 		real, dimension(:), allocatable, private		:: rvVarT			! Time series of temperature variances (°C2)
+		! Output section (data entering here through EddyCovData % process(...) member function
+		! 1) Basic, rotated
+		real, dimension(:), allocatable, private		:: rvTheta			! Time series of first rotation angles (°)
+		real, dimension(:), allocatable, private		:: rvPhi			! Time series of second rotation angles (°)
+		real, dimension(:), allocatable, private		:: rvPsi			! Time series of third rotation angles (°) (always 0 if two rotations selected in eddy covariance)
+		real, dimension(:,:), allocatable, private		:: rmRotVel			! Time series of rotated mean velocities (m/s)
+		real, dimension(:,:,:), allocatable, private	:: raRotCovVel		! Time series of rotated momentum covariances (m2/s2)
+		real, dimension(:,:), allocatable, private		:: rmRotCovT		! Time series of rotated covariances between velocities and temperature (m°C/s)
+		real, dimension(:), allocatable, private		:: rvRotVarT		! Time series of rotated temperature variances (°C2)
+		! 2) Derived, pre eddy-covariance
+		! 3) Derived, common turbulence indicators
 	contains
 		procedure	:: clean	=> ec_Clean
 		procedure	:: dump		=> ec_Dump
@@ -1195,6 +1209,13 @@ contains
 		if(allocated(this % rvVarT))      deallocate(this % rvVarT)
 		
 		! Clean outputs
+		if(allocated(this % rvTheta))     deallocate(this % rvTheta)
+		if(allocated(this % rvPhi))       deallocate(this % rvPhi)
+		if(allocated(this % rvPsi))       deallocate(this % rvPsi)
+		if(allocated(this % rmRotVel))    deallocate(this % rmRotVel)
+		if(allocated(this % raRotCovVel)) deallocate(this % raRotCovVel)
+		if(allocated(this % rmRotCovT))   deallocate(this % rmRotCovT)
+		if(allocated(this % rvRotVarT))   deallocate(this % rvRotVarT)
 		
 	end function ec_Clean
 	
