@@ -109,8 +109,9 @@ module pbl_wind
 		! 2) Derived, pre eddy-covariance
 		! 3) Derived, common turbulence indicators
 	contains
-		procedure	:: clean	=> ec_Clean
-		procedure	:: dump		=> ec_Dump
+		procedure	:: clean			=> ec_Clean
+		procedure	:: dump				=> ec_Dump
+		procedure	:: getNumValidInput	=> ec_getNumValidInput
 	end type EddyCovData
 	
 contains
@@ -1272,6 +1273,27 @@ contains
 		print *, "====================================================="
 		
 	end function ec_Dump
+	
+	
+	function ec_getNumValidInput(this) result(iNumValid)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)	:: this
+		integer							:: iNumValid
+		
+		! Locals
+		integer			:: i
+		
+		! Check something is in input section
+		if(.not.this % isPrimed) then
+			iNumValid = 0
+			return
+		end if
+		
+		! Count number of non-missing data in input
+		iNumValid = count(this % ivNumData > 0)
+		
+	end function ec_getNumValidInput
 	
 	
 	! *********************
