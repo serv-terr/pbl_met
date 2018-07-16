@@ -106,7 +106,6 @@ module pbl_wind
 		real, dimension(:,:), allocatable, private		:: rmRotVel			! Time series of rotated mean velocities (m/s)
 		real, dimension(:,:,:), allocatable, private	:: raRotCovVel		! Time series of rotated momentum covariances (m2/s2)
 		real, dimension(:,:), allocatable, private		:: rmRotCovT		! Time series of rotated covariances between velocities and temperature (m°C/s)
-		real, dimension(:), allocatable, private		:: rvRotVarT		! Time series of rotated temperature variances (°C2)
 		! 2) Derived, pre eddy-covariance
 		! 3) Derived, common turbulence indicators
 	contains
@@ -1215,7 +1214,6 @@ contains
 		if(allocated(this % rmRotVel))    deallocate(this % rmRotVel)
 		if(allocated(this % raRotCovVel)) deallocate(this % raRotCovVel)
 		if(allocated(this % rmRotCovT))   deallocate(this % rmRotCovT)
-		if(allocated(this % rvRotVarT))   deallocate(this % rvRotVarT)
 		
 	end function ec_Clean
 	
@@ -1237,33 +1235,40 @@ contains
 		! Check there is something to dump
 		if(.not. this % isPrimed) then
 			print *, '-- Structure has not been primed with input data --'
+			print *
 			iRetCode = 1
 			return
 		end if
 		
-		! Print input section
-		if(this % isPrimed) then
+		! Print
+		print *, "====================================================="
+		print *, "Num time steps = ", size(this % rvTimeStamp)
+		do i = 1, size(this % rvTimeStamp)
+			iRetCode = dt % fromEpoch(this % rvTimeStamp(i))
+			print *, dt % toISO(), '   Number of raw data in current step : ', this % ivNumData(i)
 			print *, 'Input section ---------------------------------------'
-			print *, "Num time steps = ", size(this % rvTimeStamp)
-			do i = 1, size(this % rvTimeStamp)
-				iRetCode = dt % fromEpoch(this % rvTimeStamp(i))
-				print *
-				print *, dt % toISO(), '   Number of raw data in current step : ', this % ivNumData(i)
-				print *, "Wind: ", this % rmVel(i,:)
-				print *, "Temp: ", this % rvT(i)
-				print *, "Cov(vel):"
-				do j = 1, 3
-					print "(f7.4,2(',',f7.4))", this % raCovVel(i,j,:)
-				end do
-				print *, "Cov(Temp): ", this % rmCovT(i,:)
-				print *, "Var(Temp): ", this % rvVarT(i)
+			print "(a, f6.2, 2(1x, f6.2))", "Wind: ", this % rmVel(i,:)
+			print "(a, f6.2, 2(1x, f6.2))", "Temp: ", this % rvT(i)
+			print *, "Cov(vel):"
+			do j = 1, 3
+				print "(f7.4,2(',',f7.4))", this % raCovVel(i,j,:)
 			end do
-		end if
-		
-		! Print output section, if it exists
+			print "(a, f7.4, 2(1x, f7.4))", "Cov(Temp): ", this % rmCovT(i,:)
+			print "(a, f7.4, 2(1x, f7.4))", "Var(Temp): ", this % rvVarT(i)
+			if(this % isFilled) then
+				print *, 'Output section --------------------------------------'
+				print "('Theta, Psi, Phi:',3(1x,f8.4))", this % rvTheta(i), this % rvPhi(i), this % rvPsi(i)
+				print "(a, f6.2, 2(1x, f6.2))", "Rotated wind: ", this % rmRotVel(i,:)
+				print *, "Rotated cov(vel):"
+				do j = 1, 3
+					print "(f7.4,2(',',f7.4))", this % raRotCovVel(i,j,:)
+				end do
+				print "(a, f7.4, 2(1x, f7.4))", "Rotated cov(Temp): ", this % rmRotCovT(i,:)
+			end if
+		end do
 		
 		! Leave
-		print *, '-----------------------------------------------------'
+		print *, "====================================================="
 		
 	end function ec_Dump
 	
