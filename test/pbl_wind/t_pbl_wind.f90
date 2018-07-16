@@ -1350,6 +1350,7 @@ contains
 		print *, "Return code = ", iRetCode, "  (expected: 0)"
 		iRetCode = tEc % dump()
 		print *
+		deallocate(rvTimeSt, rvU, rvV, rvW, rvTemp)
 		
 		! Test 10: Natural data, as in test no.1, processed every 5 minutes, and count
 		! of valid inputs
@@ -1360,9 +1361,28 @@ contains
 		print *
 		
 		! Test 11: Count of valid inputs on an empty EddyCovData object
-		print *, "Test 11: Check valid data count in empty input section of EddyCovData"
+		print *, "Test 11: Check valid data count in clean input section of EddyCovData"
 		iRetCode = tEc % clean()
-		print *, 'Number of valid input data in empty EddyCovData: ', tEc % getNumValidInput(), '   (expected: 0)'
+		print *, 'Number of valid input data in clean EddyCovData: ', tEc % getNumValidInput(), '   (expected: 0)'
+		print *
+
+		! Test 12: Count on valid inputs in half-empty EddyCovData object		
+		allocate(rvTimeSt(60), rvU(60), rvV(60), rvW(60), rvTemp(60))
+		dt = DateTime(2000, 3, 8, 12, 0, 0.0d0)
+		rvTimeSt   = [(dt % toEpoch() + (i-1)*60.d0, i = 1, 60)]
+		rvU(1:30)  = [(real((i-1)/15), i = 1, 30)]
+		rvU(31:60) = NaN
+		rvV        = [(real((i-1)/30), i = 1, 60)]
+		rvW        = [(real((i-1)/10), i = 1, 60)]
+		rvTemp     = 0.
+		iRetCode   = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		print *, "Test 12: Check valid data count in half-empty input section of EddyCovData"
+		iRetCode = tSonic % averages( &
+			1800, &
+			tEc &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		print *, 'Number of valid input data in half-empty EddyCovData: ', tEc % getNumValidInput(), '   (expected: 1)'
 		print *
 		
 	end subroutine tst_SonicData
