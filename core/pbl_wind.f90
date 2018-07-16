@@ -1120,6 +1120,7 @@ contains
 		tEc % rvT       = 0.
 		tEc % raCovVel  = 0.
 		tEc % rmCovT    = 0.
+		tEc % rvVarT    = 0.
 		tEc % isPrimed  = .true.
 		do i = 1, size(ivTimeIndex)
 			if(ivTimeIndex(i) > 0) then
