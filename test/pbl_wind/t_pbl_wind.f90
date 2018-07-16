@@ -1351,6 +1351,13 @@ contains
 		iRetCode = tEc % dump()
 		print *
 		
+		! Test 10: Natural data, as in test no.1, processed every 5 minutes, and count
+		! of valid inputs
+		print *, "Test 1: Check valid data count in input section"
+		iRetCode = tSonic % readSonicLib(10, "20130308.12.csv", OS_UNIX)
+		iRetCode = tSonic % averages(300, tEc)
+		print *, 'Number of valid input data in EddyCovData structure: ', tEc % getNumValidInput(), '   (expected: ',3600/300,')'
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
