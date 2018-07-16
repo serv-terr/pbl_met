@@ -1385,6 +1385,23 @@ contains
 		print *, 'Number of valid input data in half-empty EddyCovData: ', tEc % getNumValidInput(), '   (expected: 1)'
 		print *
 		
+		! Test 13: Count on valid inputs in empty EddyCovData object		
+		dt = DateTime(2000, 3, 8, 12, 0, 0.0d0)
+		rvTimeSt   = [(dt % toEpoch() + (i-1)*60.d0, i = 1, 60)]
+		rvU        = NaN
+		rvV        = [(real((i-1)/30), i = 1, 60)]
+		rvW        = [(real((i-1)/10), i = 1, 60)]
+		rvTemp     = 0.
+		iRetCode   = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		print *, "Test 13: Check valid data count in empty input section of EddyCovData"
+		iRetCode = tSonic % averages( &
+			1800, &
+			tEc &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 2)"
+		print *, 'Number of valid input data in empty EddyCovData: ', tEc % getNumValidInput(), '   (expected: 0)'
+		print *
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
