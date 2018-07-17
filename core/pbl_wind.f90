@@ -109,9 +109,11 @@ module pbl_wind
 		! 2) Derived, pre eddy-covariance
 		! 3) Derived, common turbulence indicators
 	contains
-		procedure	:: clean			=> ec_Clean
-		procedure	:: dump				=> ec_Dump
-		procedure	:: getNumValidInput	=> ec_getNumValidInput
+		procedure	:: clean			=> ec_Clean					! Make an EddyCovData object "clean", that is, with vectors unallocated and status logicals .false.
+		procedure	:: reserve	 		=> ec_Allocate				! Reserve workspace for vectors (all types)
+		procedure	:: dump				=> ec_Dump					! Print contents of an EddyCovData object to screen (mainly for testing)
+		procedure	:: getNumValidInput	=> ec_getNumValidInput		! Count number of valid data in an EddyCovData object
+		procedure	:: createEmpty		=> ec_CreateEmpty			! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
 	end type EddyCovData
 	
 contains
@@ -1076,13 +1078,21 @@ contains
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
-		! Check something is to be done
-		if(this % valid() <= 0) then
+		! Pre-clean the EddyCovData object, so that we're sure anything bad happens results in a
+		! defined state
+		iErrCode = tEc % clean()
+		if(iErrCode /= 0) then
 			iRetCode = 1
 			return
 		end if
-		if(iAveragingTime <= 0 .or. mod(3600, iAveragingTime) /= 0) then
+		
+		! Check something is to be done
+		if(this % valid() <= 0) then
 			iRetCode = 2
+			return
+		end if
+		if(iAveragingTime <= 0 .or. mod(3600, iAveragingTime) /= 0) then
+			iRetCode = 3
 			return
 		end if
 		iNumBlocks = 3600 / iAveragingTime
@@ -1090,24 +1100,18 @@ contains
 		! Construct time-based index, and allocate workspace based on it
 		iErrCode = timeLinearIndex(this % rvTimeStamp, iAveragingTime, ivTimeIndex, rvAggregTimeStamp)
 		if(iErrCode /= 0) then
-			iRetCode = 3
+			iRetCode = 4
 			return
 		end if
 		iMaxBlock = maxval(ivTimeIndex)
 		if(iMaxBlock <= 0) then
-			iRetCode = 4
-			return
-		end if
-		iErrCode = tEc % clean()
-		if(iErrCode /= 0) then
 			iRetCode = 5
 			return
 		end if
-		allocate( &
-			tEc % rvTimeStamp(iMaxBlock), tEc % ivNumData(iMaxBlock), &
-			tEc % rmVel(iMaxBlock,3), tEc % rvT(iMaxBlock), &
-			tEc % raCovVel(iMaxBlock,3,3), tEc % rmCovT(iMaxBlock,3), tEc % rvVarT(iMaxBlock) &
-		)
+		if(tEc % reserve(iNumBlocks) /= 0) then
+			iRetCode = 6
+			return
+		end if
 		
 		! Pre-assign time stamps
 		rBaseTime = real(floor(minval(this % rvTimeStamp, mask=.valid. this % rvTimeStamp) / iAveragingTime, kind=8) &
@@ -1220,6 +1224,43 @@ contains
 	end function ec_Clean
 	
 	
+	function ec_Allocate(this, iNumData) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(inout)	:: this
+		integer, intent(in)					:: iNumdata
+		integer								:: iRetCode
+		
+		! Locals
+		integer	:: iErrCode
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Try reserving workspace (failure admittedly possible, and checked for)
+		aLlocate( &
+			this % rvTimeStamp(iNumData), &
+			this % ivNumData(iNumData), &
+			this % rmVel(iNumData,3), &
+			this % rvT(iNumData), &
+			this % raCovVel(iNumData,3,3), &
+			this % rmCovT(iNumData,3), &
+			this % rvVarT(iNumData), &
+			this % rvTheta(iNumData), &
+			this % rvPhi(iNumData), &
+			this % rvPsi(iNumData), &
+			this % rmRotVel(iNumData,3), &
+			this % raRotCovVel(iNumData,3,3), &
+			this % rmRotCovT(iNumData,3), &
+			stat = iErrCode &
+		)
+		if(iErrCode /= 0) then
+			iRetCode = 1
+		end if
+		
+	end function ec_Allocate
+	
+	
 	function ec_Dump(this) result(iRetCode)
 	
 		! Routine arguments
@@ -1294,6 +1335,98 @@ contains
 		iNumValid = count(this % ivNumData > 0)
 		
 	end function ec_getNumValidInput
+	
+	
+	! Create an empty multi-hour set, that is an EddyCovData object whose reason-to-be
+	! is accepting data from single-hour EddyCovData objects created with SonicData % averages(...).
+	!
+	! Data from SonidData % averages(...) may then be accepted both right after averaging, and
+	! after processing, as you like. Just, let me assume you will be consistent in choosing your
+	! way of access, as I'll decide how to assign the logical status flags based on what will
+	! be found in the first EddyCovData set you will present.
+	!
+	! In my view, the cleanest and fastest way to do is:
+	!
+	!	Invoke EddyCovData % createEmpty(...) for current data set (assuming you know how many hours you have, gaps included)
+	!	Loop over all hours:
+	!		Read one hourly file into a SonicData object
+	!		Average its contents into an hourly EddyCovData object using SonidData % averages(...)
+	!		Transfer contents of hourly EddyCovData to the multi-hour EddyCovData using EddyCovData % copy(...)
+	!	Once loop done, invoke EddyCovData % process(...)
+	!
+	! By doing so, you can minimize the code cluttering, and alternating between averaging and processing
+	! (of course in my opinion - if you think differently, feel free to act the way you like; in case, I advise you
+	! having a look into ec_Copy(...) and figure out what will happen in your specific case)
+	!		
+	function ec_CreateEmpty(this, iNumHours, iAveragingTime) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(out)	:: this
+		integer, intent(in)				:: iNumHours		! Number of hours to be contained in this set (1 or more; I'm assuming we know it in advance, but if you like may specify a coarse "large" estimate, 'a la Fortran IV)
+		integer, intent(in)				:: iAveragingTime	! Number of seconds in an averaging period (positive, must divide exactly 3600)
+		integer							:: iRetCode
+		
+		! Locals
+		integer	:: iErrCode
+		integer	:: iNumBlocks
+		integer	:: iNumData
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Clean this object preliminarily (just to make sure in case of failure)
+		iErrCode = this % clean()
+		if(iErrCode /= 0) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Check inputs make sense
+		if(iNumHours <= 0) then
+			iRetCode = 2
+			return
+		end if
+		if(iAveragingTime <= 0) then
+			iRetCode = 3
+			return
+		end if
+		if(mod(3600, iAveragingTime) /= 0) then
+			iRetCode = 4
+			return
+		end if
+		
+		! Compute vector sizes, and allocate them preliminarily
+		iNumData = iNumHours * (3600 / iAveragingTime)
+		
+		! Reserve vector space
+		iErrCode = this % reserve(iNumData)
+		if(iErrCode /= 0) then
+			iRetCode = 5
+			return
+		end if
+		
+		! Set completion indicators to .false.
+		this % isPrimed = .false.
+		this % isFilled = .false.
+		
+		! Initialize all inputs to make any gaps evident in future
+		this % rvTimeStamp = NaN_8
+		this % ivNumData   = 0
+		this % rmVel       = NaN
+		this % rvT         = NaN
+		this % raCovVel    = NaN
+		this % rmCovT      = NaN
+		this % rvVarT      = NaN
+		
+		! Initialize all outputs to make any gaps evident in future
+		this % rvTheta     = NaN
+		this % rvPhi       = NaN
+		this % rvPsi       = NaN
+		this % rmRotVel    = NaN
+		this % raRotCovVel = NaN
+		this % rmRotCovT   = NaN
+		
+	end function ec_CreateEmpty
 	
 	
 	! *********************
