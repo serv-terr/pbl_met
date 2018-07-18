@@ -114,6 +114,7 @@ module pbl_wind
 		procedure	:: dump				=> ec_Dump					! Print contents of an EddyCovData object to screen (mainly for testing)
 		procedure	:: getNumValidInput	=> ec_getNumValidInput		! Count number of valid data in an EddyCovData object
 		procedure	:: createEmpty		=> ec_CreateEmpty			! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
+		procedure	:: add				=> ec_AddHourly				! Add a hourly EddyCovData object to an existing multi-hourly one
 	end type EddyCovData
 	
 contains
@@ -1427,6 +1428,22 @@ contains
 		this % rmRotCovT   = NaN
 		
 	end function ec_CreateEmpty
+	
+	
+	function ec_AddHourly(this, rBaseTime, tEc) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(inout)	:: this			! A multi-hour object
+		real(8), intent(in)					:: rBaseTime	! The desired multi-hour object starting time stamp - must be an entire hour; forced to the lowest would it not be
+		type(EddyCovData), intent(in)		:: tEc			! The hourly EddyCovData object whose contents should be added to the multi-hourly one
+		integer								:: iRetCode
+		
+		! Locals
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+	end function ec_AddHourly
 	
 	
 	! *********************
