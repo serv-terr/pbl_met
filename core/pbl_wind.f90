@@ -112,6 +112,7 @@ module pbl_wind
 		procedure	:: clean			=> ec_Clean					! Make an EddyCovData object "clean", that is, with vectors unallocated and status logicals .false.
 		procedure	:: reserve	 		=> ec_Allocate				! Reserve workspace for vectors (all types)
 		procedure	:: dump				=> ec_Dump					! Print contents of an EddyCovData object to screen (mainly for testing)
+		procedure	:: getSize			=> ec_getSize				! Get allocated size of an EddyCovData object
 		procedure	:: getNumValidInput	=> ec_getNumValidInput		! Count number of valid data in an EddyCovData object
 		procedure	:: createEmpty		=> ec_CreateEmpty			! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
 		procedure	:: isClean			=> ec_IsClean				! Check whether an EddyCovData object is clean
@@ -1321,6 +1322,27 @@ contains
 	end function ec_Dump
 	
 	
+	function ec_getSize(this) result(iNumData)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)	:: this
+		integer							:: iNumData
+		
+		! Locals
+		! --none--
+		
+		! Check something is in input section
+		if(.not.this % isPrimed) then
+			iNumData = 0
+			return
+		end if
+		
+		! Count number of non-missing data in input
+		iNumData = size(this % ivNumData)
+		
+	end function ec_getSize
+	
+	
 	function ec_getNumValidInput(this) result(iNumValid)
 	
 		! Routine arguments
@@ -1328,7 +1350,7 @@ contains
 		integer							:: iNumValid
 		
 		! Locals
-		integer			:: i
+		! --none--
 		
 		! Check something is in input section
 		if(.not.this % isPrimed) then
