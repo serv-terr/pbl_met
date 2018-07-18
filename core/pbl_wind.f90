@@ -89,6 +89,7 @@ module pbl_wind
 		! Status section
 		logical, private								:: isPrimed			! .true. when "averages" are available
 		logical, private								:: isFilled			! .true. when eddy covariance data are available
+		integer, private								:: averagingTime	! Averaging time, in seconds
 		! Common-to-all data
 		real(8), dimension(:), allocatable, private		:: rvTimeStamp		! Time stamp averages
 		integer, dimension(:), allocatable, private		:: ivNumData		! Number of (valid) data having contributed to the "averages"
@@ -1191,6 +1192,9 @@ contains
 			end if
 		end do
 		
+		! Perfection status
+		tEc % averagingTime = iAveragingTime
+		
 	end function sd_Averages
 	
 	
@@ -1292,6 +1296,7 @@ contains
 		! Print
 		print *, "====================================================="
 		print *, "Num time steps = ", size(this % rvTimeStamp)
+		print *, "Averaging time = ", this % averagingTime
 		do i = 1, size(this % rvTimeStamp)
 			iRetCode = dt % fromEpoch(this % rvTimeStamp(i))
 			print *, dt % toISO(), '   Number of raw data in current step : ', this % ivNumData(i)
