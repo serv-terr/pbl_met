@@ -114,6 +114,10 @@ module pbl_wind
 		procedure	:: dump				=> ec_Dump					! Print contents of an EddyCovData object to screen (mainly for testing)
 		procedure	:: getNumValidInput	=> ec_getNumValidInput		! Count number of valid data in an EddyCovData object
 		procedure	:: createEmpty		=> ec_CreateEmpty			! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
+		procedure	:: isClean			=> ec_IsClean				! Check whether an EddyCovData object is clean
+		procedure	:: isEmpty			=> ec_IsEmpty				! Check whether an EddyCovData object is empty
+		procedure	:: isReady			=> ec_IsPrimed				! Check whether an EddyCovData object is primed (contains some input)
+		procedure	:: isFull			=> ec_IsFilled				! Check whether an EddyCovData object is primed (contains some input and processed data)
 		procedure	:: add				=> ec_AddHourly				! Add a hourly EddyCovData object to an existing multi-hourly one
 	end type EddyCovData
 	
@@ -1430,6 +1434,66 @@ contains
 	end function ec_CreateEmpty
 	
 	
+	function ec_IsClean(this) result(lPredicateValue)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)	:: this
+		logical							:: lPredicateValue
+		
+		! Locals
+		! --none--
+		
+		! Check the object is empty
+		lPredicateValue = (.not. this % isPrimed) .and. (.not. this % isFilled) .and. (.not. allocated(this % rvTimeStamp))
+		
+	end function ec_IsClean
+	
+	
+	function ec_IsEmpty(this) result(lPredicateValue)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)	:: this
+		logical							:: lPredicateValue
+		
+		! Locals
+		! --none--
+		
+		! Check the object is empty
+		lPredicateValue = (.not. this % isPrimed) .and. (.not. this % isFilled) .and. allocated(this % rvTimeStamp)
+		
+	end function ec_IsEmpty
+	
+	
+	function ec_IsPrimed(this) result(lPredicateValue)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)	:: this
+		logical							:: lPredicateValue
+		
+		! Locals
+		! --none--
+		
+		! Check the object is empty
+		lPredicateValue = this % isPrimed
+		
+	end function ec_IsPrimed
+	
+	
+	function ec_IsFilled(this) result(lPredicateValue)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)	:: this
+		logical							:: lPredicateValue
+		
+		! Locals
+		! --none--
+		
+		! Check the object is empty
+		lPredicateValue = this % isFilled
+		
+	end function ec_IsFilled
+	
+	
 	function ec_AddHourly(this, rBaseTime, tEc) result(iRetCode)
 	
 		! Routine arguments
@@ -1442,6 +1506,12 @@ contains
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
+		
+		! Check it makes sense to proceed
+		if(tEc % getNumValidInput() <= 0) then
+			iRetCode = 2
+			return
+		end if
 		
 	end function ec_AddHourly
 	
