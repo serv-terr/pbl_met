@@ -1625,10 +1625,12 @@ contains
 		integer								:: iRetCode
 		
 		! Locals
-		integer			:: iErrCode
-		real(8)			:: rTimeStart
-		type(DateTime)	:: tDateTimeStart
+		integer								:: iErrCode
+		integer								:: iDeltaTime
+		real(8)								:: rTimeStart
+		type(DateTime)						:: tDateTimeStart
 		real(8), dimension(:), allocatable	:: rvTimeStamp
+		integer, dimension(:), allocatable	:: ivTimeIndex
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -1654,12 +1656,17 @@ contains
 		
 		! Compute the hourly data's time indexes respect to the time start, as obtained in
 		! the preceding step
-		iErrCode = tEc % getTimeStamp(rvTimeStamp)
+		iErrCode = tEc % getTimeStamp(rvTimeStamp, iDeltaTime)
 		if(iErrCode /= 0) then
 			iRetCode = 4
 			return
 		end if
-		!iErrCode = timeLinearIndex(rvTimeStamp, 
+		iErrCode = timeLinearIndex(rvTimeStamp, iDeltaTime, ivTimeIndex)
+		if(iErrCode /= 0) then
+			iRetCode = 5
+			return
+		end if
+		! Post-condition: A finite time index is available
 		
 	end function ec_AddHourly
 	
