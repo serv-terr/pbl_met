@@ -1582,15 +1582,36 @@ contains
 		integer								:: iRetCode
 		
 		! Locals
+		integer			:: iErrCode
+		real(8)			:: rTimeStart
+		type(DateTime)	:: tDateTimeStart
+		real(8), dimension(:), allocatable	:: rvTimeStamp
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
 		! Check it makes sense to proceed
 		if(tEc % getNumValidInput() <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(.not. tEc % isHourly()) then
 			iRetCode = 2
 			return
 		end if
+		
+		! Round the starting time step to its beginning hour, and check it's compatible
+		! with a correct DateTime value
+		rTimeStart = (int(rBaseTime / 3600.0d0, kind=8) * 3600.0d0)
+		iErrCode = tDateTimeStart % fromEpoch(rTimeStart)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		
+		! Compute the hourly data's time indexes respect to the time start, as obtained in
+		! the preceding step
+		!iErrCode = timeLinearIndex(rvTimeStamp, 
 		
 	end function ec_AddHourly
 	
