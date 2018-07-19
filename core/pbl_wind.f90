@@ -120,6 +120,7 @@ module pbl_wind
 		procedure	:: isEmpty			=> ec_IsEmpty				! Check whether an EddyCovData object is empty
 		procedure	:: isReady			=> ec_IsPrimed				! Check whether an EddyCovData object is primed (contains some input)
 		procedure	:: isFull			=> ec_IsFilled				! Check whether an EddyCovData object is primed (contains some input and processed data)
+		procedure	:: isHourly			=> ec_IsHourly				! Check an EddyCovData object is hourly, or not
 		procedure	:: add				=> ec_AddHourly				! Add a hourly EddyCovData object to an existing multi-hourly one
 	end type EddyCovData
 	
@@ -1519,6 +1520,57 @@ contains
 		lPredicateValue = this % isFilled
 		
 	end function ec_IsFilled
+	
+	
+	function ec_IsHourly(this) result(lPredicateValue)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)	:: this
+		logical							:: lPredicateValue
+		
+		! Locals
+		integer								:: iErrCode
+		real(8)								:: rMinStamp
+		real(8)								:: rMaxStamp
+		integer, dimension(:), allocatable	:: ivYears
+		
+		! Check the answer is a trivial .false.
+		if(.not. this % isReady()) then
+			lPredicateValue = .false.
+			return
+		end if
+		! Post-condition: now we know the object contains some time stamps
+		
+		! Check some *valid* time stamp is present
+		if(all(.invalid.this % rvTimeStamp)) then
+			lPredicateValue = .false.
+			return
+		end if
+		
+		! Find embedding time stamps, and check they span an interval shorter than an hour
+		rMinStamp = minval(this % rvTimeStamp, mask = .valid. this % rvTimeStamp)
+		rMaxStamp = maxval(this % rvTimeStamp, mask = .valid. this % rvTimeStamp)
+		if(rMaxStamp - rMinStamp >= 3600.d0) then
+			lPredicateValue = .false.
+			return
+		end if
+		
+		! Check the embedding time stamps belong to the same hour
+		iErrCode = timeGetYear([rMinStamp, rMaxStamp], ivYears)
+		if(size(ivYears) /= 2) then
+			lPredicateValue = .false.
+			return
+		end if
+		if(ivYears(1) /= ivYears(2)) then
+			lPredicateValue = .false.
+			return
+		end if
+		
+		! Excluded all the .invalid. causes, we can do nothing else than
+		! accepting the truth
+		lPredicateValue = .true.
+		
+	end function ec_IsHourly
 	
 	
 	function ec_AddHourly(this, rBaseTime, tEc) result(iRetCode)
