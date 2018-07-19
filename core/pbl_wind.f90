@@ -121,6 +121,7 @@ module pbl_wind
 		procedure	:: isReady			=> ec_IsPrimed				! Check whether an EddyCovData object is primed (contains some input)
 		procedure	:: isFull			=> ec_IsFilled				! Check whether an EddyCovData object is primed (contains some input and processed data)
 		procedure	:: isHourly			=> ec_IsHourly				! Check an EddyCovData object is hourly, or not
+		procedure	:: getTimeStamp		=> ec_GetTimeStamp			! Retrieve a copy of the object's internal time stamp
 		procedure	:: add				=> ec_AddHourly				! Add a hourly EddyCovData object to an existing multi-hourly one
 	end type EddyCovData
 	
@@ -1571,6 +1572,38 @@ contains
 		lPredicateValue = .true.
 		
 	end function ec_IsHourly
+	
+	
+	function ec_GetTimeStamp(this, rvTimeStamp) result(iRetCode)
+	
+		! Routine argument
+		class(EddyCovData), intent(inout)					:: this			! A multi-hour object
+		real(8), dimension(:), allocatable, intent(out)		:: rvTimeStamp	! The desired copy of object's time stamp (or nothing in case of error)
+		integer												:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not.allocated(this % rvTimeStamp)) then
+			iRetCode = 1
+			return
+		end if
+		n = size(this % rvTimeStamp)
+		if(n < 0) then
+			iRetCode = 2
+			return
+		end if
+		
+		! Get time stamp
+		if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
+		allocate(rvTimeStamp(n))
+		rvTimeStamp = this % rvTimeStamp
+		
+	end function ec_GetTimeStamp
 	
 	
 	function ec_AddHourly(this, rBaseTime, tEc) result(iRetCode)
