@@ -1574,11 +1574,12 @@ contains
 	end function ec_IsHourly
 	
 	
-	function ec_GetTimeStamp(this, rvTimeStamp) result(iRetCode)
+	function ec_GetTimeStamp(this, rvTimeStamp, iDeltaTime) result(iRetCode)
 	
 		! Routine argument
-		class(EddyCovData), intent(inout)					:: this			! A multi-hour object
+		class(EddyCovData), intent(in)						:: this			! A multi-hour object
 		real(8), dimension(:), allocatable, intent(out)		:: rvTimeStamp	! The desired copy of object's time stamp (or nothing in case of error)
+		integer, intent(out), optional						:: iDeltaTime	! The object's time stap
 		integer												:: iRetCode
 		
 		! Locals
@@ -1597,11 +1598,20 @@ contains
 			iRetCode = 2
 			return
 		end if
+		if(this % averagingTime <= 0) then
+			iRetCode = 3
+			return
+		end if
 		
 		! Get time stamp
 		if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
 		allocate(rvTimeStamp(n))
 		rvTimeStamp = this % rvTimeStamp
+		
+		! Retrieve delta time, if requested
+		if(present(iDeltaTime)) then
+			iDeltaTime = this % averagingTime
+		end if
 		
 	end function ec_GetTimeStamp
 	
@@ -1644,6 +1654,11 @@ contains
 		
 		! Compute the hourly data's time indexes respect to the time start, as obtained in
 		! the preceding step
+		iErrCode = tEc % getTimeStamp(rvTimeStamp)
+		if(iErrCode /= 0) then
+			iRetCode = 4
+			return
+		end if
 		!iErrCode = timeLinearIndex(rvTimeStamp, 
 		
 	end function ec_AddHourly
