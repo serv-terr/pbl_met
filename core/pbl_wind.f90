@@ -116,6 +116,7 @@ module pbl_wind
 		procedure	:: getSize			=> ec_getSize				! Get allocated size of an EddyCovData object
 		procedure	:: getAvgTime		=> ec_getAvgTime			! Get averaging time (as it is)
 		procedure	:: getNumValidInput	=> ec_getNumValidInput		! Count number of valid data in an EddyCovData object
+		procedure	:: getInputData		=> ec_getInputData			! Get a copy of input vectors
 		procedure	:: createEmpty		=> ec_CreateEmpty			! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
 		procedure	:: isClean			=> ec_IsClean				! Check whether an EddyCovData object is clean
 		procedure	:: isEmpty			=> ec_IsEmpty				! Check whether an EddyCovData object is empty
@@ -1631,6 +1632,58 @@ contains
 		
 	end function ec_GetTimeStamp
 	
+	
+	function ec_GetInputData(this, ivNumData, rmVel, rvT, raCovVel, rmCovT, rvVarT) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)						:: this
+		integer, dimension(:), allocatable, intent(out)		:: ivNumData
+		real, dimension(:,:), allocatable, intent(out)		:: rmVel
+		real, dimension(:), allocatable, intent(out)		:: rvT
+		real, dimension(:,:,:), allocatable, intent(out)	:: raCovVel
+		real, dimension(:,:), allocatable, intent(out)		:: rmCovT
+		real, dimension(:), allocatable, intent(out)		:: rvVarT
+		integer												:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isPrimed) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Clean output data
+		if(allocated(ivNumData)) deallocate(ivNumData)
+		if(allocated(rmVel)) deallocate(rmVel)
+		if(allocated(rvT)) deallocate(rvT)
+		if(allocated(raCovVel)) deallocate(raCovVel)
+		if(allocated(rmCovT)) deallocate(rmCovT)
+		if(allocated(rvVarT)) deallocate(rvVarT)
+		
+		! Get array size, and reserve workspace
+		n = size(rvT)
+		allocate(ivNumData(n))
+		allocate(rmVel(n,3))
+		allocate(rvT(n))
+		allocate(raCovVel(n,3,3))
+		allocate(rmCovT(n,3))
+		allocate(rvVarT(n))
+		
+		! Retrieve data
+		ivNumData = this % ivNumData
+		rmVel     = this % rmVel
+		rvT       = this % rvT
+		raCovVel  = this % raCovVel
+		rmCovT    = this % rmCovT
+		rvVarT    = this % rvVarT
+		
+	end function ec_GetInputData
+
 	
 	function ec_AddHourly(this, rBaseTime, tEc) result(iRetCode)
 	
