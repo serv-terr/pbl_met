@@ -1700,8 +1700,15 @@ contains
 		end if
 		
 		! Check averaging time is left unchanged (i.i., same as desired .and. no configuration change)
+		if(this % averagingTime /= tEc % getAvgTime()) then
+			iRetCode = 6
+			return
+		end if
 		
 		! Perform transfers
+		where(ivTimeIndex > 0)
+			this % rvTimeStamp = rvTimeStamp
+		endwhere
 		
 		! Update state
 		
