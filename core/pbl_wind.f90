@@ -1702,6 +1702,12 @@ contains
 		type(DateTime)						:: tDateTimeStart
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		integer, dimension(:), allocatable	:: ivTimeIndex
+		integer, dimension(:), allocatable	:: ivNumData
+		real, dimension(:,:), allocatable	:: rmVel
+		real, dimension(:), allocatable		:: rvT
+		real, dimension(:,:,:), allocatable	:: raCovVel
+		real, dimension(:,:), allocatable	:: rmCovT
+		real, dimension(:), allocatable		:: rvVarT
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -1763,7 +1769,8 @@ contains
 			this % rvTimeStamp = rvTimeStamp
 		endwhere
 		
-		! Update state
+		! Update state incorporating inputs
+		iErrCode = tEc % getInputData(ivNumData, rmVel, rvT, raCovVel, rmCovT, rvVarT)
 		
 	end function ec_AddHourly
 	
