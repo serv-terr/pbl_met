@@ -114,6 +114,7 @@ module pbl_wind
 		procedure	:: reserve	 		=> ec_Allocate				! Reserve workspace for vectors (all types)
 		procedure	:: dump				=> ec_Dump					! Print contents of an EddyCovData object to screen (mainly for testing)
 		procedure	:: getSize			=> ec_getSize				! Get allocated size of an EddyCovData object
+		procedure	:: getAvgTime		=> ec_getAvgTime			! Get averaging time (as it is)
 		procedure	:: getNumValidInput	=> ec_getNumValidInput		! Count number of valid data in an EddyCovData object
 		procedure	:: createEmpty		=> ec_CreateEmpty			! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
 		procedure	:: isClean			=> ec_IsClean				! Check whether an EddyCovData object is clean
@@ -1350,6 +1351,21 @@ contains
 	end function ec_getSize
 	
 	
+	function ec_getAvgTime(this) result(iAveragingTime)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)	:: this
+		integer							:: iAveragingTime
+		
+		! Locals
+		! --none--
+		
+		! Retrieve the contents of averaging time field, whatever its contents
+		iAveragingTime = this % averagingTime
+		
+	end function ec_getAvgTime
+	
+	
 	function ec_getNumValidInput(this) result(iNumValid)
 	
 		! Routine arguments
@@ -1626,6 +1642,8 @@ contains
 		
 		! Locals
 		integer								:: iErrCode
+		integer								:: n
+		integer								:: i
 		integer								:: iDeltaTime
 		real(8)								:: rTimeStart
 		type(DateTime)						:: tDateTimeStart
@@ -1666,7 +1684,26 @@ contains
 			iRetCode = 5
 			return
 		end if
+		ivTimeIndex = ivTimeIndex + (minval(rvTimeStamp, mask = .valid.rvTimeStamp) - rTimeStart) / iDeltaTime
 		! Post-condition: A finite time index is available
+		
+		! Limit time index to range of current object's time stamp
+		n = this % getSize()
+		do i = 1, n
+			if(ivTimeIndex(i) > n) ivTimeIndex(i) = 0
+		end do
+		
+		! Check some transfer remains to do (it might not, would the hour be off-range)
+		if(count(ivTimeIndex > 0) <= 0) then
+			iRetCode = -1
+			return
+		end if
+		
+		! Check averaging time is left unchanged (i.i., same as desired .and. no configuration change)
+		
+		! Perform transfers
+		
+		! Update state
 		
 	end function ec_AddHourly
 	
@@ -1676,7 +1713,7 @@ contains
 	! *********************
 	
 	! Transform horizontal wind components wind from polar to cartesian form
-	! (speed is surely greater than 1.e-6)
+		! (speed is surely greater than 1.e-6)
 	subroutine uvWind(vel, dir, u, v)
 	
 		! Routine arguments
