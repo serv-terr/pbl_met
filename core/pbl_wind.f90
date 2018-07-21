@@ -1761,6 +1761,12 @@ contains
 		real, dimension(:,:,:), allocatable	:: raCovVel
 		real, dimension(:,:), allocatable	:: rmCovT
 		real, dimension(:), allocatable		:: rvVarT
+		real, dimension(:), allocatable		:: rvTheta
+		real, dimension(:), allocatable		:: rvPhi
+		real, dimension(:), allocatable		:: rvPsi
+		real, dimension(:,:), allocatable	:: rmRotVel
+		real, dimension(:,:,:), allocatable	:: raRotCovVel
+		real, dimension(:,:), allocatable	:: rmRotCovT
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -1834,6 +1840,17 @@ contains
 		end if
 		
 		! Update the part of state incorporating output, if it is defined
+		if(tEc % isFull()) then
+			iErrCode = tEc % getOutputData(rvTheta, rvPhi, rvPsi, rmRotVel, raRotCovVel, rmRotCovT)
+			if(iErrCode /= 0) then
+				iRetCode = 8
+				return
+			end if
+			if(.not. this % isFilled) then
+				this % isPrimed = .true.
+				this % isFilled = .true.
+			end if
+		end if
 		
 	end function ec_AddHourly
 	
