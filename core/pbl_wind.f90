@@ -1,3 +1,4 @@
+        2  1  1      1 	Note	 	1	 	A♯2	 	  64	        0  0  1      0 
 ! pbl_wind - Fortran module, containing routines related to wind
 !            in the Planetary Boundary Layer.
 !
@@ -1771,6 +1772,16 @@ contains
 		
 		! Update state incorporating inputs
 		iErrCode = tEc % getInputData(ivNumData, rmVel, rvT, raCovVel, rmCovT, rvVarT)
+		if(iErrCode /= 0) then
+			iRetCode = 7
+			return
+		end if
+		if(.not. this % isPrimed) then
+			this % isPrimed = .true.
+			this % isFilled = .false.
+		end if
+		
+		! Update the part of state incorporating output, if it is defined
 		
 	end function ec_AddHourly
 	
