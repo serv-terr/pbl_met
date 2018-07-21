@@ -1,4 +1,3 @@
-        2  1  1      1 	Note	 	1	 	A♯2	 	  64	        0  0  1      0 
 ! pbl_wind - Fortran module, containing routines related to wind
 !            in the Planetary Boundary Layer.
 !
