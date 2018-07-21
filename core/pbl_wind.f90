@@ -117,6 +117,7 @@ module pbl_wind
 		procedure	:: getAvgTime		=> ec_getAvgTime			! Get averaging time (as it is)
 		procedure	:: getNumValidInput	=> ec_getNumValidInput		! Count number of valid data in an EddyCovData object
 		procedure	:: getInputData		=> ec_getInputData			! Get a copy of input vectors
+		procedure	:: getOutputData	=> ec_getOutputData			! Get a copy of output vectors
 		procedure	:: createEmpty		=> ec_CreateEmpty			! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
 		procedure	:: isClean			=> ec_IsClean				! Check whether an EddyCovData object is clean
 		procedure	:: isEmpty			=> ec_IsEmpty				! Check whether an EddyCovData object is empty
@@ -1666,7 +1667,7 @@ contains
 		if(allocated(rvVarT)) deallocate(rvVarT)
 		
 		! Get array size, and reserve workspace
-		n = size(rvT)
+		n = size(this % rvTimeStamp)
 		allocate(ivNumData(n))
 		allocate(rmVel(n,3))
 		allocate(rvT(n))
@@ -1683,6 +1684,58 @@ contains
 		rvVarT    = this % rvVarT
 		
 	end function ec_GetInputData
+
+	
+	function ec_GetOutputData(this, rvTheta, rvPhi, rvPsi, rmRotVel, raRotCovVel, rmRotCovT) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)						:: this
+		real, dimension(:), allocatable, intent(out)		:: rvTheta
+		real, dimension(:), allocatable, intent(out)		:: rvPhi
+		real, dimension(:), allocatable, intent(out)		:: rvPsi
+		real, dimension(:,:), allocatable, intent(out)		:: rmRotVel
+		real, dimension(:,:,:), allocatable, intent(out)	:: raRotCovVel
+		real, dimension(:,:), allocatable, intent(out)		:: rmRotCovT
+		integer												:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isPrimed) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Clean output data
+		if(allocated(rvTheta)) deallocate(rvTheta)
+		if(allocated(rvPhi)) deallocate(rvPhi)
+		if(allocated(rvPsi)) deallocate(rvPsi)
+		if(allocated(rmRotVel)) deallocate(rmRotVel)
+		if(allocated(raRotCovVel)) deallocate(raRotCovVel)
+		if(allocated(rmRotCovT)) deallocate(rmRotCovT)
+		
+		! Get array size, and reserve workspace
+		n = size(this % rvTimeStamp)
+		allocate(rvTheta(n))
+		allocate(rvPhi(n))
+		allocate(rvPsi(n))
+		allocate(rmRotVel(n,3))
+		allocate(raRotCovVel(n,3,3))
+		allocate(rmRotCovT(n,3))
+		
+		! Retrieve data
+		rvTheta      = this % rvTheta
+		rvPhi        = this % rvPhi
+		rvPsi        = this % rvPsi
+		rmRotVel     = this % rmRotVel
+		raRotCovVel  = this % raRotCovVel
+		rmRotCovT    = this % rmRotCovT
+		
+	end function ec_GetOutputData
 
 	
 	function ec_AddHourly(this, rBaseTime, tEc) result(iRetCode)
