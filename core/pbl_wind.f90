@@ -1478,6 +1478,9 @@ contains
 		this % raRotCovVel = NaN
 		this % rmRotCovT   = NaN
 		
+		! Confirm averaging time
+		this % averagingTime = iAveragingTime
+		
 	end function ec_CreateEmpty
 	
 	
@@ -1748,6 +1751,7 @@ contains
 		
 		! Locals
 		integer								:: iErrCode
+		logical								:: alsoOutputs
 		integer								:: n
 		integer								:: i
 		integer								:: iDeltaTime
@@ -1806,7 +1810,7 @@ contains
 		! Post-condition: A finite time index is available
 		
 		! Limit time index to range of current object's time stamp
-		n = this % getSize()
+		n = tEc % getSize()
 		do i = 1, n
 			if(ivTimeIndex(i) > n) ivTimeIndex(i) = 0
 		end do
@@ -1823,11 +1827,6 @@ contains
 			return
 		end if
 		
-		! Perform transfers
-		where(ivTimeIndex > 0)
-			this % rvTimeStamp = rvTimeStamp
-		endwhere
-		
 		! Update state incorporating inputs
 		iErrCode = tEc % getInputData(ivNumData, rmVel, rvT, raCovVel, rmCovT, rvVarT)
 		if(iErrCode /= 0) then
@@ -1840,7 +1839,8 @@ contains
 		end if
 		
 		! Update the part of state incorporating output, if it is defined
-		if(tEc % isFull()) then
+		alsoOutputs = tEc % isFull()
+		if(alsoOutputs) then
 			iErrCode = tEc % getOutputData(rvTheta, rvPhi, rvPsi, rmRotVel, raRotCovVel, rmRotCovT)
 			if(iErrCode /= 0) then
 				iRetCode = 8
@@ -1851,6 +1851,27 @@ contains
 				this % isFilled = .true.
 			end if
 		end if
+		
+		! Perform transfers
+		do i = 1, n
+			if(ivTimeIndex(i) > 0) then
+				this % rvTimeStamp(ivTimeIndex(i))  = rvTimeStamp(i)
+				this % ivNumData(ivTimeIndex(i))    = ivNumData(i)
+				this % rmVel(ivTimeIndex(i),:)      = rmVel(i,:)
+				this % rvT(ivTimeIndex(i))          = rvT(i)
+				this % raCovVel(ivTimeIndex(i),:,:) = raCovVel(i,:,:)
+				this % rmCovT(ivTimeIndex(i),:)     = rmCovT(i,:)
+				this % rvVarT(ivTimeIndex(i))       = rvVarT(i)
+				if(alsoOutputs) then
+					this % rvTheta(ivTimeIndex(i))         = rvTheta(i)
+					this % rvPhi(ivTimeIndex(i))           = rvPhi(i)
+					this % rvPsi(ivTimeIndex(i))           = rvPsi(i)
+					this % rmRotVel(ivTimeIndex(i),:)      = rmRotVel(i,:)
+					this % raRotCovVel(ivTimeIndex(i),:,:) = raRotCovVel(i,:,:)
+					this % rmRotCovT(ivTimeIndex(i),:)     = rmRotCovT(i,:)
+				end if
+			end if
+		end do
 		
 	end function ec_AddHourly
 	
