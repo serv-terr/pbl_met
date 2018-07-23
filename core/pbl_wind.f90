@@ -126,6 +126,7 @@ module pbl_wind
 		procedure	:: isHourly			=> ec_IsHourly				! Check an EddyCovData object is hourly, or not
 		procedure	:: getTimeStamp		=> ec_GetTimeStamp			! Retrieve a copy of the object's internal time stamp
 		procedure	:: add				=> ec_AddHourly				! Add a hourly EddyCovData object to an existing multi-hourly one
+		procedure	:: process			=> ec_Process				! Perform basic wind and temperature processing
 	end type EddyCovData
 	
 contains
@@ -1874,6 +1875,40 @@ contains
 		end do
 		
 	end function ec_AddHourly
+	
+	
+	function ec_Process(this, iNumRot) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(inout)	:: this			! A multi-hour object
+		integer, intent(in), optional		:: iNumRot		! Number of reference rotations to make (2 or 3; default: 2)
+		integer								:: iRetCode
+		
+		! Locals
+		integer								:: iErrCode
+		integer								:: iRotations
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Set the desired number of rotations
+		if(present(iNumRot)) then
+			iRotations = max(min(iNumRot,3),2)
+		else
+			iRotations = 2
+		end if
+		
+		! Check something can be really made
+		if(.not. this % isReady) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Compute and execute the first two rotations
+		
+		! If required, compute the third rotation
+		
+	end function ec_Process
 	
 	
 	! *********************
