@@ -1453,6 +1453,33 @@ contains
 		iRetCode = tMultiEc % dump()
 		print *
 		
+		! Test 16: compose multi-hourly set, with off-time data
+		print *, "Test 16: composition of multi-hourly set from artificial data, 30-min avgs, 1 off-time hour"
+		dt = DateTime(2000, 3, 8, 12, 0, 0.0d0)
+		rBaseTime = dt % toEpoch()
+		iRetCode = tMultiEc % createEmpty(4, 1800)
+		do iHour = 12, 16
+			dt = DateTime(2000, 3, 8, iHour, 0, 0.0d0)
+			rvTimeSt = [(dt % toEpoch() + (i-1)*60.d0, i = 1, 60)]
+			rvU      = float(iHour)
+			rvV      = float(iHour)*2.
+			rvW      = float(iHour)*3.
+			rvTemp   = float(iHour) + 10.
+			iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+			iRetCode = tSonic % averages( &
+				1800, &
+				tEc &
+			)
+			iRetCode = tMultiEc % add(rBaseTime, tEc)
+			if(iHour < 16) then
+				print *, "Hour: ",iHour, "  Return code: ", iRetCode, "   (expected:  0)"
+			else
+				print *, "Hour: ",iHour, "  Return code: ", iRetCode, "   (expected: -1)"
+			end if
+		end do
+		iRetCode = tMultiEc % dump()
+		print *
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
