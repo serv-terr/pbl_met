@@ -1427,7 +1427,7 @@ contains
 			iRetCode = tMultiEc % add(rBaseTime, tEc)
 			print *, "Hour: ",iHour, "  Return code: ", iRetCode, "   (expected: 0)"
 		end do
-		iRetCode = tEc % dump()
+		iRetCode = tMultiEc % dump()
 		print *
 		
 	end subroutine tst_SonicData
