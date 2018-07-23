@@ -1812,7 +1812,7 @@ contains
 		! Limit time index to range of current object's time stamp
 		n = tEc % getSize()
 		do i = 1, n
-			if(ivTimeIndex(i) > n) ivTimeIndex(i) = 0
+			if(ivTimeIndex(i) > size(this % rvTimeStamp)) ivTimeIndex(i) = 0
 		end do
 		
 		! Check some transfer remains to do (it might not, would the hour be off-range)
