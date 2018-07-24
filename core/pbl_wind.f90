@@ -1877,6 +1877,16 @@ contains
 	end function ec_AddHourly
 	
 	
+	! Minimalistic eddy covariance calculations, molded after
+	! EDDY.FOR, described in
+	!
+	!    R.Sozzi, M.Favaron, "Sonic Anemometry and Thermometry: theoretical basis and data-processing software",
+	!    Environmental Software, 11, 4, 1996
+	!
+	! Actually, I've made many little changes (whose effect is purely aesthetical)
+	! for compatibility with modern Fortran, and to make code clearer to understand.
+	! (Mauri Favaron)
+	!
 	function ec_Process(this, iNumRot) result(iRetCode)
 	
 		! Routine arguments
@@ -1887,6 +1897,10 @@ contains
 		! Locals
 		integer								:: iErrCode
 		integer								:: iRotations
+		integer								:: i
+		real								:: rVel
+		real								:: rU
+		real								:: rV
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -1904,7 +1918,25 @@ contains
 			return
 		end if
 		
+		! Initialize
+		n = size(this % rvTimeStamp)
+		
 		! Compute and execute the first two rotations
+		do i = 1, n
+		
+			! Set horizontal speed, and horizontal versor components
+			rVel = sqrt(this % rmVel(i,1)**2 + this % rmVel(i,2)**2)
+			if(rVel > 0.) then
+				rU   = this % rmVel(i,1) / rVel
+				rV   = this % rmVel(i,2) / rVel
+			else
+				rU = NaN
+				rV = NaN
+			end if
+			! Note: By the properties of versor components and trigonometry, rU = sin(theta), rV = cos(theta)
+			!       where 'theta' is the first rotation angle
+			
+		end do
 		
 		! If required, compute the third rotation
 		
