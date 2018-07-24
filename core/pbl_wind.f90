@@ -1946,6 +1946,12 @@ contains
 		! Compute and execute the first two rotations
 		do i = 1, n
 		
+			! Pre-assign rotation angles to zero, so that in case of no action a defined state is
+			! anyway defined
+			this % rvTheta(i) = 0.
+			this % rvPhi(i)   = 0.
+			this % rvPsi(i)   = 0.
+		
 			! Set horizontal speed, and horizontal versor components
 			rVel = sqrt(this % rmVel(i,1)**2 + this % rmVel(i,2)**2)
 			if(rVel > 0.) then
@@ -2000,7 +2006,7 @@ contains
 			sin_cos = 2.*sin_phi*cos_phi
 			sinphi2 = sin_phi*sin_phi
 			cosphi2 = cos_phi*cos_phi
-			this % rvPhi(i) = 180./PI*atan2(this % rmVel(i,1), this % rmVel(i,2))
+			this % rvPhi(i) = 180./PI*atan2(this % rmVel(i,3), rVel)
 			if(this % rvPhi(i) < 0.0) this % rvPhi(i) = this % rvPhi(i) + 360.0
 
 			! Perform second rotation
