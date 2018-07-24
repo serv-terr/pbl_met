@@ -2007,7 +2007,6 @@ contains
 			sinphi2 = sin_phi*sin_phi
 			cosphi2 = cos_phi*cos_phi
 			this % rvPhi(i) = 180./PI*atan2(this % rmVel(i,3), rVel)
-			if(this % rvPhi(i) < 0.0) this % rvPhi(i) = this % rvPhi(i) + 360.0
 
 			! Perform second rotation
 			! 1) Mean wind components
@@ -2061,7 +2060,6 @@ contains
 					sinpsi2 = sin_psi*sin_psi
 					cospsi2 = cos_psi*cos_psi
 					this % rvPsi(i) = psi*180./PI
-					if(this % rvPsi(i) < 0.) this % rvPsi(i) = this % rvPsi(i) + 360.
 
 					! Execute third rotation
 					! 1) Mean wind components
