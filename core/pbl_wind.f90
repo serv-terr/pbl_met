@@ -2094,6 +2094,9 @@ contains
 			
 		end do
 		
+		! Processing did complete: inform users, by setting the appropriate completion flag
+		this % isFilled = .true.
+		
 	end function ec_Process
 	
 	
