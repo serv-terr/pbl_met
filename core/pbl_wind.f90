@@ -1898,9 +1898,13 @@ contains
 		integer								:: iErrCode
 		integer								:: iRotations
 		integer								:: i
+		integer								:: n
 		real								:: rVel
-		real								:: rU
-		real								:: rV
+		real								:: cos_the	! Cosine of first rotation angle
+		real								:: sin_the	! Sine of first rotation angle
+		real								:: sin_cos
+		real								:: costhe2
+		real								:: sinthe2
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -1913,7 +1917,7 @@ contains
 		end if
 		
 		! Check something can be really made
-		if(.not. this % isReady) then
+		if(.not. this % isReady()) then
 			iRetCode = 1
 			return
 		end if
@@ -1927,14 +1931,44 @@ contains
 			! Set horizontal speed, and horizontal versor components
 			rVel = sqrt(this % rmVel(i,1)**2 + this % rmVel(i,2)**2)
 			if(rVel > 0.) then
-				rU   = this % rmVel(i,1) / rVel
-				rV   = this % rmVel(i,2) / rVel
+				cos_the = this % rmVel(i,1) / rVel
+				sin_the = this % rmVel(i,2) / rVel				
 			else
-				rU = NaN
-				rV = NaN
+				cos_the = NaN
+				sin_the = NaN
 			end if
-			! Note: By the properties of versor components and trigonometry, rU = sin(theta), rV = cos(theta)
+			costhe2 = cos_the ** 2
+			sinthe2 = sin_the ** 2
+			sin_cos = 2. * sin_the * cos_the
+			! Note: By the properties of versor components and trigonometry, cos_the = cos(theta), sin_the = sin(theta)
 			!       where 'theta' is the first rotation angle
+			
+			! Store first rotation angle
+			this % rvTheta(i) = 180./PI*atan2(this % rmVel(i,1), this % rmVel(i,2))
+			if(this % rvTheta(i) < 0.0) this % rvTheta(i) = this % rvTheta(i) + 360.0
+			
+			! Apply first rotation to vectors and matrices
+			! 1) Mean wind components
+			this % rmRotVel(i,1) =  this % rmVel(i,1) * cos_the + this % rmVel(i,2) * sin_the
+			this % rmRotVel(i,2) = -this % rmVel(i,1) * sin_the + this % rmVel(i,2) * cos_the
+			this % rmRotVel(i,3) =  this % rmVel(i,3)
+			! 2) Wind-temperature covariances
+			this % rmRotCovT(i,1) =  this % rmCovT(i,1) * cos_the + this % rmCovT(i,2) * sin_the
+			this % rmRotCovT(i,2) = -this % rmCovT(i,1) * sin_the + this % rmCovT(i,2) * cos_the
+			this % rmRotCovT(i,3) =  this % rmCovT(i,3)
+			! 3) Wind covariances
+			this % raRotCovVel(i,1,1) = this % raCovVel(i,1,1)*costhe2 + this % raCovVel(i,2,2)*sinthe2 + &
+				this % raCovVel(i,1,2)*sin_cos
+			this % raRotCovVel(i,2,2) = this % raCovVel(i,1,1)*sinthe2 + this % raCovVel(i,2,2)*costhe2 - &
+				this % raCovVel(i,1,2)*sin_cos
+			this % raRotCovVel(i,3,3) = this % raCovVel(i,3,3)
+			this % raRotCovVel(i,1,2) =  0.5*sin_cos*(this % raCovVel(i,2,2) - this % raCovVel(i,1,1)) + &
+				this % raCovVel(i,1,2)*(costhe2-sinthe2)
+			this % raRotCovVel(i,1,3) =  this % raCovVel(i,1,3)*cos_the + this % raCovVel(i,1,3)*sin_the
+			this % raRotCovVel(i,2,3) = -this % raCovVel(i,1,3)*sin_the + this % raCovVel(i,2,3)*cos_the
+			this % raRotCovVel(i,2,1) = this % raRotCovVel(i,1,2)
+			this % raRotCovVel(i,3,1) = this % raRotCovVel(i,1,3)
+			this % raRotCovVel(i,3,2) = this % raRotCovVel(i,2,3)
 			
 		end do
 		
