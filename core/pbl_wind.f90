@@ -1905,15 +1905,24 @@ contains
 		real								:: sin_the
 		real								:: cos_phi
 		real								:: sin_phi
+		real								:: cos_psi
+		real								:: sin_psi
 		real								:: sin_cos
 		real								:: costhe2
 		real								:: sinthe2
 		real								:: cosphi2
 		real								:: sinphi2
+		real								:: cospsi2
+		real								:: sinpsi2
+		real								:: psi
 		real								:: um2, vm2, wm2
 		real								:: ut2, vt2, wt2
 		real								:: su2, sv2, sw2
 		real								:: uv2, uw2, vw2
+		real								:: um3, vm3, wm3
+		real								:: ut3, vt3, wt3
+		real								:: su3, sv3, sw3
+		real								:: uv3, uw3, vw3
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -2029,9 +2038,61 @@ contains
 			this % raRotCovVel(i,2,3) = vw2
 			this % raRotCovVel(i,3,2) = vw2
       
+			! If required, compute the third rotation
+			if(iNumRot >= 3) then
+				if(abs(vw2) < 1.e-6 .and. abs(sv2-sw2) < 1.e-6) then
+				
+					! The third rotation angle is not defined: assume 0. degrees rotation
+					this % rvPsi(i) = 0
+					
+				else
+				
+					! Set 
+					psi     = 0.5*ATAN2(2.*vw2,sv2-sw2)
+					sin_psi = sin(psi)
+					cos_psi = cos(psi)
+					sin_cos = 2.*sin_psi*cos_psi
+					sinpsi2 = sin_psi*sin_psi
+					cospsi2 = cos_psi*cos_psi
+					this % rvPsi(i) = psi*180./PI
+					if(this % rvPsi(i) < 0.) this % rvPsi(i) = this % rvPsi(i) + 360.
+
+					! Execute third rotation
+					! 1) Mean wind components
+					um3 =  um2
+					vm3 =  vm2*cos_psi+wm2*sin_psi
+					wm3 = -vm2*sin_psi+wm2*cos_psi
+					this % rmRotVel(i,1) = um3
+					this % rmRotVel(i,2) = vm3
+					this % rmRotVel(i,3) = wm3
+					! 2) Wind-temperature covariances
+					ut3 =  ut2
+					vt3 =  vt2*cos_psi+wt2*sin_psi
+					wt3 = -vt2*sin_psi+wt2*cos_psi
+					this % rmRotCovT(i,1) = ut3
+					this % rmRotCovT(i,2) = vt3
+					this % rmRotCovT(i,3) = wt3
+					! 3) Wind covariances
+					su3 =  su2
+					sv3 =  sv2*cospsi2+sw2*sinpsi2+vw2*sin_cos
+					sw3 =  sv2*sinpsi2+sw2*cospsi2-vw2*sin_cos
+					uv3 =  uv2*cos_psi+uw2*sin_psi
+					uw3 = -uv2*sin_psi+uw2*cos_psi
+					vw3 =  sin_cos/2.*(sw2-sv2)+vw2*(cospsi2-sinpsi2)
+					this % raRotCovVel(i,1,1) = su2
+					this % raRotCovVel(i,2,2) = sv2
+					this % raRotCovVel(i,3,3) = sw2
+					this % raRotCovVel(i,1,2) = uv2
+					this % raRotCovVel(i,2,1) = uv2
+					this % raRotCovVel(i,1,3) = uw2
+					this % raRotCovVel(i,3,1) = uw2
+					this % raRotCovVel(i,2,3) = vw2
+					this % raRotCovVel(i,3,2) = vw2
+
+				end if
+			end if
+			
 		end do
-		
-		! If required, compute the third rotation
 		
 	end function ec_Process
 	
