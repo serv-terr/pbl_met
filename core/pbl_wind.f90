@@ -1900,11 +1900,20 @@ contains
 		integer								:: i
 		integer								:: n
 		real								:: rVel
-		real								:: cos_the	! Cosine of first rotation angle
-		real								:: sin_the	! Sine of first rotation angle
+		real								:: rVel3
+		real								:: cos_the
+		real								:: sin_the
+		real								:: cos_phi
+		real								:: sin_phi
 		real								:: sin_cos
 		real								:: costhe2
 		real								:: sinthe2
+		real								:: cosphi2
+		real								:: sinphi2
+		real								:: um2, vm2, wm2
+		real								:: ut2, vt2, wt2
+		real								:: su2, sv2, sw2
+		real								:: uv2, uw2, vw2
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -1970,6 +1979,56 @@ contains
 			this % raRotCovVel(i,3,1) = this % raRotCovVel(i,1,3)
 			this % raRotCovVel(i,3,2) = this % raRotCovVel(i,2,3)
 			
+			! Set vertical speed, and vertical-horizontal versor components
+			rVel3 = sqrt(this % rmVel(i,1)**2 + this % rmVel(i,2)**2 + this % rmVel(i,3)**2)
+			if(rVel3 > 0.) then
+				sin_phi = this % rmVel(i,3) / rVel3
+				cos_phi = rVel / rVel3
+			else
+				sin_phi = NaN
+				cos_phi = NaN
+			end if
+			sin_cos = 2.*sin_phi*cos_phi
+			sinphi2 = sin_phi*sin_phi
+			cosphi2 = cos_phi*cos_phi
+			this % rvPhi(i) = 180./PI*atan2(this % rmVel(i,1), this % rmVel(i,2))
+			if(this % rvPhi(i) < 0.0) this % rvPhi(i) = this % rvPhi(i) + 360.0
+
+			! Perform second rotation
+			! 1) Mean wind components
+			um2 =  this % rmRotVel(i,1)*cos_phi + this % rmRotVel(i,3)*sin_phi
+			vm2 =  this % rmRotVel(i,2)
+			wm2 = -this % rmRotVel(i,1)*sin_phi + this % rmRotVel(i,3)*cos_phi
+			this % rmRotVel(i,1) = um2
+			this % rmRotVel(i,2) = vm2
+			this % rmRotVel(i,3) = wm2
+			! 2) Wind-temperature covariances
+			ut2 =  this % rmRotCovT(i,1)*cos_phi + this % rmRotCovT(i,3)*sin_phi
+			vt2 =  this % rmRotCovT(i,2)
+			wt2 = -this % rmRotCovT(i,1)*sin_phi + this % rmRotCovT(i,3)*cos_phi
+			this % rmRotCovT(i,1) = ut2
+			this % rmRotCovT(i,2) = vt2
+			this % rmRotCovT(i,3) = wt2
+			! 3) Wind covariances
+			su2 =  this % raRotCovVel(i,1,1)*cosphi2 + this % raRotCovVel(i,3,3)*sinphi2 + &
+				this % raRotCovVel(i,1,3)*sin_cos
+			sv2 =  this % raRotCovVel(i,2,2)
+			sw2 =  this % raRotCovVel(i,1,1)*sinphi2 + this % raRotCovVel(i,3,3)*cosphi2 - &
+				this % raRotCovVel(i,1,3)*sin_cos
+			uv2 =  this % raRotCovVel(i,1,2)*cos_phi + this % raRotCovVel(i,2,3)*sin_phi
+			uw2 =  sin_cos/2.*(this % raRotCovVel(i,3,3)-this % raRotCovVel(i,1,1)) + &
+				this % raRotCovVel(i,1,3)*(cosphi2-sinphi2)
+			vw2 = -this % raRotCovVel(i,1,2)*sin_phi + this % raRotCovVel(i,2,3)*cos_phi
+			this % raRotCovVel(i,1,1) = su2
+			this % raRotCovVel(i,2,2) = sv2
+			this % raRotCovVel(i,3,3) = sw2
+			this % raRotCovVel(i,1,2) = uv2
+			this % raRotCovVel(i,2,1) = uv2
+			this % raRotCovVel(i,1,3) = uw2
+			this % raRotCovVel(i,3,1) = uw2
+			this % raRotCovVel(i,2,3) = vw2
+			this % raRotCovVel(i,3,2) = vw2
+      
 		end do
 		
 		! If required, compute the third rotation
