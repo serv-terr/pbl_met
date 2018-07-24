@@ -1564,6 +1564,25 @@ contains
 		iRetCode = tEc % dump()
 		print *
 		
+		! Test 21: Processing, 2 rot, case 4
+		print *, "Test 21: Processing, case 4"
+		dt = DateTime(2000, 3, 8, 12, 0, 0.0d0)
+		rvTimeSt = [(dt % toEpoch() + (i-1)*60.d0, i = 1, 60)]
+		rvU      = 1./sqrt(2.)
+		rvV      = 1./sqrt(2.)
+		rvW      = -1.
+		rvTemp   = 0.
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % averages( &
+			3600, &
+			tEc &
+		)
+		print *, "Data assembly: return code = ", iRetCode, "  (expected: 0)"
+		iRetCode = tEc % process(2)
+		print *, "Processing: return code = ", iRetCode, "  (expected: 0)"
+		iRetCode = tEc % dump()
+		print *
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
