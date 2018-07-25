@@ -18,17 +18,29 @@ module usa1
 	! Public interface
 	public	:: Usa1DataDir
 	
+	! Constants
+	integer, parameter	:: DE_FIRST = 0
+	integer, parameter	:: DE_NEXT  = 1
+	integer, parameter	:: DE_ERR   = 2
+	
 	! Data types
 	
 	type Usa1DataDir
+	
+		! Information contents
 		character(len=256), private								:: sDataPath
 		real(8), private										:: rTimeBase
 		integer, private										:: iNumHours
 		logical, private										:: lHasSubdirs
 		character(len=256), dimension(:), allocatable, private	:: svFileName
 		real(8), dimension(:), allocatable, private				:: rvTimeStamp
+		
+		! Internal state
+		integer													:: iPos
+		
 	contains
 		procedure	:: mapFiles		=> up_MapFiles
+		procedure	:: getFile		=> up_GetFile
 	end type Usa1DataDir
 	
 contains
@@ -142,5 +154,62 @@ contains
 		end do
 		
 	end function up_MapFiles
+	
+	
+	function up_GetFile(this, iMode, sFileName) result(iRetCode)
+	
+		! Routine arguments
+		class(Usa1DataDir), intent(inout)	:: this
+		integer, intent(inout)				:: iMode
+		character(len=*), intent(out)		:: sFileName
+		integer								:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(iMode < DE_FIRST .or. iMode > DE_ERR) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Set position according to current mode
+		select case(iMode)
+		case(DE_FIRST)
+			this % iPos = 1
+			if(allocated(this % svFileName)) then
+				n = size(this % svFileName)
+				if(this % iPos > n) then
+					iMode     = DE_ERR
+					sFileName = ""
+				else
+					sFileName = this % svFileName(this % iPos)
+					iMode     = DE_NEXT
+				end if
+			else
+				iRetCode = 2
+			end if
+		case(DE_NEXT)
+			this % iPos = this % iPos + 1
+			if(allocated(this % svFileName)) then
+				n = size(this % svFileName)
+				if(this % iPos > n) then
+					iMode     = DE_ERR
+					sFileName = ""
+				else
+					sFileName = this % svFileName(this % iPos)
+					iMode     = DE_NEXT
+				end if
+			else
+				iRetCode = 2
+			end if
+		case(DE_ERR)
+			sFileName = ""
+		end select
+		
+	end function up_GetFile
 
 end module usa1
