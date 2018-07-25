@@ -18,6 +18,7 @@ program sonicpro
 	
 	! Locals
 	character(len=256)	:: sDataPath
+	character(len=256)	:: sFileName
 	character(len=256)	:: sOutputFile
 	character(len=19)	:: sFirstDateTime
 	character(len=19)	:: sLastDateTime
@@ -29,6 +30,7 @@ program sonicpro
 	real(8)				:: rFrom
 	real(8)				:: rTo
 	real(8)				:: rHold
+	integer				:: iMode
 	
 	! Get parameters
 	if(command_argument_count() /= 4) then
@@ -88,5 +90,21 @@ program sonicpro
 		print *, "Error searching for WindRecorder/USA1 data files"
 		stop
 	end if
+	
+	! Iterate over data files
+	iMode = DE_FIRST
+	iRetCode = tDir % getFile(iMode, sFileName)
+	if(iRetCode /= 0) then
+		print *, "Error accessing file list - Return code = ", iRetCode
+		stop
+	end if
+	do while(iMode /= DE_ERR)
+		print *, trim(sFileName)
+		iRetCode = tDir % getFile(iMode, sFileName)
+		if(iRetCode /= 0) then
+			print *, "Error accessing file list - Return code = ", iRetCode
+			stop
+		end if
+	end do
 
 end program sonicpro
