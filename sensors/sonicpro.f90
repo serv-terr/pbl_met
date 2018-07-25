@@ -123,7 +123,7 @@ program sonicpro
 		print *, "Error accessing output file in write mode"
 		stop
 	end if
-	write(10,"('date, dir, vel, temp, theta, phi, uu, uv, uw, vv, vw, ww, ut, vt, wt')")
+	write(10,"('date, dir, vel, temp, theta, phi, w, uu, uv, uw, vv, vw, ww, ut, vt, wt')")
 	do while(iMode /= DE_ERR)
 	
 		! Process file
@@ -185,15 +185,16 @@ program sonicpro
 			iRetCode  = tCurTime % fromEpoch(rvTimeStamp(i))
 			sDateTime = tCurTime % toIso()
 			
-			cartesian = rmVel(i,:)
+			cartesian = rmNrotVel(i,:)
 			polar = CartesianToPolar3(cartesian, WCONV_PROVENANCE_TO_FLOW)
 			
-			write(10,"(a,',', f5.1, 4(',', f6.2), 9(',', f7.4))") &
+			write(10,"(a,',', f5.1, 5(',', f6.2), 9(',', f7.4))") &
 				sDateTime, &
 				polar(2), &
 				polar(1), &
 				rvT(i), &
 				rvTheta(i), rvPhi(i), &
+				rmVel(i,3), &
 				raCovVel(i,1,1), raCovVel(i,1,2), raCovVel(i,1,3), &
 				raCovVel(i,2,2), raCovVel(i,2,3), raCovVel(i,3,3), &
 				rmCovT(i,1), rmCovT(i,2), rmCovT(i,3)
