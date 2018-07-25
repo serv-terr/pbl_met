@@ -16,7 +16,12 @@ module usa1
 	private
 	
 	! Public interface
+	! 1. Data types
 	public	:: Usa1DataDir
+	! 2. Constants
+	public	:: DE_FIRST
+	public	:: DE_NEXT
+	public	:: DE_ERR
 	
 	! Constants
 	integer, parameter	:: DE_FIRST = 0
