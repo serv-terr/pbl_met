@@ -5,7 +5,9 @@
 !
 ! Copyright 2018 by Servizi Territorio srl
 !
-! This is open-source code, covered by lGPL 3.0 license
+! This is open-source code, covered by lGPL 3.0 license.
+!
+! Author: Mauri Favaron
 !
 program sonicpro
 
@@ -43,5 +45,29 @@ program sonicpro
 	call get_command_argument(2, sFirstDateTime)
 	call get_command_argument(3, sLastDateTime)
 	call get_command_argument(4, sOutputFile)
+	
+	! Convert dates and times to DateTime values
+	read(sFirstDateTime, "(i4.4,3(1x,i2.2))", iostat=iRetCode) &
+		tFrom % iYear, &
+		tFrom % iMonth, &
+		tFrom % iDay, &
+		tFrom % iHour
+	if(iRetCode /= 0) then
+		print *, "Invalid <DateTimeFrom>"
+		stop
+	end if
+	tFrom % iMinute = 0
+	tFrom % rSecond = 0.d0
+	read(sLastDateTime, "(i4.4,3(1x,i2.2))", iostat=iRetCode) &
+		tTo % iYear, &
+		tTo % iMonth, &
+		tTo % iDay, &
+		tTo % iHour
+	if(iRetCode /= 0) then
+		print *, "Invalid <DateTimeTo>"
+		stop
+	end if
+	tTo % iMinute = 0
+	tTo % rSecond = 0.d0
 
 end program sonicpro
