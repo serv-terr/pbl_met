@@ -25,8 +25,10 @@ program sonicpro
 	integer				:: iNumHours
 	type(DateTime)		:: tFrom
 	type(DateTime)		:: tTo
+	type(Usa1DataDir)	:: tDir
 	real(8)				:: rFrom
 	real(8)				:: rTo
+	real(8)				:: rHold
 	
 	! Get parameters
 	if(command_argument_count() /= 4) then
@@ -58,6 +60,7 @@ program sonicpro
 	end if
 	tFrom % iMinute = 0
 	tFrom % rSecond = 0.d0
+	rFrom = tFrom % toEpoch()
 	read(sLastDateTime, "(i4.4,3(1x,i2.2))", iostat=iRetCode) &
 		tTo % iYear, &
 		tTo % iMonth, &
@@ -69,5 +72,21 @@ program sonicpro
 	end if
 	tTo % iMinute = 0
 	tTo % rSecond = 0.d0
+	rTo = tTo % toEpoch()
+	if(rTo < rFrom) then
+		rHold = rFrom
+		rFrom = rTo
+		rTo   = rHold
+	end if
+	
+	! Compute number of hours in set
+	iNumHours = nint((rTo - rFrom)/3600.d0) + 1
+	
+	! Map data files
+	iRetCode = tDir % mapFiles(sDataPath, rFrom, iNumHours, .true.)
+	if(iRetCode /= 0) then
+		print *, "Error searching for WindRecorder/USA1 data files"
+		stop
+	end if
 
 end program sonicpro
