@@ -17,20 +17,40 @@ program sonicpro
 	implicit none
 	
 	! Locals
-	character(len=256)	:: sDataPath
-	character(len=256)	:: sFileName
-	character(len=256)	:: sOutputFile
-	character(len=19)	:: sFirstDateTime
-	character(len=19)	:: sLastDateTime
-	integer				:: iRetCode
-	integer				:: iNumHours
-	type(DateTime)		:: tFrom
-	type(DateTime)		:: tTo
-	type(Usa1DataDir)	:: tDir
-	real(8)				:: rFrom
-	real(8)				:: rTo
-	real(8)				:: rHold
-	integer				:: iMode
+	character(len=256)					:: sDataPath
+	character(len=256)					:: sFileName
+	character(len=256)					:: sOutputFile
+	character(len=19)					:: sFirstDateTime
+	character(len=19)					:: sLastDateTime
+	integer								:: iRetCode
+	integer								:: iNumHours
+	type(DateTime)						:: tFrom
+	type(DateTime)						:: tTo
+	type(DateTime)						:: tCurTime
+	type(Usa1DataDir)					:: tDir
+	type(SonicData)						:: tSonic
+	type(EddyCovData)					:: tEc
+	real(8)								:: rFrom
+	real(8)								:: rTo
+	real(8)								:: rHold
+	integer								:: iMode
+	integer								:: i
+	character(len=23)					:: sDateTime
+	integer, dimension(:), allocatable	:: ivNumData
+	real(8), dimension(:), allocatable	:: rvTimeStamp
+	real, dimension(:), allocatable		:: rvTheta
+	real, dimension(:), allocatable		:: rvPhi
+	real, dimension(:), allocatable		:: rvPsi
+	real, dimension(:), allocatable		:: rvT
+	real, dimension(:), allocatable		:: rvVarT
+	real, dimension(:,:), allocatable	:: rmNrotVel
+	real, dimension(:,:), allocatable	:: rmVel
+	real, dimension(:,:,:), allocatable	:: raCovVel
+	real, dimension(:,:,:), allocatable	:: raNrotCovVel
+	real, dimension(:,:), allocatable	:: rmCovT
+	real, dimension(:,:), allocatable	:: rmNrotCovT
+	real, dimension(3)					:: cartesian
+	real, dimension(3)					:: polar
 	
 	! Get parameters
 	if(command_argument_count() /= 4) then
@@ -91,20 +111,95 @@ program sonicpro
 		stop
 	end if
 	
-	! Iterate over data files
+	! Iterate over data files, and process them in sequence
 	iMode = DE_FIRST
 	iRetCode = tDir % getFile(iMode, sFileName)
 	if(iRetCode /= 0) then
 		print *, "Error accessing file list - Return code = ", iRetCode
 		stop
 	end if
+	open(10, file=sOutputFile, status='unknown', iostat = iRetCode)
+	if(iRetCode /= 0) then
+		print *, "Error accessing output file in write mode"
+		stop
+	end if
+	write(10,"('date, dir, vel, temp, theta, phi, uu, uv, uw, vv, vw, ww, ut, vt, wt')")
 	do while(iMode /= DE_ERR)
-		print *, trim(sFileName)
+	
+		! Process file
+		print *, 'Processing ', trim(sFileName)
+		
+		! Get next file name, if exists; the value of iMode parameter is changed automatically,
+		! so there is no need to set it directly
 		iRetCode = tDir % getFile(iMode, sFileName)
 		if(iRetCode /= 0) then
 			print *, "Error accessing file list - Return code = ", iRetCode
-			stop
+			cycle
 		end if
+		
+		! Read data to hourly SonicData object
+		iRetCode = tSonic % readWindRecorder(11, sFileName, OS_UNIX, SONIC_USA1)
+		if(iRetCode /= 0) then
+			print *, "Error reading file - Return code = ", iRetCode
+			cycle
+		end if
+		
+		! Compute averages
+		iRetCode = tSonic % averages(30, tEc)
+		if(iRetCode /= 0) then
+			print *, "Error performing averaging calculations - Return code = ", iRetCode
+			cycle
+		end if
+		
+		! Compute eddy-covariance statistics
+		iRetCode = tEc % process(2)
+		if(iRetCode /= 0) then
+			print *, "Error performing eddy covariance calculations - Return code = ", iRetCode
+			cycle
+		end if
+		
+		! Retrieve time stamp
+		iRetCode = tEc % getTimeStamp(rvTimeStamp)
+		if(iRetCode /= 0) then
+			print *, "Time stamp retrieval failed - Return code = ", iRetCode
+			cycle
+		end if
+		
+		! Retrieve inputs
+		iRetCode = tEc % getInputData(ivNumData, rmNrotVel, rvT, raNrotCovVel, rmNrotCovT, rvVarT)
+		if(iRetCode /= 0) then
+			print *, "Eddy cov inputs retrieval failed - Return code = ", iRetCode
+			cycle
+		end if
+		
+		! Retrieve eddy covariance precursors
+		iRetCode = tEc % getOutputData(rvTheta, rvPhi, rvPsi, rmVel, raCovVel, rmCovT)
+		if(iRetCode /= 0) then
+			print *, "Eddy cov precursors retrieval failed - Return code = ", iRetCode
+			cycle
+		end if
+		
+		! Write data
+		do i = 1, size(rvTimeStamp)
+		
+			iRetCode  = tCurTime % fromEpoch(rvTimeStamp(i))
+			sDateTime = tCurTime % toIso()
+			
+			cartesian = rmVel(i,:)
+			polar = CartesianToPolar3(cartesian, WCONV_PROVENANCE_TO_FLOW)
+			
+			write(10,"(a,',', f5.1, 4(',', f6.2), 9(',', f7.4))") &
+				sDateTime, &
+				polar(2), &
+				polar(1), &
+				rvT(i), &
+				rvTheta(i), rvPhi(i), &
+				raCovVel(i,1,1), raCovVel(i,1,2), raCovVel(i,1,3), &
+				raCovVel(i,2,2), raCovVel(i,2,3), raCovVel(i,3,3), &
+				rmCovT(i,1), rmCovT(i,2), rmCovT(i,3)
+			
+		end do
+		
 	end do
 
 end program sonicpro
