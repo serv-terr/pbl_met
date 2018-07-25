@@ -123,7 +123,7 @@ program sonicpro
 		print *, "Error accessing output file in write mode"
 		stop
 	end if
-	write(10,"('date, dir, vel, temp, theta, phi, w, uu, uv, uw, vv, vw, ww, ut, vt, wt')")
+	write(10,"('date, dir, vel, temp, theta, phi, w.nrot, uu, uv, uw, vv, vw, ww, ut, vt, wt')")
 	do while(iMode /= DE_ERR)
 	
 		! Process file
@@ -194,7 +194,7 @@ program sonicpro
 				polar(1), &
 				rvT(i), &
 				rvTheta(i), rvPhi(i), &
-				rmVel(i,3), &
+				rmNrotVel(i,3), &
 				raCovVel(i,1,1), raCovVel(i,1,2), raCovVel(i,1,3), &
 				raCovVel(i,2,2), raCovVel(i,2,3), raCovVel(i,3,3), &
 				rmCovT(i,1), rmCovT(i,2), rmCovT(i,3)
