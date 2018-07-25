@@ -49,6 +49,7 @@ contains
 		real(8)				:: rCurTime
 		type(DateTime)		:: tDt
 		integer				:: iNumFiles
+		integer				:: iFile
 		character(len=256)	:: sBuffer
 		logical				:: lIsFile
 		
@@ -74,7 +75,7 @@ contains
 		do iHour = 1, iNumHours
 		
 			! Compute current hour
-			rCurTime = rBaseTime + 3600.d0*(iHour - 1)
+			rCurTime = rTimeBase + 3600.d0*(iHour - 1)
 			iErrCode = tDt % FromEpoch(rCurTime)
 			if(iErrCode /= 0) then
 				iRetCode = 2
@@ -83,12 +84,12 @@ contains
 			
 			! Compose file name according to WindRecorder convention
 			if(this % lHasSubdirs) then
-				write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2) &
+				write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2)") &
 					trim(sDataPath), &
 					tDt % iYear, tDt % iMonth, &
 					tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
 			else
-				write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2) &
+				write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2)") &
 					trim(sDataPath), &
 					tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
 			end if
@@ -105,14 +106,14 @@ contains
 			return
 		end if
 		if(allocated(this % svFileName)) deallocate(this % svFileName)
-		allocate(svFileName(iNumFiles))
+		allocate(this % svFileName(iNumFiles))
 		
 		! Populate the file map
 		iFile = 0
 		do iHour = 1, iNumHours
 		
 			! Compute current hour
-			rCurTime = rBaseTime + 3600.d0*(iHour - 1)
+			rCurTime = rTimeBase + 3600.d0*(iHour - 1)
 			iErrCode = tDt % FromEpoch(rCurTime)
 			if(iErrCode /= 0) then
 				iRetCode = 2
@@ -121,12 +122,12 @@ contains
 			
 			! Compose file name according to WindRecorder convention
 			if(this % lHasSubdirs) then
-				write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2) &
+				write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2)") &
 					trim(sDataPath), &
 					tDt % iYear, tDt % iMonth, &
 					tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
 			else
-				write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2) &
+				write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2)") &
 					trim(sDataPath), &
 					tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
 			end if
