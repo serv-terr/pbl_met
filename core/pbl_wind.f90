@@ -970,7 +970,7 @@ contains
 			iRetCode = 3
 			return
 		end if
-		open(iLUN, file=sBaseName, status='old', action='read', iostat=iErrCode)
+		open(iLUN, file=sFileName, status='old', action='read', iostat=iErrCode)
 		if(iErrCode /= 0) then
 			iRetCode = 4
 			close(iLUN)
