@@ -23,6 +23,8 @@ module pbl_wind
 	public	:: WCONV_FLOW_TO_PROVENANCE
 	public	:: WDCLASS_ZERO_CENTERED
 	public	:: WDCLASS_ZERO_BASED
+	public	:: SONIC_USONIC3
+	public	:: SONIC_USA1
 	! 1. Conventions
 	public	:: PolarToCartesian2
 	public	:: PolarToCartesian3
@@ -50,6 +52,8 @@ module pbl_wind
 	integer, parameter	:: WCONV_FLOW_TO_PROVENANCE = 2
 	integer, parameter	:: WDCLASS_ZERO_CENTERED    = 0
 	integer, parameter	:: WDCLASS_ZERO_BASED       = 1
+	integer, parameter	:: SONIC_USONIC3			= 0
+	integer, parameter	:: SONIC_USA1				= 1
 	
 	! Internal constants
 	real, parameter		:: Pi = 3.1415927
@@ -80,6 +84,7 @@ module pbl_wind
 	contains
 		procedure	:: buildFromVectors	=> sd_BuildFromVectors
 		procedure	:: readSonicLib		=> sd_ReadSonicLib
+		procedure	:: readWindRecorder	=> sd_ReadWindRecorder
 		procedure	:: size				=> sd_Size
 		procedure	:: valid			=> sd_Valid
 		procedure	:: averages			=> sd_Averages
@@ -1023,6 +1028,137 @@ contains
 		this % isValid = .true.
 		
 	end function sd_ReadSonicLib
+	
+	
+	function sd_ReadWindRecorder(this, iLUN, sFileName, iOS, iSonicType) result(iRetCode)
+	
+		! Routine arguments
+		class(SonicData), intent(out)	:: this
+		integer, intent(in)				:: iLUN
+		character(len=*), intent(in)	:: sFileName
+		integer, intent(in)				:: iOS
+		integer, intent(in), optional	:: iSonicType
+		integer							:: iRetCode
+		
+		! Locals
+		integer				:: iErrCode
+		logical				:: lExist
+		character(len=15)	:: sBaseName
+		character(len=64)	:: sBuffer
+		integer				:: iPos
+		type(DateTime)		:: tStamp
+		real(8)				:: rTimeBase
+		integer				:: iNumData
+		integer				:: i
+		integer				:: iYear, iMonth, iDay, iHour
+		integer				:: iSonic
+		integer(2)			:: iU, iV, iW, iT
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check file exists
+		inquire(file=sFileName, exist=lExist)
+		if(.not.lExist) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Set type of ultrasonic anemometer
+		if(present(iSonicType)) then
+			iSonic = iSonicType
+		else
+			iSonic = SONIC_USONIC3
+		end if
+		
+		! Check file name to be a valid WindRecorder, and obtain its time base
+		sBaseName = baseName(sFileName, iOS)
+		if(len_trim(sBaseName) /= 11) then
+			iRetCode = 2
+			return
+		end if
+		read(sBaseName, "(i4,2i2,1x,i2)", iostat=iErrCode) iYear, iMonth, iDay, iHour
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		open(iLUN, file=sFileName, status='old', action='read', iostat=iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 4
+			close(iLUN)
+			return
+		end if
+		tStamp = DateTime(iYear, iMonth, iDay, iHour, 0, 0.d0)
+		rTimeBase = tStamp % toEpoch()
+		
+		! Count data and reserve workspace (note: no header, only meaningful data (and error packets)
+		iNumData = 0
+		do
+			read(iLUN, "(a)", iostat=iErrCode) sBuffer
+			if(iErrCode /= 0) exit
+			if(sBuffer(1:1) /= 'E') iNumData = iNumData + 1
+		end do
+		if(iNumData <= 0) then
+			iRetCode = 5
+			close(iLUN)
+			return
+		end if
+		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(allocated(this % rvU)) deallocate(this % rvU)
+		if(allocated(this % rvV)) deallocate(this % rvV)
+		if(allocated(this % rvW)) deallocate(this % rvW)
+		if(allocated(this % rvT)) deallocate(this % rvT)
+		allocate(this % rvTimeStamp(iNumData))
+		allocate(this % rvU(iNumData))
+		allocate(this % rvV(iNumData))
+		allocate(this % rvW(iNumData))
+		allocate(this % rvT(iNumData))
+		
+		! Read actual data
+		rewind(iLUN)
+		read(iLUN, "(a)") sBuffer	! Skip header line
+		select case(iSonic)
+		case(SONIC_USONIC3)
+			do i = 1, iNumData
+				read(iLUN, "(1x,4(4x,i6))", iostat=iErrCode) iU, iV, iW, iT
+				if(iErrCode == 0) then
+					this % rvU(i) = iU / 100.
+					this % rvV(i) = iV / 100.
+					this % rvW(i) = iW / 100.
+					this % rvT(i) = iT / 100.
+				else
+					this % rvU(i) = NaN
+					this % rvV(i) = NaN
+					this % rvW(i) = NaN
+					this % rvT(i) = NaN
+				end if
+			end do
+		case(SONIC_USA1)
+			do i = 1, iNumData
+				read(iLUN, "(1x,4(4x,i6))", iostat=iErrCode) iV, iU, iW, iT
+				if(iErrCode == 0) then
+					this % rvU(i) = iU / 100.
+					this % rvV(i) = iV / 100.
+					this % rvW(i) = iW / 100.
+					this % rvT(i) = iT / 100.
+				else
+					this % rvU(i) = NaN
+					this % rvV(i) = NaN
+					this % rvW(i) = NaN
+					this % rvT(i) = NaN
+				end if
+			end do
+		end select
+		close(iLUN)
+		
+		! Shift the time stamps read (representing second) by the base time,
+		! obtaining full time stamps
+		this % rvTimeStamp = rTimeBase + [((i-1)*3600.0/iNumData, i = 1, iNumData)]
+		
+		! Inform users all was OK
+		this % isValid = .true.
+		
+	end function sd_ReadWindRecorder
 	
 	
 	function sd_Size(this) result(iSize)
