@@ -678,11 +678,11 @@ contains
 	FUNCTION RhoCp(Td, Pa) RESULT(rRhoCp)
 	
 		! Routine arguments
-		REAL, INTENT(IN)		:: Td		! Dew point temperature (K)
+		REAL, INTENT(IN)		    :: Td		! Dry bulb temperature (K)
 		REAL, INTENT(IN), OPTIONAL	:: Pa		! Air pressure (hPa)
-		REAL				:: rRhoCp	! Product of air density and
-								! constant-pressure thermal
-								! capacity
+		REAL				        :: rRhoCp	! Product of air density and
+								                ! constant-pressure thermal
+								                ! capacity
 		
 		! Locals
 		REAL	:: Rho
