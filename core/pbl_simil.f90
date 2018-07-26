@@ -16,9 +16,16 @@ module pbl_simil
     private
     
     ! Public interface
+    ! 0.Constants
+    public	:: USTAR_PERMISSIVE
     ! 1.Turbulence
     public	:: FrictionVelocity
     ! 2.Stability
+    
+    ! Constants (please do not change)
+    
+    integer, parameter	:: USTAR_PERMISSIVE = 0
+    integer, parameter	:: USTAR_FINICKY    = 1
     
 contains
 
@@ -31,6 +38,57 @@ contains
 		integer											:: iRetCode
 		
 		! Locals
+		integer							:: i
+		integer							:: iErrCode
+		integer							:: iModeIn
+		integer							:: n
+		real, dimension(:), allocatable	:: rvUW
+		real, dimension(:), allocatable	:: rvVW
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. tEc % isFull()) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Assign mode
+		if(present(iMode)) then
+			iModeIn = iMode
+		else
+			iModeIn = USTAR_PERMISSIVE
+		end if
+		
+		! Reserve workspace
+		iErrCode = tEc % getRotCovVel(1,3,rvUW)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			return
+		end if
+		iErrCode = tEc % getRotCovVel(2,3,rvVW)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			return
+		end if
+		n = size(rvUW)
+		if(allocated(rvUstar)) deallocate(rvUstar)
+		allocate(rvUstar(n))
+		
+		! Compute the friction velocity
+		select case(iMode)
+		case(USTAR_FINICKY)
+			rvUstar = (rvUW**2 + rvVW**2)**0.25
+		case(USTAR_PERMISSIVE)
+			where(rvUW < 0.)
+				rvUstar = sqrt(-rvUW)
+			elsewhere
+				rvUstar = NaN
+			endwhere
+		case default
+			iRetCode = 2
+		end select
 		
 	end function FrictionVelocity
     
