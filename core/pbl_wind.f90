@@ -123,6 +123,7 @@ module pbl_wind
 		procedure	:: getNumValidInput	=> ec_getNumValidInput		! Count number of valid data in an EddyCovData object
 		procedure	:: getInputData		=> ec_getInputData			! Get a copy of input vectors
 		procedure	:: getOutputData	=> ec_getOutputData			! Get a copy of output vectors
+		procedure	:: getRotCovVel		=> ec_GetRotCovVel			! Get a single value from rotated velocity covariances
 		procedure	:: createEmpty		=> ec_CreateEmpty			! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
 		procedure	:: isClean			=> ec_IsClean				! Check whether an EddyCovData object is clean
 		procedure	:: isEmpty			=> ec_IsEmpty				! Check whether an EddyCovData object is empty
@@ -1060,6 +1061,7 @@ contains
 		! Check file exists
 		inquire(file=sFileName, exist=lExist)
 		if(.not.lExist) then
+			print *, trim(sFileName)
 			iRetCode = 1
 			return
 		end if
@@ -1876,6 +1878,45 @@ contains
 		rmRotCovT    = this % rmRotCovT
 		
 	end function ec_GetOutputData
+
+	
+	function ec_GetRotCovVel(this, j, k, rvValue) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)					:: this
+		integer, intent(in)								:: j		! Row index (1..3)
+		integer, intent(in)								:: k		! Column index (1..3)
+		real, dimension(:), allocatable, intent(out)	:: rvValue
+		integer											:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isFilled) then
+			iRetCode = 1
+			return
+		end if
+		if(j < 1 .or. j > 3) then
+			iRetCode = 2
+			return
+		end if
+		if(k < 1 .or. k > 3) then
+			iRetCode = 3
+			return
+		end if
+		
+		! Reserve workspace
+		if(allocated(rvValue)) deallocate(rvValue)
+		allocate(rvValue(size(this % rvTimeStamp)))
+		
+		! Get the value desired
+		rvValue = this % raRotCovVel(:,j,k)
+		
+	end function ec_GetRotCovVel
 
 	
 	function ec_AddHourly(this, rBaseTime, tEc) result(iRetCode)
