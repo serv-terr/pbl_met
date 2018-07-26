@@ -78,9 +78,9 @@ contains
 		
 		! Compute the friction velocity
 		select case(iMode)
-		case(USTAR_FINICKY)
-			rvUstar = (rvUW**2 + rvVW**2)**0.25
 		case(USTAR_PERMISSIVE)
+			rvUstar = (rvUW**2 + rvVW**2)**0.25
+		case(USTAR_FINICKY)
 			where(rvUW < 0.)
 				rvUstar = sqrt(-rvUW)
 			elsewhere
