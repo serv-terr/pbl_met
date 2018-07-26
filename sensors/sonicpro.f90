@@ -22,6 +22,7 @@ program sonicpro
 	character(len=256)					:: sOutputFile
 	character(len=19)					:: sFirstDateTime
 	character(len=19)					:: sLastDateTime
+	character(len=16)					:: sBuffer
 	integer								:: iRetCode
 	integer								:: iNumHours
 	type(DateTime)						:: tFrom
@@ -35,6 +36,7 @@ program sonicpro
 	real(8)								:: rHold
 	integer								:: iMode
 	integer								:: i
+	integer								:: iAvgTime
 	character(len=23)					:: sDateTime
 	integer, dimension(:), allocatable	:: ivNumData
 	real(8), dimension(:), allocatable	:: rvTimeStamp
@@ -53,12 +55,13 @@ program sonicpro
 	real, dimension(3)					:: polar
 	
 	! Get parameters
-	if(command_argument_count() /= 4) then
+	if(command_argument_count() /= 5) then
 		print *, "sonicpro - Minimalistic eddy covariance calculator"
 		print *
 		print *, "Usage:"
 		print *
-		print *, "  ./sonicpro <DataPath> <DateTimeFrom> <DateTimeTo> <OutputFile>"
+		print *, "  ./sonicpro <DataPath> <DateTimeFrom> <DateTimeTo> <AveragingTime> <OutputFile>"
+		print *
 		print *
 		print *, "Program 'sonicpro' is part of the pbl_met project, and is"
 		print *, "released under an lGPL-3.0 open source license."
@@ -68,7 +71,17 @@ program sonicpro
 	call get_command_argument(1, sDataPath)
 	call get_command_argument(2, sFirstDateTime)
 	call get_command_argument(3, sLastDateTime)
-	call get_command_argument(4, sOutputFile)
+	call get_command_argument(4, sBuffer)
+	read(sBuffer, *, iostat=iRetCode) iAvgTime
+	if(iRetCode /= 0) then
+		print *, "Invalid averaging time"
+		stop
+	end if
+	if(mod(3600, iAvgTime) /= 0) then
+		print *, "Averaging time is not a divisor of 3600"
+		stop
+	end if
+	call get_command_argument(5, sOutputFile)
 	
 	! Convert dates and times to DateTime values
 	read(sFirstDateTime, "(i4.4,3(1x,i2.2))", iostat=iRetCode) &
@@ -145,7 +158,7 @@ program sonicpro
 		end if
 		
 		! Compute averages
-		iRetCode = tSonic % averages(30, tEc)
+		iRetCode = tSonic % averages(iAvgTime, tEc)
 		if(iRetCode /= 0) then
 			print *, "Error performing averaging calculations - Return code = ", iRetCode
 			cycle
