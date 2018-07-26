@@ -53,6 +53,7 @@ program sonicpro
 	real, dimension(:,:), allocatable	:: rmNrotCovT
 	real, dimension(3)					:: cartesian
 	real, dimension(3)					:: polar
+	real, dimension(:), allocatable		:: rvUstar
 	
 	! Get parameters
 	if(command_argument_count() /= 5) then
@@ -136,7 +137,7 @@ program sonicpro
 		print *, "Error accessing output file in write mode"
 		stop
 	end if
-	write(10,"('date, dir, vel, temp, theta, phi, w.nrot, uu, uv, uw, vv, vw, ww, ut, vt, wt')")
+	write(10,"('date, dir, vel, temp, theta, phi, w.nrot, uu, uv, uw, vv, vw, ww, ut, vt, wt, u.star')")
 	do while(iMode /= DE_ERR)
 	
 		! Process file
@@ -192,6 +193,13 @@ program sonicpro
 			cycle
 		end if
 		
+		! Compute friction velocity
+		iRetCode = FrictionVelocity(tEc, USTAR_PERMISSIVE, rvUstar)
+		if(iRetCode /= 0) then
+			print *, "Friction velocity calculation failed - Return code = ", iRetCode
+			cycle
+		end if
+		
 		! Write data
 		do i = 1, size(rvTimeStamp)
 		
@@ -201,7 +209,7 @@ program sonicpro
 			cartesian = rmNrotVel(i,:)
 			polar = CartesianToPolar3(cartesian, WCONV_PROVENANCE_TO_FLOW)
 			
-			write(10,"(a,',', f5.1, 5(',', f6.2), 9(',', f7.4))") &
+			write(10,"(a,',', f5.1, 5(',', f6.2), 10(',', f7.4))") &
 				sDateTime, &
 				polar(2), &
 				polar(1), &
@@ -210,7 +218,8 @@ program sonicpro
 				rmNrotVel(i,3), &
 				raCovVel(i,1,1), raCovVel(i,1,2), raCovVel(i,1,3), &
 				raCovVel(i,2,2), raCovVel(i,2,3), raCovVel(i,3,3), &
-				rmCovT(i,1), rmCovT(i,2), rmCovT(i,3)
+				rmCovT(i,1), rmCovT(i,2), rmCovT(i,3), &
+				rvUstar(i)
 			
 		end do
 		
