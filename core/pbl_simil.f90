@@ -16,5 +16,22 @@ module pbl_simil
     private
     
     ! Public interface
+    ! 1.Turbulence
+    public	:: FrictionVelocity
+    ! 2.Stability
+    
+contains
+
+	function FrictionVelocity(tEc, iMode, rvUstar) result(iRetCode)
+	
+		! Routine arguments
+		type(EddyCovData), intent(in)					:: tEc
+		integer, intent(in), optional					:: iMode
+		real, dimension(:), allocatable, intent(out)	:: rvUstar
+		integer											:: iRetCode
+		
+		! Locals
+		
+	end function FrictionVelocity
     
 end module pbl_simil
