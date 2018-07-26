@@ -18,8 +18,10 @@ module pbl_simil
     ! Public interface
     ! 0.Constants
     public	:: USTAR_PERMISSIVE
+    public	:: USTAR_FINICKY
     ! 1.Turbulence
     public	:: FrictionVelocity
+    public	:: SensibleHeatFlux
     ! 2.Stability
     
     ! Constants (please do not change)
@@ -91,5 +93,52 @@ contains
 		end select
 		
 	end function FrictionVelocity
+    
+
+	function SensibleHeatFlux(tEc, rvH0) result(iRetCode)
+	
+		! Routine arguments
+		type(EddyCovData), intent(in)					:: tEc
+		real, dimension(:), allocatable, intent(out)	:: rvH0
+		integer											:: iRetCode
+		
+		! Locals
+		integer							:: iErrCode
+		integer							:: iModeIn
+		integer							:: i
+		integer							:: n
+		real, dimension(:), allocatable	:: rvWT
+		real, dimension(:), allocatable	:: rvTemp
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. tEc % isFull()) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Reserve workspace
+		iErrCode = tEc % getRotCovT(3,rvWT)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			return
+		end if
+		iErrCode = tEc % getTemp(rvTemp)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			return
+		end if
+		n = size(rvWT)
+		if(allocated(rvH0)) deallocate(rvH0)
+		allocate(rvH0(n))
+		
+		! Compute the sensible heat flux on vertical direction
+		do i = 1, n
+			rvH0(i) = rvWT(i) * RhoCp(rvTemp(i) + 273.15)
+		end do
+		
+	end function SensibleHeatFlux
     
 end module pbl_simil
