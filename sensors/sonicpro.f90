@@ -54,6 +54,7 @@ program sonicpro
 	real, dimension(3)					:: cartesian
 	real, dimension(3)					:: polar
 	real, dimension(:), allocatable		:: rvUstar
+	real, dimension(:), allocatable		:: rvH0
 	
 	! Get parameters
 	if(command_argument_count() /= 5) then
@@ -137,7 +138,7 @@ program sonicpro
 		print *, "Error accessing output file in write mode"
 		stop
 	end if
-	write(10,"('date, dir, vel, temp, theta, phi, w.nrot, uu, uv, uw, vv, vw, ww, ut, vt, wt, u.star')")
+	write(10,"('date, dir, vel, temp, theta, phi, w.nrot, uu, uv, uw, vv, vw, ww, ut, vt, wt, u.star, H0')")
 	do while(iMode /= DE_ERR)
 	
 		! Process file
@@ -200,6 +201,13 @@ program sonicpro
 			cycle
 		end if
 		
+		! Compute turbulent sensible heat flux
+		iRetCode = SensibleHeatFlux(tEc, rvH0)
+		if(iRetCode /= 0) then
+			print *, "Sensible heat flux calculation failed - Return code = ", iRetCode
+			cycle
+		end if
+		
 		! Write data
 		do i = 1, size(rvTimeStamp)
 		
@@ -209,7 +217,7 @@ program sonicpro
 			cartesian = rmNrotVel(i,:)
 			polar = CartesianToPolar3(cartesian, WCONV_PROVENANCE_TO_FLOW)
 			
-			write(10,"(a,',', f5.1, 5(',', f6.2), 10(',', f7.4))") &
+			write(10,"(a,',', f5.1, 5(',', f6.2), 10(',', f7.4),',',f7.2)") &
 				sDateTime, &
 				polar(2), &
 				polar(1), &
@@ -219,7 +227,7 @@ program sonicpro
 				raCovVel(i,1,1), raCovVel(i,1,2), raCovVel(i,1,3), &
 				raCovVel(i,2,2), raCovVel(i,2,3), raCovVel(i,3,3), &
 				rmCovT(i,1), rmCovT(i,2), rmCovT(i,3), &
-				rvUstar(i)
+				rvUstar(i), rvH0(i)
 			
 		end do
 		
