@@ -44,8 +44,11 @@ module usa1
 		integer													:: iPos
 		
 	contains
+	
 		procedure	:: mapFiles		=> up_MapFiles
 		procedure	:: getFile		=> up_GetFile
+		procedure	:: size			=> up_Size
+		
 	end type Usa1DataDir
 	
 contains
@@ -216,5 +219,25 @@ contains
 		end select
 		
 	end function up_GetFile
-
+	
+	
+	function up_Size(this) result(iSize)
+	
+		! Routine arguments
+		class(Usa1DataDir), intent(in)	:: this
+		integer							:: iSize
+		
+		! Locals
+		! --none--
+		
+		! Get the information desired
+		if(allocated(this % svFileName)) then
+			iSize = size(this % svFileName)
+		else
+			iSize = 0
+		end if
+		
+	end function up_Size
+	
+	
 end module usa1
