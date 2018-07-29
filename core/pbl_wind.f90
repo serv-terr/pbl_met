@@ -87,6 +87,7 @@ module pbl_wind
 		procedure	:: readWindRecorder	=> sd_ReadWindRecorder
 		procedure	:: size				=> sd_Size
 		procedure	:: valid			=> sd_Valid
+		procedure	:: removeTrend		=> sd_RemoveTrend
 		procedure	:: averages			=> sd_Averages
 	end type SonicData
 	
@@ -1208,6 +1209,58 @@ contains
 		end do
 		
 	end function sd_Valid
+	
+	
+	function sd_RemoveTrend(this, iAveragingTime) result(iRetCode)
+	
+		! Routine arguments
+		class(SonicData), intent(inout)						:: this				! Current ultrasonic anemometer data set
+		integer, intent(in)									:: iAveragingTime	! Averaging period (s, positive, proper divisor of 3600)
+		integer												:: iRetCode
+		
+		! Locals
+		integer								:: iErrCode
+		integer, dimension(:), allocatable	:: ivTimeIndex
+		real(8), dimension(:), allocatable	:: rvAggregTimeStamp
+		integer								:: i
+		integer								:: iIndex
+		integer								:: iMaxBlock
+		integer								:: iNumBlocks
+		real(8)								:: rBaseTime
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something is to be done
+		if(this % valid() <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(iAveragingTime <= 0 .or. mod(3600, iAveragingTime) /= 0) then
+			iRetCode = 2
+			return
+		end if
+		iNumBlocks = 3600 / iAveragingTime
+		
+		! Construct time-based index, and allocate workspace based on it
+		iErrCode = timeLinearIndex(this % rvTimeStamp, iAveragingTime, ivTimeIndex, rvAggregTimeStamp)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		iMaxBlock = maxval(ivTimeIndex)
+		if(iMaxBlock <= 0) then
+			iRetCode = 4
+			return
+		end if
+		
+		! Pre-assign time stamps
+		rBaseTime = real(floor(minval(this % rvTimeStamp, mask=.valid. this % rvTimeStamp) / iAveragingTime, kind=8) &
+						* iAveragingTime, kind=8)
+						
+		! Remove trend
+		
+	end function sd_RemoveTrend
 	
 	
 	function sd_Averages(this, iAveragingTime, tEc) result(iRetCode)
