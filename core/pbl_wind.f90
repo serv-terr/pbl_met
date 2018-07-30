@@ -1238,6 +1238,14 @@ contains
 		real(8), dimension(:), allocatable	:: rvSumXV
 		real(8), dimension(:), allocatable	:: rvSumXW
 		real(8), dimension(:), allocatable	:: rvSumXT
+		real(8)								:: rAlphaU
+		real(8)								:: rAlphaV
+		real(8)								:: rAlphaW
+		real(8)								:: rAlphaT
+		real(8)								:: rBetaU
+		real(8)								:: rBetaV
+		real(8)								:: rBetaW
+		real(8)								:: rBetaT
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -1317,7 +1325,17 @@ contains
 			end if
 		end do
 
-		! Remove trend
+		! Estimate and remove trend
+		do i = 1, iMaxBlock
+			rBetaU  = (ivNumData(i)*rvSumXU(i) - rvSumX(i)*rvSumU(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
+			rAlphaU = (rvSumU(i) - rBetaU * rvSumX(i)) / ivNumData(i)
+			rBetaV  = (ivNumData(i)*rvSumXV(i) - rvSumX(i)*rvSumV(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
+			rAlphaV = (rvSumV(i) - rBetaV * rvSumX(i)) / ivNumData(i)
+			rBetaW  = (ivNumData(i)*rvSumXW(i) - rvSumX(i)*rvSumW(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
+			rAlphaW = (rvSumW(i) - rBetaW * rvSumX(i)) / ivNumData(i)
+			rBetaT  = (ivNumData(i)*rvSumXT(i) - rvSumX(i)*rvSumT(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
+			rAlphaT = (rvSumT(i) - rBetaT * rvSumX(i)) / ivNumData(i)
+		end do
 		
 		! Leave
 		deallocate(ivNumData, rvSumX, rvSumXX, rvSumU, rvSumV, rvSumW, rvSumT, rvSumXU, rvSumXV, rvSumXW, rvSumXT)
