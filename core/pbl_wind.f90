@@ -1227,6 +1227,16 @@ contains
 		integer								:: iMaxBlock
 		integer								:: iNumBlocks
 		real(8)								:: rBaseTime
+		real(8), dimension(:), allocatable	:: rvSumX
+		real(8), dimension(:), allocatable	:: rvSumXX
+		real(8), dimension(:), allocatable	:: rvSumU
+		real(8), dimension(:), allocatable	:: rvSumV
+		real(8), dimension(:), allocatable	:: rvSumW
+		real(8), dimension(:), allocatable	:: rvSumT
+		real(8), dimension(:), allocatable	:: rvSumXU
+		real(8), dimension(:), allocatable	:: rvSumXV
+		real(8), dimension(:), allocatable	:: rvSumXW
+		real(8), dimension(:), allocatable	:: rvSumXT
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -1254,11 +1264,21 @@ contains
 			return
 		end if
 		
+		! Reserve workspace
+		allocate( &
+			rvSumX(iNumBlocks), rvSumXX(iNumBlocks), &
+			rvSumU(iNumBlocks), rvSumV(iNumBlocks), rvSumW(iNumBlocks), rvSumT(iNumBlocks), &
+			rvSumXU(iNumBlocks), rvSumXV(iNumBlocks), rvSumXW(iNumBlocks), rvSumXT(iNumBlocks) &
+		)
+						
 		! Pre-assign time stamps
 		rBaseTime = real(floor(minval(this % rvTimeStamp, mask=.valid. this % rvTimeStamp) / iAveragingTime, kind=8) &
 						* iAveragingTime, kind=8)
 						
 		! Remove trend
+		
+		! Leave
+		deallocate(rvSumX, rvSumXX, rvSumU, rvSumV, rvSumW, rvSumT, rvSumXU, rvSumXV, rvSumXW, rvSumXT)
 		
 	end function sd_RemoveTrend
 	
