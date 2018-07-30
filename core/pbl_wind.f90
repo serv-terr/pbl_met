@@ -1227,6 +1227,7 @@ contains
 		integer								:: iMaxBlock
 		integer								:: iNumBlocks
 		real(8)								:: rBaseTime
+		integer, dimension(:), allocatable	:: ivNumData
 		real(8), dimension(:), allocatable	:: rvSumX
 		real(8), dimension(:), allocatable	:: rvSumXX
 		real(8), dimension(:), allocatable	:: rvSumU
@@ -1266,6 +1267,7 @@ contains
 		
 		! Reserve workspace
 		allocate( &
+			ivNumData(iNumBlocks), &
 			rvSumX(iNumBlocks), rvSumXX(iNumBlocks), &
 			rvSumU(iNumBlocks), rvSumV(iNumBlocks), rvSumW(iNumBlocks), rvSumT(iNumBlocks), &
 			rvSumXU(iNumBlocks), rvSumXV(iNumBlocks), rvSumXW(iNumBlocks), rvSumXT(iNumBlocks) &
@@ -1275,10 +1277,50 @@ contains
 		rBaseTime = real(floor(minval(this % rvTimeStamp, mask=.valid. this % rvTimeStamp) / iAveragingTime, kind=8) &
 						* iAveragingTime, kind=8)
 						
+		! Accumulate sums
+		ivNumData = 0
+		rvSumX    = 0.
+		rvSumXX   = 0.
+		rvSumU    = 0.
+		rvSumV    = 0.
+		rvSumW    = 0.
+		rvSumT    = 0.
+		rvSumXU   = 0.
+		rvSumXV   = 0.
+		rvSumXW   = 0.
+		rvSumXT   = 0.
+		do i = 1, size(ivTimeIndex)
+			if(ivTimeIndex(i) > 0) then
+				iIndex = ivTimeIndex(i)
+				if( &
+					.valid. this % rvTimeStamp(i) .and. &
+					.valid. this % rvU(i) .and. &
+					.valid. this % rvV(i) .and. &
+					.valid. this % rvW(i) .and. &
+					.valid. this % rvT(i) &
+				) then
+					! Update count
+					ivNumData(iIndex) = ivNumData(iIndex) + 1
+					! Update first order accumulators
+					rvSumX(iIndex)  = rvSumX(iIndex) + this % rvTimeStamp(i)
+					rvSumU(iIndex)  = rvSumU(iIndex) + this % rvU(i)
+					rvSumV(iIndex)  = rvSumV(iIndex) + this % rvV(i)
+					rvSumW(iIndex)  = rvSumW(iIndex) + this % rvW(i)
+					rvSumT(iIndex)  = rvSumT(iIndex) + this % rvT(i)
+					! Update second order accumulators
+					rvSumXX(iIndex) = rvSumXX(iIndex) + this % rvTimeStamp(i)**2
+					rvSumXU(iIndex) = rvSumXU(iIndex) + this % rvTimeStamp(i) * this % rvU(i)
+					rvSumXV(iIndex) = rvSumXV(iIndex) + this % rvTimeStamp(i) * this % rvV(i)
+					rvSumXW(iIndex) = rvSumXW(iIndex) + this % rvTimeStamp(i) * this % rvW(i)
+					rvSumXT(iIndex) = rvSumXT(iIndex) + this % rvTimeStamp(i) * this % rvT(i)
+				end if
+			end if
+		end do
+
 		! Remove trend
 		
 		! Leave
-		deallocate(rvSumX, rvSumXX, rvSumU, rvSumV, rvSumW, rvSumT, rvSumXU, rvSumXV, rvSumXW, rvSumXT)
+		deallocate(ivNumData, rvSumX, rvSumXX, rvSumU, rvSumV, rvSumW, rvSumT, rvSumXU, rvSumXV, rvSumXW, rvSumXT)
 		
 	end function sd_RemoveTrend
 	
