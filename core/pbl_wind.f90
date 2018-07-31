@@ -1262,6 +1262,10 @@ contains
 		real(8), dimension(:), allocatable	:: rvSumV
 		real(8), dimension(:), allocatable	:: rvSumW
 		real(8), dimension(:), allocatable	:: rvSumT
+		real(8), dimension(:), allocatable	:: rvSumUU
+		real(8), dimension(:), allocatable	:: rvSumVV
+		real(8), dimension(:), allocatable	:: rvSumWW
+		real(8), dimension(:), allocatable	:: rvSumTT
 		real(8), dimension(:), allocatable	:: rvSumXU
 		real(8), dimension(:), allocatable	:: rvSumXV
 		real(8), dimension(:), allocatable	:: rvSumXW
@@ -1319,6 +1323,7 @@ contains
 			ivNumData(iNumBlocks), &
 			rvSumX(iNumBlocks), rvSumXX(iNumBlocks), &
 			rvSumU(iNumBlocks), rvSumV(iNumBlocks), rvSumW(iNumBlocks), rvSumT(iNumBlocks), &
+			rvSumUU(iNumBlocks), rvSumVV(iNumBlocks), rvSumWW(iNumBlocks), rvSumTT(iNumBlocks), &
 			rvSumXU(iNumBlocks), rvSumXV(iNumBlocks), rvSumXW(iNumBlocks), rvSumXT(iNumBlocks), &
 			rvAlphaU(iNumBlocks), rvBetaU(iNumBlocks), rvAlphaV(iNumBlocks), rvBetaV(iNumBlocks), &
 			rvAlphaW(iNumBlocks), rvBetaW(iNumBlocks), rvAlphaT(iNumBlocks), rvBetaT(iNumBlocks), &
@@ -1338,6 +1343,10 @@ contains
 		rvSumV    = 0.d0
 		rvSumW    = 0.d0
 		rvSumT    = 0.d0
+		rvSumUU   = 0.d0
+		rvSumVV   = 0.d0
+		rvSumWW   = 0.d0
+		rvSumTT   = 0.d0
 		rvSumXU   = 0.d0
 		rvSumXV   = 0.d0
 		rvSumXW   = 0.d0
@@ -1366,6 +1375,10 @@ contains
 					rvSumXV(iIndex) = rvSumXV(iIndex) + this % rvTimeStamp(i) * this % rvV(i)
 					rvSumXW(iIndex) = rvSumXW(iIndex) + this % rvTimeStamp(i) * this % rvW(i)
 					rvSumXT(iIndex) = rvSumXT(iIndex) + this % rvTimeStamp(i) * this % rvT(i)
+					rvSumUU(iIndex) = rvSumUU(iIndex) + this % rvU(i) ** 2
+					rvSumVV(iIndex) = rvSumVV(iIndex) + this % rvV(i) ** 2
+					rvSumWW(iIndex) = rvSumWW(iIndex) + this % rvW(i) ** 2
+					rvSumTT(iIndex) = rvSumTT(iIndex) + this % rvT(i) ** 2
 				end if
 			end if
 		end do
@@ -1436,7 +1449,8 @@ contains
 		! Leave
 		deallocate( &
 			ivNumData, &
-			rvSumX, rvSumXX, rvSumU, rvSumV, rvSumW, rvSumT, rvSumXU, rvSumXV, rvSumXW, rvSumXT, &
+			rvSumX, rvSumXX, rvSumU, rvSumV, rvSumW, rvSumT, rvSumUU, rvSumVV, rvSumWW, rvSumTT, &
+			rvSumXU, rvSumXV, rvSumXW, rvSumXT, &
 			rvAlphaU, rvBetaU, rvAlphaV, rvBetaV, rvAlphaW, rvBetaW, rvAlphaT, rvBetaT, &
 			rvSumEstU, rvSumEstV, rvSumEstW, rvSumEstT, &
 			rvEstU, rvEstV, rvEstW, rvEstT &
