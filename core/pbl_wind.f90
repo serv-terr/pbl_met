@@ -113,6 +113,9 @@ module pbl_wind
 		real, dimension(:), allocatable		:: rvS2betaV
 		real, dimension(:), allocatable		:: rvS2betaW
 		real, dimension(:), allocatable		:: rvS2betaT
+	contains
+		procedure	:: clean			=> td_Clean
+		procedure	:: reserve			=> td_Allocate
 	end type TrendData
 	
 	type EddyCovData
@@ -1574,6 +1577,81 @@ contains
 		tEc % averagingTime = iAveragingTime
 		
 	end function sd_Averages
+	
+	
+	function td_Clean(this) result(iRetCode)
+	
+		! Routine arguments
+		class(TrendData), intent(inout)	:: this
+		integer							:: iRetCode
+		
+		! Locals
+		! --none--
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Remove any allocated vector
+		if(allocated(this % rvAlphaU))   deallocate(this % rvAlphaU)
+		if(allocated(this % rvAlphaV))   deallocate(this % rvAlphaV)
+		if(allocated(this % rvAlphaW))   deallocate(this % rvAlphaW)
+		if(allocated(this % rvAlphaT))   deallocate(this % rvAlphaT)
+		if(allocated(this % rvBetaU))    deallocate(this % rvBetaU)
+		if(allocated(this % rvBetaV))    deallocate(this % rvBetaV)
+		if(allocated(this % rvBetaW))    deallocate(this % rvBetaW)
+		if(allocated(this % rvBetaT))    deallocate(this % rvBetaT)
+		if(allocated(this % rvS2epsU))   deallocate(this % rvS2epsU)
+		if(allocated(this % rvS2epsV))   deallocate(this % rvS2epsV)
+		if(allocated(this % rvS2epsW))   deallocate(this % rvS2epsW)
+		if(allocated(this % rvS2epsT))   deallocate(this % rvS2epsT)
+		if(allocated(this % rvS2alphaU)) deallocate(this % rvS2alphaU)
+		if(allocated(this % rvS2alphaV)) deallocate(this % rvS2alphaV)
+		if(allocated(this % rvS2alphaW)) deallocate(this % rvS2alphaW)
+		if(allocated(this % rvS2alphaT)) deallocate(this % rvS2alphaT)
+		if(allocated(this % rvS2betaU))  deallocate(this % rvS2betaU)
+		if(allocated(this % rvS2betaV))  deallocate(this % rvS2betaV)
+		if(allocated(this % rvS2betaW))  deallocate(this % rvS2betaW)
+		if(allocated(this % rvS2betaT))  deallocate(this % rvS2betaT)
+		
+	end function td_Clean
+	
+	
+	function td_Allocate(this, iNumData) result(iRetCode)
+	
+		! Routine arguments
+		class(TrendData), intent(inout)	:: this
+		integer, intent(in)				:: iNumData
+		integer							:: iRetCode
+		
+		! Locals
+		! --none--
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Remove any allocated vector
+		allocate(this % rvAlphaU(iNumData))
+		allocate(this % rvAlphaV(iNumData))
+		allocate(this % rvAlphaW(iNumData))
+		allocate(this % rvAlphaT(iNumData))
+		allocate(this % rvBetaU(iNumData))
+		allocate(this % rvBetaV(iNumData))
+		allocate(this % rvBetaW(iNumData))
+		allocate(this % rvBetaT(iNumData))
+		allocate(this % rvS2epsU(iNumData))
+		allocate(this % rvS2epsV(iNumData))
+		allocate(this % rvS2epsW(iNumData))
+		allocate(this % rvS2epsT(iNumData))
+		allocate(this % rvS2alphaU(iNumData))
+		allocate(this % rvS2alphaV(iNumData))
+		allocate(this % rvS2alphaW(iNumData))
+		allocate(this % rvS2alphaT(iNumData))
+		allocate(this % rvS2betaU(iNumData))
+		allocate(this % rvS2betaV(iNumData))
+		allocate(this % rvS2betaW(iNumData))
+		allocate(this % rvS2betaT(iNumData))
+		
+	end function td_Allocate
 	
 	
 	function ec_Clean(this) result(iRetCode)
