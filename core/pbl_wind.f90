@@ -1223,6 +1223,7 @@ contains
 		integer, dimension(:), allocatable	:: ivTimeIndex
 		real(8), dimension(:), allocatable	:: rvAggregTimeStamp
 		integer								:: i
+		integer								:: n
 		integer								:: iIndex
 		integer								:: iMaxBlock
 		integer								:: iNumBlocks
@@ -1238,14 +1239,22 @@ contains
 		real(8), dimension(:), allocatable	:: rvSumXV
 		real(8), dimension(:), allocatable	:: rvSumXW
 		real(8), dimension(:), allocatable	:: rvSumXT
-		real(8)								:: rAlphaU
-		real(8)								:: rAlphaV
-		real(8)								:: rAlphaW
-		real(8)								:: rAlphaT
-		real(8)								:: rBetaU
-		real(8)								:: rBetaV
-		real(8)								:: rBetaW
-		real(8)								:: rBetaT
+		real(8), dimension(:), allocatable	:: rvEstU
+		real(8), dimension(:), allocatable	:: rvEstV
+		real(8), dimension(:), allocatable	:: rvEstW
+		real(8), dimension(:), allocatable	:: rvEstT
+		real(8), dimension(:), allocatable	:: rvSumEstU
+		real(8), dimension(:), allocatable	:: rvSumEstV
+		real(8), dimension(:), allocatable	:: rvSumEstW
+		real(8), dimension(:), allocatable	:: rvSumEstT
+		real(8), dimension(:), allocatable	:: rvAlphaU
+		real(8), dimension(:), allocatable	:: rvAlphaV
+		real(8), dimension(:), allocatable	:: rvAlphaW
+		real(8), dimension(:), allocatable	:: rvAlphaT
+		real(8), dimension(:), allocatable	:: rvBetaU
+		real(8), dimension(:), allocatable	:: rvBetaV
+		real(8), dimension(:), allocatable	:: rvBetaW
+		real(8), dimension(:), allocatable	:: rvBetaT
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -1260,16 +1269,21 @@ contains
 			return
 		end if
 		iNumBlocks = 3600 / iAveragingTime
+		n = size(this % rvTimeStamp)
+		if(n <= 0) then
+			iRetCode = 3
+			return
+		end if
 		
 		! Construct time-based index, and allocate workspace based on it
 		iErrCode = timeLinearIndex(this % rvTimeStamp, iAveragingTime, ivTimeIndex, rvAggregTimeStamp)
 		if(iErrCode /= 0) then
-			iRetCode = 3
+			iRetCode = 4
 			return
 		end if
 		iMaxBlock = maxval(ivTimeIndex)
 		if(iMaxBlock <= 0) then
-			iRetCode = 4
+			iRetCode = 5
 			return
 		end if
 		
@@ -1278,7 +1292,11 @@ contains
 			ivNumData(iNumBlocks), &
 			rvSumX(iNumBlocks), rvSumXX(iNumBlocks), &
 			rvSumU(iNumBlocks), rvSumV(iNumBlocks), rvSumW(iNumBlocks), rvSumT(iNumBlocks), &
-			rvSumXU(iNumBlocks), rvSumXV(iNumBlocks), rvSumXW(iNumBlocks), rvSumXT(iNumBlocks) &
+			rvSumXU(iNumBlocks), rvSumXV(iNumBlocks), rvSumXW(iNumBlocks), rvSumXT(iNumBlocks), &
+			rvAlphaU(iNumBlocks), rvBetaU(iNumBlocks), rvAlphaV(iNumBlocks), rvBetaV(iNumBlocks), &
+			rvAlphaW(iNumBlocks), rvBetaW(iNumBlocks), rvAlphaT(iNumBlocks), rvBetaT(iNumBlocks), &
+			rvSumEstU(iNumBlocks), rvSumEstV(iNumBlocks), rvSumEstW(iNumBlocks), rvSumEstT(iNumBlocks), &
+			rvEstU(n), rvEstV(n), rvEstW(n), rvEstT(n) &
 		)
 						
 		! Pre-assign time stamps
@@ -1287,16 +1305,16 @@ contains
 						
 		! Accumulate sums
 		ivNumData = 0
-		rvSumX    = 0.
-		rvSumXX   = 0.
-		rvSumU    = 0.
-		rvSumV    = 0.
-		rvSumW    = 0.
-		rvSumT    = 0.
-		rvSumXU   = 0.
-		rvSumXV   = 0.
-		rvSumXW   = 0.
-		rvSumXT   = 0.
+		rvSumX    = 0.d0
+		rvSumXX   = 0.d0
+		rvSumU    = 0.d0
+		rvSumV    = 0.d0
+		rvSumW    = 0.d0
+		rvSumT    = 0.d0
+		rvSumXU   = 0.d0
+		rvSumXV   = 0.d0
+		rvSumXW   = 0.d0
+		rvSumXT   = 0.d0
 		do i = 1, size(ivTimeIndex)
 			if(ivTimeIndex(i) > 0) then
 				iIndex = ivTimeIndex(i)
@@ -1325,20 +1343,77 @@ contains
 			end if
 		end do
 
-		! Estimate and remove trend
+		! Estimate trend coefficients
 		do i = 1, iMaxBlock
-			rBetaU  = (ivNumData(i)*rvSumXU(i) - rvSumX(i)*rvSumU(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
-			rAlphaU = (rvSumU(i) - rBetaU * rvSumX(i)) / ivNumData(i)
-			rBetaV  = (ivNumData(i)*rvSumXV(i) - rvSumX(i)*rvSumV(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
-			rAlphaV = (rvSumV(i) - rBetaV * rvSumX(i)) / ivNumData(i)
-			rBetaW  = (ivNumData(i)*rvSumXW(i) - rvSumX(i)*rvSumW(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
-			rAlphaW = (rvSumW(i) - rBetaW * rvSumX(i)) / ivNumData(i)
-			rBetaT  = (ivNumData(i)*rvSumXT(i) - rvSumX(i)*rvSumT(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
-			rAlphaT = (rvSumT(i) - rBetaT * rvSumX(i)) / ivNumData(i)
+			rvBetaU(i)  = (ivNumData(i)*rvSumXU(i) - rvSumX(i)*rvSumU(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
+			rvAlphaU(i) = (rvSumU(i) - rvBetaU(i) * rvSumX(i)) / ivNumData(i)
+			rvBetaV(i)  = (ivNumData(i)*rvSumXV(i) - rvSumX(i)*rvSumV(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
+			rvAlphaV(i) = (rvSumV(i) - rvBetaV(i) * rvSumX(i)) / ivNumData(i)
+			rvBetaW(i)  = (ivNumData(i)*rvSumXW(i) - rvSumX(i)*rvSumW(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
+			rvAlphaW(i) = (rvSumW(i) - rvBetaW(i) * rvSumX(i)) / ivNumData(i)
+			rvBetaT(i)  = (ivNumData(i)*rvSumXT(i) - rvSumX(i)*rvSumT(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
+			rvAlphaT(i) = (rvSumT(i) - rvBetaT(i) * rvSumX(i)) / ivNumData(i)
+		end do
+		
+		! Estimate trend values and accumulate their sums
+		rvSumEstU = 0.d0
+		rvSumEstV = 0.d0
+		rvSumEstW = 0.d0
+		rvSumEstT = 0.d0
+		do i = 1, size(ivTimeIndex)
+			if(ivTimeIndex(i) > 0) then
+				iIndex = ivTimeIndex(i)
+				if( &
+					.valid. this % rvTimeStamp(i) .and. &
+					.valid. this % rvU(i) .and. &
+					.valid. this % rvV(i) .and. &
+					.valid. this % rvW(i) .and. &
+					.valid. this % rvT(i) &
+				) then
+					rvEstU(i) = rvAlphaU(iIndex) + rvBetaU(iIndex) * this % rvTimeStamp(i)
+					rvEstV(i) = rvAlphaV(iIndex) + rvBetaV(iIndex) * this % rvTimeStamp(i)
+					rvEstW(i) = rvAlphaW(iIndex) + rvBetaW(iIndex) * this % rvTimeStamp(i)
+					rvEstT(i) = rvAlphaT(iIndex) + rvBetaT(iIndex) * this % rvTimeStamp(i)
+					rvSumEstU(iIndex) = rvSumEstU(iIndex) + rvEstU(i)
+					rvSumEstV(iIndex) = rvSumEstV(iIndex) + rvEstV(i)
+					rvSumEstW(iIndex) = rvSumEstW(iIndex) + rvEstW(i)
+					rvSumEstT(iIndex) = rvSumEstT(iIndex) + rvEstT(i)
+				else
+					rvEstU(i) = NaN_8
+					rvEstV(i) = NaN_8
+					rvEstW(i) = NaN_8
+					rvEstT(i) = NaN_8
+				end if
+			end if
+		end do
+		
+		! Remove trend, preserving the mean
+		do i = 1, size(ivTimeIndex)
+			if(ivTimeIndex(i) > 0) then
+				iIndex = ivTimeIndex(i)
+				if( &
+					.valid. this % rvTimeStamp(i) .and. &
+					.valid. this % rvU(i) .and. &
+					.valid. this % rvV(i) .and. &
+					.valid. this % rvW(i) .and. &
+					.valid. this % rvT(i) &
+				) then
+					this % rvU(i) = this % rvU(i) - rvEstU(i) + rvSumEstU(iIndex) / ivNumData(iIndex)
+					this % rvV(i) = this % rvV(i) - rvEstV(i) + rvSumEstV(iIndex) / ivNumData(iIndex)
+					this % rvW(i) = this % rvW(i) - rvEstW(i) + rvSumEstW(iIndex) / ivNumData(iIndex)
+					this % rvT(i) = this % rvT(i) - rvEstT(i) + rvSumEstT(iIndex) / ivNumData(iIndex)
+				end if
+			end if
 		end do
 		
 		! Leave
-		deallocate(ivNumData, rvSumX, rvSumXX, rvSumU, rvSumV, rvSumW, rvSumT, rvSumXU, rvSumXV, rvSumXW, rvSumXT)
+		deallocate( &
+			ivNumData, &
+			rvSumX, rvSumXX, rvSumU, rvSumV, rvSumW, rvSumT, rvSumXU, rvSumXV, rvSumXW, rvSumXT, &
+			rvAlphaU, rvBetaU, rvAlphaV, rvBetaV, rvAlphaW, rvBetaW, rvAlphaT, rvBetaT, &
+			rvSumEstU, rvSumEstV, rvSumEstW, rvSumEstT, &
+			rvEstU, rvEstV, rvEstW, rvEstT &
+		)
 		
 	end function sd_RemoveTrend
 	
