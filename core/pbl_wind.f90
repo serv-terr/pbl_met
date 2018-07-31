@@ -44,6 +44,7 @@ module pbl_wind
 	public	:: DirMean
 	! 4. Data types
 	public	:: SonicData
+	public	:: TrendData
 	public	:: EddyCovData
 	
 	! Public constants
@@ -90,6 +91,29 @@ module pbl_wind
 		procedure	:: removeTrend		=> sd_RemoveTrend
 		procedure	:: averages			=> sd_Averages
 	end type SonicData
+	
+	type TrendData
+		real, dimension(:), allocatable		:: rvAlphaU
+		real, dimension(:), allocatable		:: rvAlphaV
+		real, dimension(:), allocatable		:: rvAlphaW
+		real, dimension(:), allocatable		:: rvAlphaT
+		real, dimension(:), allocatable		:: rvBetaU
+		real, dimension(:), allocatable		:: rvBetaV
+		real, dimension(:), allocatable		:: rvBetaW
+		real, dimension(:), allocatable		:: rvBetaT
+		real, dimension(:), allocatable		:: rvS2epsU
+		real, dimension(:), allocatable		:: rvS2epsV
+		real, dimension(:), allocatable		:: rvS2epsW
+		real, dimension(:), allocatable		:: rvS2epsT
+		real, dimension(:), allocatable		:: rvS2alphaU
+		real, dimension(:), allocatable		:: rvS2alphaV
+		real, dimension(:), allocatable		:: rvS2alphaW
+		real, dimension(:), allocatable		:: rvS2alphaT
+		real, dimension(:), allocatable		:: rvS2betaU
+		real, dimension(:), allocatable		:: rvS2betaV
+		real, dimension(:), allocatable		:: rvS2betaW
+		real, dimension(:), allocatable		:: rvS2betaT
+	end type TrendData
 	
 	type EddyCovData
 		! Status section
