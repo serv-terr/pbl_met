@@ -1238,11 +1238,12 @@ contains
 	end function sd_Valid
 	
 	
-	function sd_RemoveTrend(this, iAveragingTime) result(iRetCode)
+	function sd_RemoveTrend(this, iAveragingTime, tTrend) result(iRetCode)
 	
 		! Routine arguments
 		class(SonicData), intent(inout)						:: this				! Current ultrasonic anemometer data set
 		integer, intent(in)									:: iAveragingTime	! Averaging period (s, positive, proper divisor of 3600)
+		type(TrendData), intent(out), optional				:: tTrend			! TrendData object to hold information about trend values, confidence limits, and more
 		integer												:: iRetCode
 		
 		! Locals
@@ -1445,6 +1446,11 @@ contains
 				end if
 			end if
 		end do
+		
+		! If required, fill the TrendData object with reporting and evaluation data about trend
+		if(present(tTrend)) then
+			iErrCode = tTrend % clean()
+		end if
 		
 		! Leave
 		deallocate( &
