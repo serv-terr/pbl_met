@@ -93,26 +93,26 @@ module pbl_wind
 	end type SonicData
 	
 	type TrendData
-		real, dimension(:), allocatable		:: rvAlphaU
-		real, dimension(:), allocatable		:: rvAlphaV
-		real, dimension(:), allocatable		:: rvAlphaW
-		real, dimension(:), allocatable		:: rvAlphaT
-		real, dimension(:), allocatable		:: rvBetaU
-		real, dimension(:), allocatable		:: rvBetaV
-		real, dimension(:), allocatable		:: rvBetaW
-		real, dimension(:), allocatable		:: rvBetaT
-		real, dimension(:), allocatable		:: rvS2epsU
-		real, dimension(:), allocatable		:: rvS2epsV
-		real, dimension(:), allocatable		:: rvS2epsW
-		real, dimension(:), allocatable		:: rvS2epsT
-		real, dimension(:), allocatable		:: rvS2alphaU
-		real, dimension(:), allocatable		:: rvS2alphaV
-		real, dimension(:), allocatable		:: rvS2alphaW
-		real, dimension(:), allocatable		:: rvS2alphaT
-		real, dimension(:), allocatable		:: rvS2betaU
-		real, dimension(:), allocatable		:: rvS2betaV
-		real, dimension(:), allocatable		:: rvS2betaW
-		real, dimension(:), allocatable		:: rvS2betaT
+		real(8), dimension(:), allocatable		:: rvAlphaU
+		real(8), dimension(:), allocatable		:: rvAlphaV
+		real(8), dimension(:), allocatable		:: rvAlphaW
+		real(8), dimension(:), allocatable		:: rvAlphaT
+		real(8), dimension(:), allocatable		:: rvBetaU
+		real(8), dimension(:), allocatable		:: rvBetaV
+		real(8), dimension(:), allocatable		:: rvBetaW
+		real(8), dimension(:), allocatable		:: rvBetaT
+		real(8), dimension(:), allocatable		:: rvS2epsU
+		real(8), dimension(:), allocatable		:: rvS2epsV
+		real(8), dimension(:), allocatable		:: rvS2epsW
+		real(8), dimension(:), allocatable		:: rvS2epsT
+		real(8), dimension(:), allocatable		:: rvS2alphaU
+		real(8), dimension(:), allocatable		:: rvS2alphaV
+		real(8), dimension(:), allocatable		:: rvS2alphaW
+		real(8), dimension(:), allocatable		:: rvS2alphaT
+		real(8), dimension(:), allocatable		:: rvS2betaU
+		real(8), dimension(:), allocatable		:: rvS2betaV
+		real(8), dimension(:), allocatable		:: rvS2betaW
+		real(8), dimension(:), allocatable		:: rvS2betaT
 	contains
 		procedure	:: clean			=> td_Clean
 		procedure	:: reserve			=> td_Allocate
@@ -1287,6 +1287,7 @@ contains
 		real(8), dimension(:), allocatable	:: rvBetaV
 		real(8), dimension(:), allocatable	:: rvBetaW
 		real(8), dimension(:), allocatable	:: rvBetaT
+		real(8)								:: rEpsFact
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -1450,6 +1451,81 @@ contains
 		! If required, fill the TrendData object with reporting and evaluation data about trend
 		if(present(tTrend)) then
 			iErrCode = tTrend % clean()
+			if(iErrCode /= 0) then
+				iRetCode = 6
+				return
+			end if
+			iErrCode = tTrend % reserve(iMaxBlock)
+			if(iErrCode /= 0) then
+				iRetCode = 6
+				return
+			end if
+			do i = 1, iMaxBlock
+			
+				! Copy the values alredy computed
+				tTrend % rvAlphaU(i) = rvAlphaU(i)
+				tTrend % rvAlphaV(i) = rvAlphaV(i)
+				tTrend % rvAlphaW(i) = rvAlphaW(i)
+				tTrend % rvAlphaT(i) = rvAlphaT(i)
+				tTrend % rvBetaU(i)  = rvBetaU(i)
+				tTrend % rvBetaV(i)  = rvBetaV(i)
+				tTrend % rvBetaW(i)  = rvBetaW(i)
+				tTrend % rvBetaT(i)  = rvBetaT(i)
+				
+				! Compute diagnostic values
+				n = ivNumData(i)
+				if(n > 2) then
+				
+					! Compute the error squared sigmas
+					rEpsFact = 1.d0/(n * (n-2.d0))
+					tTrend % rvS2epsU(i) = rEpsFact * ( &
+						n * rvSumUU(i) - rvSumU(i)**2 - &
+						rvBetaU(i)**2 * (n * rvSumXX(i) - rvSumX(i)**2) &
+					)
+					tTrend % rvS2epsV(i) = rEpsFact * ( &
+						n * rvSumVV(i) - rvSumV(i)**2 - &
+						rvBetaV(i)**2 * (n * rvSumXX(i) - rvSumX(i)**2) &
+					)
+					tTrend % rvS2epsW(i) = rEpsFact * ( &
+						n * rvSumWW(i) - rvSumW(i)**2 - &
+						rvBetaW(i)**2 * (n * rvSumXX(i) - rvSumX(i)**2) &
+					)
+					tTrend % rvS2epsT(i) = rEpsFact * ( &
+						n * rvSumTT(i) - rvSumT(i)**2 - &
+						rvBetaT(i)**2 * (n * rvSumXX(i) - rvSumX(i)**2) &
+					)
+					
+					! Compute slope squared sigmas
+					tTrend % rvS2betaU(i) = n*tTrend % rvS2epsU(i) / (n*rvSumXX(i) - rvSumX(i)**2)
+					tTrend % rvS2betaV(i) = n*tTrend % rvS2epsV(i) / (n*rvSumXX(i) - rvSumX(i)**2)
+					tTrend % rvS2betaW(i) = n*tTrend % rvS2epsW(i) / (n*rvSumXX(i) - rvSumX(i)**2)
+					tTrend % rvS2betaT(i) = n*tTrend % rvS2epsT(i) / (n*rvSumXX(i) - rvSumX(i)**2)
+					
+					! Compute intercept squared sigmas
+					tTrend % rvS2alphaU(i) = tTrend % rvS2betaU(i) * rvSumXX(i) / n
+					tTrend % rvS2alphaV(i) = tTrend % rvS2betaV(i) * rvSumXX(i) / n
+					tTrend % rvS2alphaW(i) = tTrend % rvS2betaW(i) * rvSumXX(i) / n
+					tTrend % rvS2alphaT(i) = tTrend % rvS2betaT(i) * rvSumXX(i) / n
+						
+				else
+				
+					tTrend % rvS2epsU(i) = NaN_8
+					tTrend % rvS2epsV(i) = NaN_8
+					tTrend % rvS2epsW(i) = NaN_8
+					tTrend % rvS2epsT(i) = NaN_8
+					
+					tTrend % rvS2alphaU(i) = NaN_8
+					tTrend % rvS2alphaV(i) = NaN_8
+					tTrend % rvS2alphaW(i) = NaN_8
+					tTrend % rvS2alphaT(i) = NaN_8
+					
+					tTrend % rvS2betaU(i) = NaN_8
+					tTrend % rvS2betaV(i) = NaN_8
+					tTrend % rvS2betaW(i) = NaN_8
+					tTrend % rvS2betaT(i) = NaN_8
+					
+				end if
+			end do
 		end if
 		
 		! Leave
