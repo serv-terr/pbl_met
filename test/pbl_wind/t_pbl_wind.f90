@@ -1258,6 +1258,7 @@ contains
 		real, dimension(:), allocatable		:: rvW
 		real, dimension(:), allocatable		:: rvTemp
 		real(8)								:: rBaseTime
+		type(TrendData)						:: tTrend
 		
 		! Test 1: Read and count an existing SonicLib file name
 		print *, "Test 1: Read SonicLib file"
@@ -1582,6 +1583,27 @@ contains
 		print *, "Processing: return code = ", iRetCode, "  (expected: 0)"
 		iRetCode = tEc % dump()
 		print *
+		
+		! Test 22: Detrending, from artificial case with known results
+		deallocate(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		allocate(rvTimeSt(15), rvU(15), rvV(15), rvW(15), rvTemp(15))
+		rvTimeSt = [1.47, 1.50, 1.52, 1.55, 1.57, 1.60, 1.63, 1.65, 1.68, 1.70, 1.73, 1.75, 1.78, 1.80, 1.8]
+		rvU      = [52.21, 53.12, 54.48, 55.84, 57.20, 58.57, 59.93, 61.29, 63.11, 64.47, 66.28, 68.10, 69.92, 72.19, 74.46]
+		rvV      = 2.*rvU
+		rvW      = 3.*rvU
+		rvTemp   = 4.*rvU
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % removeTrend( &
+			3600, &
+			tTrend &
+		)
+		print *, "Test 22: Detrending, with synthetic data having known characteristics"
+		print *
+		print *, "Alpha U (intercept): ", tTrend % rvAlphaU(1),   "  (expected: -39.062)"
+		print *, "Beta U  (slope):     ", tTrend % rvBetaU(1),    "  (expected:  61.272)"
+		print *, "S2eps U:             ", tTrend % rvS2epsU(1),   "  (expected:   0.5762)"
+		print *, "S2alpha U:           ", tTrend % rvS2alphaU(1), "  (expected:   8.63185)"
+		print *, "S2beta U:            ", tTrend % rvS2betaU(1),  "  (expected:   3.1539)"
 		
 	end subroutine tst_SonicData
 	
