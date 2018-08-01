@@ -1587,7 +1587,7 @@ contains
 		! Test 22: Detrending, from artificial case with known results
 		deallocate(rvTimeSt, rvU, rvV, rvW, rvTemp)
 		allocate(rvTimeSt(15), rvU(15), rvV(15), rvW(15), rvTemp(15))
-		rvTimeSt = [1.47, 1.50, 1.52, 1.55, 1.57, 1.60, 1.63, 1.65, 1.68, 1.70, 1.73, 1.75, 1.78, 1.80, 1.8]
+		rvTimeSt = [1.47, 1.50, 1.52, 1.55, 1.57, 1.60, 1.63, 1.65, 1.68, 1.70, 1.73, 1.75, 1.78, 1.80, 1.83]
 		rvU      = [52.21, 53.12, 54.48, 55.84, 57.20, 58.57, 59.93, 61.29, 63.11, 64.47, 66.28, 68.10, 69.92, 72.19, 74.46]
 		rvV      = 2.*rvU
 		rvW      = 3.*rvU
