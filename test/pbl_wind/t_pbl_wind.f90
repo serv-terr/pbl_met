@@ -1640,6 +1640,27 @@ contains
 		print *, "S2beta: ", tTrend % rvS2betaU, tTrend % rvS2betaV, tTrend % rvS2betaW, tTrend % rvS2betaT
 		print *
 		
+		! Test 24: as Test 23, but with 1800s averaging time instead of 3600
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % removeTrend( &
+			1800, &
+			tTrend &
+		)
+		print *, "Test 24: Detrending, with synthetic data having known characteristics"
+		print *
+		print *, "Alpha U (intercept): ", tTrend % rvAlphaU,   "  (expected:   0.000)"
+		print *, "Beta U  (slope):     ", tTrend % rvBetaU,    "  (expected:   1.000)"
+		print *, "S2eps U:             ", tTrend % rvS2epsU
+		print *, "S2alpha U:           ", tTrend % rvS2alphaU
+		print *, "S2beta U:            ", tTrend % rvS2betaU
+		print *
+		print *, "Alphas: ", tTrend % rvAlphaU, tTrend % rvAlphaV, tTrend % rvAlphaW, tTrend % rvAlphaT
+		print *, "Betas:  ", tTrend % rvBetaU, tTrend % rvBetaV, tTrend % rvBetaW, tTrend % rvBetaT
+		print *, "S2eps:  ", tTrend % rvS2epsU, tTrend % rvS2epsV, tTrend % rvS2epsW, tTrend % rvS2epsT
+		print *, "S2alpha:", tTrend % rvS2alphaU, tTrend % rvS2alphaV, tTrend % rvS2alphaW, tTrend % rvS2alphaT
+		print *, "S2beta: ", tTrend % rvS2betaU, tTrend % rvS2betaV, tTrend % rvS2betaW, tTrend % rvS2betaT
+		print *
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
