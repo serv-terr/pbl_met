@@ -1599,6 +1599,7 @@ contains
 		)
 		print *, "Test 22: Detrending, with synthetic data having known characteristics"
 		print *
+		print *, "Number of data:      ", tTrend % ivNumData(i)
 		print *, "Alpha U (intercept): ", tTrend % rvAlphaU(1),   "  (expected: -39.062)"
 		print *, "Beta U  (slope):     ", tTrend % rvBetaU(1),    "  (expected:  61.272)"
 		print *, "S2eps U:             ", tTrend % rvS2epsU(1),   "  (expected:   0.5762)"
@@ -1627,6 +1628,7 @@ contains
 		)
 		print *, "Test 23: Detrending, with synthetic data having known characteristics"
 		print *
+		print *, "Number of data:      ", tTrend % ivNumData(i)
 		print *, "Alpha U (intercept): ", tTrend % rvAlphaU(1),   "  (expected:   0.000)"
 		print *, "Beta U  (slope):     ", tTrend % rvBetaU(1),    "  (expected:   1.000)"
 		print *, "S2eps U:             ", tTrend % rvS2epsU(1)
@@ -1648,6 +1650,7 @@ contains
 		)
 		print *, "Test 24: Detrending, with synthetic data having known characteristics"
 		print *
+		print *, "Number of data:      ", tTrend % ivNumData(i)
 		print *, "Alpha U (intercept): ", tTrend % rvAlphaU,   "  (expected:   0.000)"
 		print *, "Beta U  (slope):     ", tTrend % rvBetaU,    "  (expected:   1.000)"
 		print *, "S2eps U:             ", tTrend % rvS2epsU
