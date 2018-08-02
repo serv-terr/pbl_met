@@ -1604,7 +1604,14 @@ contains
 		print *, "S2eps U:             ", tTrend % rvS2epsU(1),   "  (expected:   0.5762)"
 		print *, "S2alpha U:           ", tTrend % rvS2alphaU(1), "  (expected:   8.63185)"
 		print *, "S2beta U:            ", tTrend % rvS2betaU(1),  "  (expected:   3.1539)"
-		
+		print *
+		print *, "Alphas: ", tTrend % rvAlphaU, tTrend % rvAlphaV, tTrend % rvAlphaW, tTrend % rvAlphaT
+		print *, "Betas:  ", tTrend % rvBetaU, tTrend % rvBetaV, tTrend % rvBetaW, tTrend % rvBetaT
+		print *, "S2eps:  ", tTrend % rvS2epsU, tTrend % rvS2epsV, tTrend % rvS2epsW, tTrend % rvS2epsT
+		print *, "S2alpha:", tTrend % rvS2alphaU, tTrend % rvS2alphaV, tTrend % rvS2alphaW, tTrend % rvS2alphaT
+		print *, "S2beta: ", tTrend % rvS2betaU, tTrend % rvS2betaV, tTrend % rvS2betaW, tTrend % rvS2betaT
+		print *
+				
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
