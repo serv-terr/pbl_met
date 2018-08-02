@@ -93,6 +93,7 @@ module pbl_wind
 	end type SonicData
 	
 	type TrendData
+		integer, dimension(:), allocatable		:: ivNumData
 		real(8), dimension(:), allocatable		:: rvAlphaU
 		real(8), dimension(:), allocatable		:: rvAlphaV
 		real(8), dimension(:), allocatable		:: rvAlphaW
@@ -1463,14 +1464,15 @@ contains
 			do i = 1, iMaxBlock
 			
 				! Copy the values alredy computed
-				tTrend % rvAlphaU(i) = rvAlphaU(i)
-				tTrend % rvAlphaV(i) = rvAlphaV(i)
-				tTrend % rvAlphaW(i) = rvAlphaW(i)
-				tTrend % rvAlphaT(i) = rvAlphaT(i)
-				tTrend % rvBetaU(i)  = rvBetaU(i)
-				tTrend % rvBetaV(i)  = rvBetaV(i)
-				tTrend % rvBetaW(i)  = rvBetaW(i)
-				tTrend % rvBetaT(i)  = rvBetaT(i)
+				tTrend % ivNumData(i) = ivNumData(i)
+				tTrend % rvAlphaU(i)  = rvAlphaU(i)
+				tTrend % rvAlphaV(i)  = rvAlphaV(i)
+				tTrend % rvAlphaW(i)  = rvAlphaW(i)
+				tTrend % rvAlphaT(i)  = rvAlphaT(i)
+				tTrend % rvBetaU(i)   = rvBetaU(i)
+				tTrend % rvBetaV(i)   = rvBetaV(i)
+				tTrend % rvBetaW(i)   = rvBetaW(i)
+				tTrend % rvBetaT(i)   = rvBetaT(i)
 				
 				! Compute diagnostic values
 				n = ivNumData(i)
@@ -1688,6 +1690,7 @@ contains
 		iRetCode = 0
 		
 		! Remove any allocated vector
+		if(allocated(this % ivNumData))  deallocate(this % ivNumData)
 		if(allocated(this % rvAlphaU))   deallocate(this % rvAlphaU)
 		if(allocated(this % rvAlphaV))   deallocate(this % rvAlphaV)
 		if(allocated(this % rvAlphaW))   deallocate(this % rvAlphaW)
@@ -1726,6 +1729,7 @@ contains
 		iRetCode = 0
 		
 		! Remove any allocated vector
+		allocate(this % ivNumData(iNumData))
 		allocate(this % rvAlphaU(iNumData))
 		allocate(this % rvAlphaV(iNumData))
 		allocate(this % rvAlphaW(iNumData))
