@@ -1611,7 +1611,35 @@ contains
 		print *, "S2alpha:", tTrend % rvS2alphaU, tTrend % rvS2alphaV, tTrend % rvS2alphaW, tTrend % rvS2alphaT
 		print *, "S2beta: ", tTrend % rvS2betaU, tTrend % rvS2betaV, tTrend % rvS2betaW, tTrend % rvS2betaT
 		print *
-				
+		
+		! Test 23: Detrending, with artificial data having known behavior, part 2
+		deallocate(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		allocate(rvTimeSt(3600), rvU(3600), rvV(3600), rvW(3600), rvTemp(3600))
+		rvTimeSt = [(real(i-1, kind=8), i = 1, 3600)]
+		rvU      = rvTimeSt
+		rvV      = rvU / 2.
+		rvW      = rvV / 2.
+		rvTemp   = rvW / 2.
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % removeTrend( &
+			3600, &
+			tTrend &
+		)
+		print *, "Test 23: Detrending, with synthetic data having known characteristics"
+		print *
+		print *, "Alpha U (intercept): ", tTrend % rvAlphaU(1),   "  (expected:   0.000)"
+		print *, "Beta U  (slope):     ", tTrend % rvBetaU(1),    "  (expected:   1.000)"
+		print *, "S2eps U:             ", tTrend % rvS2epsU(1)
+		print *, "S2alpha U:           ", tTrend % rvS2alphaU(1)
+		print *, "S2beta U:            ", tTrend % rvS2betaU(1)
+		print *
+		print *, "Alphas: ", tTrend % rvAlphaU, tTrend % rvAlphaV, tTrend % rvAlphaW, tTrend % rvAlphaT
+		print *, "Betas:  ", tTrend % rvBetaU, tTrend % rvBetaV, tTrend % rvBetaW, tTrend % rvBetaT
+		print *, "S2eps:  ", tTrend % rvS2epsU, tTrend % rvS2epsV, tTrend % rvS2epsW, tTrend % rvS2epsT
+		print *, "S2alpha:", tTrend % rvS2alphaU, tTrend % rvS2alphaV, tTrend % rvS2alphaW, tTrend % rvS2alphaT
+		print *, "S2beta: ", tTrend % rvS2betaU, tTrend % rvS2betaV, tTrend % rvS2betaW, tTrend % rvS2betaT
+		print *
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
