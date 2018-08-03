@@ -1599,7 +1599,7 @@ contains
 		)
 		print *, "Test 22: Detrending, with synthetic data having known characteristics"
 		print *
-		print *, "Number of data:      ", tTrend % ivNumData(i)
+		print *, "Number of data:      ", tTrend % ivNumData(1)
 		print *, "Alpha U (intercept): ", tTrend % rvAlphaU(1),   "  (expected: -39.062)"
 		print *, "Beta U  (slope):     ", tTrend % rvBetaU(1),    "  (expected:  61.272)"
 		print *, "S2eps U:             ", tTrend % rvS2epsU(1),   "  (expected:   0.5762)"
@@ -1628,7 +1628,7 @@ contains
 		)
 		print *, "Test 23: Detrending, with synthetic data having known characteristics"
 		print *
-		print *, "Number of data:      ", tTrend % ivNumData(i)
+		print *, "Number of data:      ", tTrend % ivNumData(1)
 		print *, "Alpha U (intercept): ", tTrend % rvAlphaU(1),   "  (expected:   0.000)"
 		print *, "Beta U  (slope):     ", tTrend % rvBetaU(1),    "  (expected:   1.000)"
 		print *, "S2eps U:             ", tTrend % rvS2epsU(1)
@@ -1650,7 +1650,30 @@ contains
 		)
 		print *, "Test 24: Detrending, with synthetic data having known characteristics"
 		print *
-		print *, "Number of data:      ", tTrend % ivNumData(i)
+		print *, "Number of data:      ", tTrend % ivNumData
+		print *, "Alpha U (intercept): ", tTrend % rvAlphaU,   "  (expected:   0.000)"
+		print *, "Beta U  (slope):     ", tTrend % rvBetaU,    "  (expected:   1.000)"
+		print *, "S2eps U:             ", tTrend % rvS2epsU
+		print *, "S2alpha U:           ", tTrend % rvS2alphaU
+		print *, "S2beta U:            ", tTrend % rvS2betaU
+		print *
+		print *, "Alphas: ", tTrend % rvAlphaU, tTrend % rvAlphaV, tTrend % rvAlphaW, tTrend % rvAlphaT
+		print *, "Betas:  ", tTrend % rvBetaU, tTrend % rvBetaV, tTrend % rvBetaW, tTrend % rvBetaT
+		print *, "S2eps:  ", tTrend % rvS2epsU, tTrend % rvS2epsV, tTrend % rvS2epsW, tTrend % rvS2epsT
+		print *, "S2alpha:", tTrend % rvS2alphaU, tTrend % rvS2alphaV, tTrend % rvS2alphaW, tTrend % rvS2alphaT
+		print *, "S2beta: ", tTrend % rvS2betaU, tTrend % rvS2betaV, tTrend % rvS2betaW, tTrend % rvS2betaT
+		print *
+		
+		! Test 25: as Test 23, but with 1800s averaging time instead of 3600, and one invalid value
+		rvU(1800) = NaN
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % removeTrend( &
+			1800, &
+			tTrend &
+		)
+		print *, "Test 25: Detrending, with synthetic data having known characteristics"
+		print *
+		print *, "Number of data:      ", tTrend % ivNumData
 		print *, "Alpha U (intercept): ", tTrend % rvAlphaU,   "  (expected:   0.000)"
 		print *, "Beta U  (slope):     ", tTrend % rvBetaU,    "  (expected:   1.000)"
 		print *, "S2eps U:             ", tTrend % rvS2epsU
