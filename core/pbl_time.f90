@@ -829,7 +829,7 @@ contains
 			endwhere
 		end if
 		where(ivTimeCode > 0)
-			ivTimeCode = ivTimeCode - minval(ivTimeCode) + 1
+			ivTimeCode = ivTimeCode - minval(ivTimeCode, mask=ivTimeCode > 0) + 1
 		end where
 		
 	end function timeLinearIndex1
