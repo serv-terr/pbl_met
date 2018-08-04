@@ -1747,6 +1747,18 @@ contains
 		print *, "S2beta: ", tTrend % rvS2betaU, tTrend % rvS2betaV, tTrend % rvS2betaW, tTrend % rvS2betaT
 		print *
 		
+		! Test 29: as Test 23, but with 1800s averaging time instead of 3600, and all invalid values + time stamp
+		rvU = NaN
+		rvTimeSt = NaN_8
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % removeTrend( &
+			1800, &
+			tTrend &
+		)
+		print *, "Test 29: Detrending, with synthetic all invalid data"
+		print *, "Return code: ", iRetCode, "  (expected: non-zero)"
+		print *
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
