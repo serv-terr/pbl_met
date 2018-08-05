@@ -36,7 +36,7 @@ contains
 		! Routine arguments
 		type(EddyCovData), intent(in)					:: tEc
 		integer, intent(in), optional					:: iMode
-		real, dimension(:), allocatable, intent(out)	:: rvUstar
+		real(8), dimension(:), allocatable, intent(out)	:: rvUstar
 		integer											:: iRetCode
 		
 		! Locals
@@ -44,8 +44,8 @@ contains
 		integer							:: iErrCode
 		integer							:: iModeIn
 		integer							:: n
-		real, dimension(:), allocatable	:: rvUW
-		real, dimension(:), allocatable	:: rvVW
+		real(8), dimension(:), allocatable	:: rvUW
+		real(8), dimension(:), allocatable	:: rvVW
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -81,12 +81,12 @@ contains
 		! Compute the friction velocity
 		select case(iMode)
 		case(USTAR_PERMISSIVE)
-			rvUstar = (rvUW**2 + rvVW**2)**0.25
+			rvUstar = (rvUW**2 + rvVW**2)**0.25d0
 		case(USTAR_FINICKY)
 			where(rvUW < 0.)
 				rvUstar = sqrt(-rvUW)
 			elsewhere
-				rvUstar = NaN
+				rvUstar = NaN_8
 			endwhere
 		case default
 			iRetCode = 2
@@ -99,16 +99,16 @@ contains
 	
 		! Routine arguments
 		type(EddyCovData), intent(in)					:: tEc
-		real, dimension(:), allocatable, intent(out)	:: rvH0
+		real(8), dimension(:), allocatable, intent(out)	:: rvH0
 		integer											:: iRetCode
 		
 		! Locals
-		integer							:: iErrCode
-		integer							:: iModeIn
-		integer							:: i
-		integer							:: n
-		real, dimension(:), allocatable	:: rvWT
-		real, dimension(:), allocatable	:: rvTemp
+		integer								:: iErrCode
+		integer								:: iModeIn
+		integer								:: i
+		integer								:: n
+		real(8), dimension(:), allocatable	:: rvWT
+		real(8), dimension(:), allocatable	:: rvTemp
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -136,7 +136,7 @@ contains
 		
 		! Compute the sensible heat flux on vertical direction
 		do i = 1, n
-			rvH0(i) = rvWT(i) * RhoCp(rvTemp(i) + 273.15)
+			rvH0(i) = rvWT(i) * RhoCp(real(rvTemp(i),kind=4) + 273.15)
 		end do
 		
 	end function SensibleHeatFlux
