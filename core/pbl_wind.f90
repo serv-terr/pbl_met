@@ -121,26 +121,26 @@ module pbl_wind
 	
 	type EddyCovData
 		! Status section
-		logical, private								:: isPrimed			! .true. when "averages" are available
-		logical, private								:: isFilled			! .true. when eddy covariance data are available
-		integer, private								:: averagingTime	! Averaging time, in seconds
+		logical, private									:: isPrimed			! .true. when "averages" are available
+		logical, private									:: isFilled			! .true. when eddy covariance data are available
+		integer, private									:: averagingTime	! Averaging time, in seconds
 		! Common-to-all data
-		real(8), dimension(:), allocatable, private		:: rvTimeStamp		! Time stamp averages
-		integer, dimension(:), allocatable, private		:: ivNumData		! Number of (valid) data having contributed to the "averages"
+		real(8), dimension(:), allocatable, private			:: rvTimeStamp		! Time stamp averages
+		integer, dimension(:), allocatable, private			:: ivNumData		! Number of (valid) data having contributed to the "averages"
 		! Input section (data entering here through SonicData % averages(...) member function
-		real, dimension(:,:), allocatable, private		:: rmVel			! Time series of mean velocities (m/s)
-		real(8), dimension(:), allocatable, private		:: rvT				! Time series of mean temperatures (°C)
-		real, dimension(:,:,:), allocatable, private	:: raCovVel			! Time series of momentum covariances (m2/s2)
-		real, dimension(:,:), allocatable, private		:: rmCovT			! Time series of covariances between velocities and temperature (m°C/s)
-		real(8), dimension(:), allocatable, private		:: rvVarT			! Time series of temperature variances (°C2)
+		real(8), dimension(:,:), allocatable, private		:: rmVel			! Time series of mean velocities (m/s)
+		real(8), dimension(:), allocatable, private			:: rvT				! Time series of mean temperatures (°C)
+		real(8), dimension(:,:,:), allocatable, private		:: raCovVel			! Time series of momentum covariances (m2/s2)
+		real(8), dimension(:,:), allocatable, private		:: rmCovT			! Time series of covariances between velocities and temperature (m°C/s)
+		real(8), dimension(:), allocatable, private			:: rvVarT			! Time series of temperature variances (°C2)
 		! Output section (data entering here through EddyCovData % process(...) member function
 		! 1) Basic, rotated
-		real, dimension(:), allocatable, private		:: rvTheta			! Time series of first rotation angles (°)
-		real, dimension(:), allocatable, private		:: rvPhi			! Time series of second rotation angles (°)
-		real, dimension(:), allocatable, private		:: rvPsi			! Time series of third rotation angles (°) (always 0 if two rotations selected in eddy covariance)
-		real, dimension(:,:), allocatable, private		:: rmRotVel			! Time series of rotated mean velocities (m/s)
-		real, dimension(:,:,:), allocatable, private	:: raRotCovVel		! Time series of rotated momentum covariances (m2/s2)
-		real, dimension(:,:), allocatable, private		:: rmRotCovT		! Time series of rotated covariances between velocities and temperature (m°C/s)
+		real(8), dimension(:), allocatable, private			:: rvTheta			! Time series of first rotation angles (°)
+		real(8), dimension(:), allocatable, private			:: rvPhi			! Time series of second rotation angles (°)
+		real(8), dimension(:), allocatable, private			:: rvPsi			! Time series of third rotation angles (°) (always 0 if two rotations selected in eddy covariance)
+		real(8), dimension(:,:), allocatable, private		:: rmRotVel			! Time series of rotated mean velocities (m/s)
+		real(8), dimension(:,:,:), allocatable, private		:: raRotCovVel		! Time series of rotated momentum covariances (m2/s2)
+		real(8), dimension(:,:), allocatable, private		:: rmRotCovT		! Time series of rotated covariances between velocities and temperature (m°C/s)
 		! 2) Derived, pre eddy-covariance
 		! 3) Derived, common turbulence indicators
 	contains
@@ -1607,10 +1607,10 @@ contains
 		! Compute the desired statistics
 		! -1- Phase one: Accumulate
 		tEc % ivNumData = 0
-		tEc % rmVel     = 0.
+		tEc % rmVel     = 0.d0
 		tEc % rvT       = 0.d0
-		tEc % raCovVel  = 0.
-		tEc % rmCovT    = 0.
+		tEc % raCovVel  = 0.d0
+		tEc % rmCovT    = 0.d0
 		tEc % rvVarT    = 0.d0
 		tEc % isPrimed  = .true.
 		do i = 1, size(ivTimeIndex)
@@ -1626,21 +1626,27 @@ contains
 					! Update count
 					tEc % ivNumData(iIndex) = tEc % ivNumData(iIndex) + 1
 					! Update first order accumulators
-					tEc % rmVel(iIndex, 1)       = tEc % rmVel(iIndex, 1)       + this % rvU(i)
-					tEc % rmVel(iIndex, 2)       = tEc % rmVel(iIndex, 2)       + this % rvV(i)
-					tEc % rmVel(iIndex, 3)       = tEc % rmVel(iIndex, 3)       + this % rvW(i)
+					tEc % rmVel(iIndex, 1)       = tEc % rmVel(iIndex, 1)       + real(this % rvU(i), kind=8)
+					tEc % rmVel(iIndex, 2)       = tEc % rmVel(iIndex, 2)       + real(this % rvV(i), kind=8)
+					tEc % rmVel(iIndex, 3)       = tEc % rmVel(iIndex, 3)       + real(this % rvW(i), kind=8)
 					tEc % rvT(iIndex)            = tEc % rvT(iIndex)            + real(this % rvT(i), kind=8)
 					! Update second order accumulators
-					tEc % raCovVel(iIndex, 1, 1) = tEc % raCovVel(iIndex, 1, 1) + this % rvU(i) ** 2
-					tEc % raCovVel(iIndex, 2, 2) = tEc % raCovVel(iIndex, 2, 2) + this % rvV(i) ** 2
-					tEc % raCovVel(iIndex, 3, 3) = tEc % raCovVel(iIndex, 3, 3) + this % rvW(i) ** 2
+					tEc % raCovVel(iIndex, 1, 1) = tEc % raCovVel(iIndex, 1, 1) + real(this % rvU(i), kind=8) ** 2
+					tEc % raCovVel(iIndex, 2, 2) = tEc % raCovVel(iIndex, 2, 2) + real(this % rvV(i), kind=8) ** 2
+					tEc % raCovVel(iIndex, 3, 3) = tEc % raCovVel(iIndex, 3, 3) + real(this % rvW(i), kind=8) ** 2
 					tEc % rvVarT(iIndex)         = tEc % rvVarT(iIndex)         + real(this % rvT(i), kind=8) ** 2
-					tEc % raCovVel(iIndex, 1, 2) = tEc % raCovVel(iIndex, 1, 2) + this % rvU(i) * this % rvV(i)
-					tEc % raCovVel(iIndex, 1, 3) = tEc % raCovVel(iIndex, 1, 3) + this % rvU(i) * this % rvW(i)
-					tEc % raCovVel(iIndex, 2, 3) = tEc % raCovVel(iIndex, 2, 3) + this % rvV(i) * this % rvW(i)
-					tEc % rmCovT(iIndex, 1)      = tEc % rmCovT(iIndex, 1)      + this % rvU(i) * this % rvT(i)
-					tEc % rmCovT(iIndex, 2)      = tEc % rmCovT(iIndex, 2)      + this % rvV(i) * this % rvT(i)
-					tEc % rmCovT(iIndex, 3)      = tEc % rmCovT(iIndex, 3)      + this % rvW(i) * this % rvT(i)
+					tEc % raCovVel(iIndex, 1, 2) = tEc % raCovVel(iIndex, 1, 2) + &
+						real(this % rvU(i), kind=8) * real(this % rvV(i), kind=8)
+					tEc % raCovVel(iIndex, 1, 3) = tEc % raCovVel(iIndex, 1, 3) + &
+						real(this % rvU(i), kind=8) * real(this % rvW(i), kind=8)
+					tEc % raCovVel(iIndex, 2, 3) = tEc % raCovVel(iIndex, 2, 3) + &
+						real(this % rvV(i), kind=8) * real(this % rvW(i), kind=8)
+					tEc % rmCovT(iIndex, 1)      = tEc % rmCovT(iIndex, 1)      + &
+						real(this % rvU(i), kind=8) * real(this % rvT(i), kind=8)
+					tEc % rmCovT(iIndex, 2)      = tEc % rmCovT(iIndex, 2)      + &
+						real(this % rvV(i), kind=8) * real(this % rvT(i), kind=8)
+					tEc % rmCovT(iIndex, 3)      = tEc % rmCovT(iIndex, 3)      + &
+						real(this % rvW(i), kind=8) * real(this % rvT(i), kind=8)
 				end if
 			end if
 		end do
@@ -1663,11 +1669,11 @@ contains
 				tEc % rmCovT(i,2)     = tEc % rmCovT(i,2) / tEc % ivNumData(i) - tEc % rmVel(i, 2) * tEc % rvT(i)
 				tEc % rmCovT(i,3)     = tEc % rmCovT(i,3) / tEc % ivNumData(i) - tEc % rmVel(i, 3) * tEc % rvT(i)
 			else
-				tEc % rmVel(i,:)      = NaN
+				tEc % rmVel(i,:)      = NaN_8
 				tEc % rvT(i)          = NaN_8
-				tEc % raCovVel(i,:,:) = NaN
+				tEc % raCovVel(i,:,:) = NaN_8
 				tEc % rvVarT(i)       = NaN_8
-				tEc % rmCovT(i,:)     = NaN
+				tEc % rmCovT(i,:)     = NaN_8
 			end if
 		end do
 		
@@ -2015,19 +2021,19 @@ contains
 		! Initialize all inputs to make any gaps evident in future
 		this % rvTimeStamp = NaN_8
 		this % ivNumData   = 0
-		this % rmVel       = NaN
+		this % rmVel       = NaN_8
 		this % rvT         = NaN_8
-		this % raCovVel    = NaN
-		this % rmCovT      = NaN
+		this % raCovVel    = NaN_8
+		this % rmCovT      = NaN_8
 		this % rvVarT      = NaN_8
 		
 		! Initialize all outputs to make any gaps evident in future
-		this % rvTheta     = NaN
-		this % rvPhi       = NaN
-		this % rvPsi       = NaN
-		this % rmRotVel    = NaN
-		this % raRotCovVel = NaN
-		this % rmRotCovT   = NaN
+		this % rvTheta     = NaN_8
+		this % rvPhi       = NaN_8
+		this % rvPsi       = NaN_8
+		this % rmRotVel    = NaN_8
+		this % raRotCovVel = NaN_8
+		this % rmRotCovT   = NaN_8
 		
 		! Confirm averaging time
 		this % averagingTime = iAveragingTime
@@ -2551,30 +2557,30 @@ contains
 		integer								:: iRotations
 		integer								:: i
 		integer								:: n
-		real								:: rVel
-		real								:: rVel3
-		real								:: cos_the
-		real								:: sin_the
-		real								:: cos_phi
-		real								:: sin_phi
-		real								:: cos_psi
-		real								:: sin_psi
-		real								:: sin_cos
-		real								:: costhe2
-		real								:: sinthe2
-		real								:: cosphi2
-		real								:: sinphi2
-		real								:: cospsi2
-		real								:: sinpsi2
-		real								:: psi
-		real								:: um2, vm2, wm2
-		real								:: ut2, vt2, wt2
-		real								:: su2, sv2, sw2
-		real								:: uv2, uw2, vw2
-		real								:: um3, vm3, wm3
-		real								:: ut3, vt3, wt3
-		real								:: su3, sv3, sw3
-		real								:: uv3, uw3, vw3
+		real(8)								:: rVel
+		real(8)								:: rVel3
+		real(8)								:: cos_the
+		real(8)								:: sin_the
+		real(8)								:: cos_phi
+		real(8)								:: sin_phi
+		real(8)								:: cos_psi
+		real(8)								:: sin_psi
+		real(8)								:: sin_cos
+		real(8)								:: costhe2
+		real(8)								:: sinthe2
+		real(8)								:: cosphi2
+		real(8)								:: sinphi2
+		real(8)								:: cospsi2
+		real(8)								:: sinpsi2
+		real(8)								:: psi
+		real(8)								:: um2, vm2, wm2
+		real(8)								:: ut2, vt2, wt2
+		real(8)								:: su2, sv2, sw2
+		real(8)								:: uv2, uw2, vw2
+		real(8)								:: um3, vm3, wm3
+		real(8)								:: ut3, vt3, wt3
+		real(8)								:: su3, sv3, sw3
+		real(8)								:: uv3, uw3, vw3
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -2610,8 +2616,8 @@ contains
 				cos_the = this % rmVel(i,1) / rVel
 				sin_the = this % rmVel(i,2) / rVel				
 			else
-				cos_the = NaN
-				sin_the = NaN
+				cos_the = NaN_8
+				sin_the = NaN_8
 			end if
 			costhe2 = cos_the ** 2
 			sinthe2 = sin_the ** 2
@@ -2652,8 +2658,8 @@ contains
 				sin_phi = this % rmVel(i,3) / rVel3
 				cos_phi = rVel / rVel3
 			else
-				sin_phi = NaN
-				cos_phi = NaN
+				sin_phi = NaN_8
+				cos_phi = NaN_8
 			end if
 			sin_cos = 2.*sin_phi*cos_phi
 			sinphi2 = sin_phi*sin_phi
