@@ -2197,14 +2197,14 @@ contains
 	function ec_GetInputData(this, ivNumData, rmVel, rvT, raCovVel, rmCovT, rvVarT) result(iRetCode)
 	
 		! Routine arguments
-		class(EddyCovData), intent(in)						:: this
-		integer, dimension(:), allocatable, intent(out)		:: ivNumData
-		real, dimension(:,:), allocatable, intent(out)		:: rmVel
-		real, dimension(:), allocatable, intent(out)		:: rvT
-		real, dimension(:,:,:), allocatable, intent(out)	:: raCovVel
-		real, dimension(:,:), allocatable, intent(out)		:: rmCovT
-		real, dimension(:), allocatable, intent(out)		:: rvVarT
-		integer												:: iRetCode
+		class(EddyCovData), intent(in)							:: this
+		integer, dimension(:), allocatable, intent(out)			:: ivNumData
+		real(8), dimension(:,:), allocatable, intent(out)		:: rmVel
+		real(8), dimension(:), allocatable, intent(out)			:: rvT
+		real(8), dimension(:,:,:), allocatable, intent(out)		:: raCovVel
+		real(8), dimension(:,:), allocatable, intent(out)		:: rmCovT
+		real(8), dimension(:), allocatable, intent(out)			:: rvVarT
+		integer													:: iRetCode
 		
 		! Locals
 		integer	:: n
@@ -2249,14 +2249,14 @@ contains
 	function ec_GetOutputData(this, rvTheta, rvPhi, rvPsi, rmRotVel, raRotCovVel, rmRotCovT) result(iRetCode)
 	
 		! Routine arguments
-		class(EddyCovData), intent(in)						:: this
-		real, dimension(:), allocatable, intent(out)		:: rvTheta
-		real, dimension(:), allocatable, intent(out)		:: rvPhi
-		real, dimension(:), allocatable, intent(out)		:: rvPsi
-		real, dimension(:,:), allocatable, intent(out)		:: rmRotVel
-		real, dimension(:,:,:), allocatable, intent(out)	:: raRotCovVel
-		real, dimension(:,:), allocatable, intent(out)		:: rmRotCovT
-		integer												:: iRetCode
+		class(EddyCovData), intent(in)							:: this
+		real(8), dimension(:), allocatable, intent(out)			:: rvTheta
+		real(8), dimension(:), allocatable, intent(out)			:: rvPhi
+		real(8), dimension(:), allocatable, intent(out)			:: rvPsi
+		real(8), dimension(:,:), allocatable, intent(out)		:: rmRotVel
+		real(8), dimension(:,:,:), allocatable, intent(out)		:: raRotCovVel
+		real(8), dimension(:,:), allocatable, intent(out)		:: rmRotCovT
+		integer													:: iRetCode
 		
 		! Locals
 		integer	:: n
@@ -2304,7 +2304,7 @@ contains
 		class(EddyCovData), intent(in)					:: this
 		integer, intent(in)								:: j		! Row index (1..3)
 		integer, intent(in)								:: k		! Column index (1..3)
-		real, dimension(:), allocatable, intent(out)	:: rvValue
+		real(8), dimension(:), allocatable, intent(out)	:: rvValue
 		integer											:: iRetCode
 		
 		! Locals
@@ -2342,7 +2342,7 @@ contains
 		! Routine arguments
 		class(EddyCovData), intent(in)					:: this
 		integer, intent(in)								:: j		! Row index (1..3)
-		real, dimension(:), allocatable, intent(out)	:: rvValue
+		real(8), dimension(:), allocatable, intent(out)	:: rvValue
 		integer											:: iRetCode
 		
 		! Locals
@@ -2375,7 +2375,7 @@ contains
 	
 		! Routine arguments
 		class(EddyCovData), intent(in)					:: this
-		real, dimension(:), allocatable, intent(out)	:: rvValue
+		real(8), dimension(:), allocatable, intent(out)	:: rvValue
 		integer											:: iRetCode
 		
 		! Locals
@@ -2409,27 +2409,27 @@ contains
 		integer								:: iRetCode
 		
 		! Locals
-		integer								:: iErrCode
-		logical								:: alsoOutputs
-		integer								:: n
-		integer								:: i
-		integer								:: iDeltaTime
-		real(8)								:: rTimeStart
-		type(DateTime)						:: tDateTimeStart
-		real(8), dimension(:), allocatable	:: rvTimeStamp
-		integer, dimension(:), allocatable	:: ivTimeIndex
-		integer, dimension(:), allocatable	:: ivNumData
-		real, dimension(:,:), allocatable	:: rmVel
-		real, dimension(:), allocatable		:: rvT
-		real, dimension(:,:,:), allocatable	:: raCovVel
-		real, dimension(:,:), allocatable	:: rmCovT
-		real, dimension(:), allocatable		:: rvVarT
-		real, dimension(:), allocatable		:: rvTheta
-		real, dimension(:), allocatable		:: rvPhi
-		real, dimension(:), allocatable		:: rvPsi
-		real, dimension(:,:), allocatable	:: rmRotVel
-		real, dimension(:,:,:), allocatable	:: raRotCovVel
-		real, dimension(:,:), allocatable	:: rmRotCovT
+		integer									:: iErrCode
+		logical									:: alsoOutputs
+		integer									:: n
+		integer									:: i
+		integer									:: iDeltaTime
+		real(8)									:: rTimeStart
+		type(DateTime)							:: tDateTimeStart
+		real(8), dimension(:), allocatable		:: rvTimeStamp
+		integer, dimension(:), allocatable		:: ivTimeIndex
+		integer, dimension(:), allocatable		:: ivNumData
+		real(8), dimension(:,:), allocatable	:: rmVel
+		real(8), dimension(:), allocatable		:: rvT
+		real(8), dimension(:,:,:), allocatable	:: raCovVel
+		real(8), dimension(:,:), allocatable	:: rmCovT
+		real(8), dimension(:), allocatable		:: rvVarT
+		real(8), dimension(:), allocatable		:: rvTheta
+		real(8), dimension(:), allocatable		:: rvPhi
+		real(8), dimension(:), allocatable		:: rvPsi
+		real(8), dimension(:,:), allocatable	:: rmRotVel
+		real(8), dimension(:,:,:), allocatable	:: raRotCovVel
+		real(8), dimension(:,:), allocatable	:: rmRotCovT
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
