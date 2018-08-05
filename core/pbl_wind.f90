@@ -129,10 +129,10 @@ module pbl_wind
 		integer, dimension(:), allocatable, private		:: ivNumData		! Number of (valid) data having contributed to the "averages"
 		! Input section (data entering here through SonicData % averages(...) member function
 		real, dimension(:,:), allocatable, private		:: rmVel			! Time series of mean velocities (m/s)
-		real, dimension(:), allocatable, private		:: rvT				! Time series of mean temperatures (°C)
+		real(8), dimension(:), allocatable, private		:: rvT				! Time series of mean temperatures (°C)
 		real, dimension(:,:,:), allocatable, private	:: raCovVel			! Time series of momentum covariances (m2/s2)
 		real, dimension(:,:), allocatable, private		:: rmCovT			! Time series of covariances between velocities and temperature (m°C/s)
-		real, dimension(:), allocatable, private		:: rvVarT			! Time series of temperature variances (°C2)
+		real(8), dimension(:), allocatable, private		:: rvVarT			! Time series of temperature variances (°C2)
 		! Output section (data entering here through EddyCovData % process(...) member function
 		! 1) Basic, rotated
 		real, dimension(:), allocatable, private		:: rvTheta			! Time series of first rotation angles (°)
@@ -1608,10 +1608,10 @@ contains
 		! -1- Phase one: Accumulate
 		tEc % ivNumData = 0
 		tEc % rmVel     = 0.
-		tEc % rvT       = 0.
+		tEc % rvT       = 0.d0
 		tEc % raCovVel  = 0.
 		tEc % rmCovT    = 0.
-		tEc % rvVarT    = 0.
+		tEc % rvVarT    = 0.d0
 		tEc % isPrimed  = .true.
 		do i = 1, size(ivTimeIndex)
 			if(ivTimeIndex(i) > 0) then
@@ -1629,12 +1629,12 @@ contains
 					tEc % rmVel(iIndex, 1)       = tEc % rmVel(iIndex, 1)       + this % rvU(i)
 					tEc % rmVel(iIndex, 2)       = tEc % rmVel(iIndex, 2)       + this % rvV(i)
 					tEc % rmVel(iIndex, 3)       = tEc % rmVel(iIndex, 3)       + this % rvW(i)
-					tEc % rvT(iIndex)            = tEc % rvT(iIndex)            + this % rvT(i)
+					tEc % rvT(iIndex)            = tEc % rvT(iIndex)            + real(this % rvT(i), kind=8)
 					! Update second order accumulators
 					tEc % raCovVel(iIndex, 1, 1) = tEc % raCovVel(iIndex, 1, 1) + this % rvU(i) ** 2
 					tEc % raCovVel(iIndex, 2, 2) = tEc % raCovVel(iIndex, 2, 2) + this % rvV(i) ** 2
 					tEc % raCovVel(iIndex, 3, 3) = tEc % raCovVel(iIndex, 3, 3) + this % rvW(i) ** 2
-					tEc % rvVarT(iIndex)         = tEc % rvVarT(iIndex)         + this % rvT(i) ** 2
+					tEc % rvVarT(iIndex)         = tEc % rvVarT(iIndex)         + real(this % rvT(i), kind=8) ** 2
 					tEc % raCovVel(iIndex, 1, 2) = tEc % raCovVel(iIndex, 1, 2) + this % rvU(i) * this % rvV(i)
 					tEc % raCovVel(iIndex, 1, 3) = tEc % raCovVel(iIndex, 1, 3) + this % rvU(i) * this % rvW(i)
 					tEc % raCovVel(iIndex, 2, 3) = tEc % raCovVel(iIndex, 2, 3) + this % rvV(i) * this % rvW(i)
@@ -1664,9 +1664,9 @@ contains
 				tEc % rmCovT(i,3)     = tEc % rmCovT(i,3) / tEc % ivNumData(i) - tEc % rmVel(i, 3) * tEc % rvT(i)
 			else
 				tEc % rmVel(i,:)      = NaN
-				tEc % rvT(i)          = NaN
+				tEc % rvT(i)          = NaN_8
 				tEc % raCovVel(i,:,:) = NaN
-				tEc % rvVarT(i)       = NaN
+				tEc % rvVarT(i)       = NaN_8
 				tEc % rmCovT(i,:)     = NaN
 			end if
 		end do
@@ -2016,10 +2016,10 @@ contains
 		this % rvTimeStamp = NaN_8
 		this % ivNumData   = 0
 		this % rmVel       = NaN
-		this % rvT         = NaN
+		this % rvT         = NaN_8
 		this % raCovVel    = NaN
 		this % rmCovT      = NaN
-		this % rvVarT      = NaN
+		this % rvVarT      = NaN_8
 		
 		! Initialize all outputs to make any gaps evident in future
 		this % rvTheta     = NaN
