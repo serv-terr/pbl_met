@@ -1759,6 +1759,36 @@ contains
 		print *, "Return code: ", iRetCode, "  (expected: non-zero)"
 		print *
 		
+		! Test 30: Check effects of detrending on real data
+		print *, "Test 30: Effect of detrending on real data"
+		iRetCode = tSonic % readSonicLib(10, "20130308.12.csv", OS_UNIX)
+		print *, "Return code: ", iRetCode, " (expected: 0)"
+		print *, "Size:        ", tSonic % size(), " (expected: > 0)"
+		print *, "Valid:       ", tSonic % valid(), " (expected: > 0)"
+		print *
+		print *, "No detrending"
+		iRetCode = tSonic % averages( &
+			3600, &
+			tEc &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		iRetCode = tEc % dump()
+		print *
+		print *, "Detrending"
+		iRetCode = tSonic % removeTrend( &
+			1800, &
+			tTrend &
+		)
+		iRetCode = tSonic % averages( &
+			3600, &
+			tEc &
+		)
+		print *, "Return code = ", iRetCode, "  (expected: 0)"
+		iRetCode = tEc % dump()
+		print *
+		print *, "Changes expected in covariances from 'without' to 'with'; no change in averages"
+		print *
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
