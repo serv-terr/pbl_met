@@ -17,44 +17,44 @@ program sonicpro
 	implicit none
 	
 	! Locals
-	character(len=256)					:: sDataPath
-	character(len=256)					:: sFileName
-	character(len=256)					:: sOutputFile
-	character(len=19)					:: sFirstDateTime
-	character(len=19)					:: sLastDateTime
-	character(len=16)					:: sBuffer
-	integer								:: iRetCode
-	integer								:: iNumHours
-	type(DateTime)						:: tFrom
-	type(DateTime)						:: tTo
-	type(DateTime)						:: tCurTime
-	type(Usa1DataDir)					:: tDir
-	type(SonicData)						:: tSonic
-	type(EddyCovData)					:: tEc
-	real(8)								:: rFrom
-	real(8)								:: rTo
-	real(8)								:: rHold
-	integer								:: iMode
-	integer								:: i
-	integer								:: iAvgTime
-	character(len=23)					:: sDateTime
-	integer, dimension(:), allocatable	:: ivNumData
-	real(8), dimension(:), allocatable	:: rvTimeStamp
-	real, dimension(:), allocatable		:: rvTheta
-	real, dimension(:), allocatable		:: rvPhi
-	real, dimension(:), allocatable		:: rvPsi
-	real, dimension(:), allocatable		:: rvT
-	real, dimension(:), allocatable		:: rvVarT
-	real, dimension(:,:), allocatable	:: rmNrotVel
-	real, dimension(:,:), allocatable	:: rmVel
-	real, dimension(:,:,:), allocatable	:: raCovVel
-	real, dimension(:,:,:), allocatable	:: raNrotCovVel
-	real, dimension(:,:), allocatable	:: rmCovT
-	real, dimension(:,:), allocatable	:: rmNrotCovT
-	real, dimension(3)					:: cartesian
-	real, dimension(3)					:: polar
-	real, dimension(:), allocatable		:: rvUstar
-	real, dimension(:), allocatable		:: rvH0
+	character(len=256)						:: sDataPath
+	character(len=256)						:: sFileName
+	character(len=256)						:: sOutputFile
+	character(len=19)						:: sFirstDateTime
+	character(len=19)						:: sLastDateTime
+	character(len=16)						:: sBuffer
+	integer									:: iRetCode
+	integer									:: iNumHours
+	type(DateTime)							:: tFrom
+	type(DateTime)							:: tTo
+	type(DateTime)							:: tCurTime
+	type(Usa1DataDir)						:: tDir
+	type(SonicData)							:: tSonic
+	type(EddyCovData)						:: tEc
+	real(8)									:: rFrom
+	real(8)									:: rTo
+	real(8)									:: rHold
+	integer									:: iMode
+	integer									:: i
+	integer									:: iAvgTime
+	character(len=23)						:: sDateTime
+	integer, dimension(:), allocatable		:: ivNumData
+	real(8), dimension(:), allocatable		:: rvTimeStamp
+	real(8), dimension(:), allocatable		:: rvTheta
+	real(8), dimension(:), allocatable		:: rvPhi
+	real(8), dimension(:), allocatable		:: rvPsi
+	real(8), dimension(:), allocatable		:: rvT
+	real(8), dimension(:), allocatable		:: rvVarT
+	real(8), dimension(:,:), allocatable	:: rmNrotVel
+	real(8), dimension(:,:), allocatable	:: rmVel
+	real(8), dimension(:,:,:), allocatable	:: raCovVel
+	real(8), dimension(:,:,:), allocatable	:: raNrotCovVel
+	real(8), dimension(:,:), allocatable	:: rmCovT
+	real(8), dimension(:,:), allocatable	:: rmNrotCovT
+	real, dimension(3)						:: cartesian
+	real, dimension(3)						:: polar
+	real(8), dimension(:), allocatable		:: rvUstar
+	real(8), dimension(:), allocatable		:: rvH0
 	
 	! Get parameters
 	if(command_argument_count() /= 5) then
