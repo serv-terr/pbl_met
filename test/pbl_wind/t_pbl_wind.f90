@@ -1257,6 +1257,11 @@ contains
 		real, dimension(:), allocatable		:: rvV
 		real, dimension(:), allocatable		:: rvW
 		real, dimension(:), allocatable		:: rvTemp
+		real(8), dimension(:), allocatable	:: rvOutTimeStamp
+		real, dimension(:), allocatable		:: rvOutU
+		real, dimension(:), allocatable		:: rvOutV
+		real, dimension(:), allocatable		:: rvOutW
+		real, dimension(:), allocatable		:: rvOutT
 		real(8)								:: rBaseTime
 		type(TrendData)						:: tTrend
 		
@@ -1788,6 +1793,32 @@ contains
 		print *
 		print *, "Changes expected in covariances from 'without' to 'with'; no change in averages"
 		print *
+		
+		! Test 31: De-spiking, with a monstre-spike.
+		deallocate(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		allocate(rvTimeSt(3600), rvU(3600), rvV(3600), rvW(3600), rvTemp(3600))
+		rvTimeSt = [(real(i-1, kind=8), i = 1, 3600)]
+		rvU       = 1.
+		rvV       = 1.
+		rvW       = 1.
+		rvTemp    = 22.
+		rvU(1800) = 1000.
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % treatSpikes( &
+			3600, &
+			SPK_REMOVE &
+		)
+		print *, "Test 30: Spike removal, with one large spike over a constant signal"
+		print *
+		print *, "Return code = ", iRetCode, "   (expected: 0)"
+		print *
+		print *, "Spike position:"
+		iRetCode = tSonic % getVectors(rvOutTimeStamp, rvOutU, rvOutV, rvOutW, rvOutT)
+		do i = 1, 3600
+			if(.invalid.rvOutU(i)) then
+				print *, "Spike identified at index ", i, "   (expected:1800)"
+			end if
+		end do
 		
 	end subroutine tst_SonicData
 	
