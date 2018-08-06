@@ -1839,6 +1839,25 @@ contains
 		print *, "Maximum value: ", maxval(rvOutU)
 		print *
 		
+		! Test 33: De-spiking, with a monstre-spike and non-default threshold.
+		rvU       = 1.
+		rvU(1800) = 1000.
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % treatSpikes( &
+			3600, &
+			SPK_CLIP, &
+			6.0 &
+		)
+		print *, "Test 33: Spike removal, with one large spike over a constant signal - clipping version, 6 stddev"
+		print *
+		print *, "Return code = ", iRetCode, "   (expected: 0)"
+		print *
+		print *, "Spike position:"
+		iRetCode = tSonic % getVectors(rvOutTimeStamp, rvOutU, rvOutV, rvOutW, rvOutT)
+		print *, "Position of maximum value: ", maxloc(rvOutU), "   (expected:1800)"
+		print *, "Maximum value: ", maxval(rvOutU)
+		print *
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
