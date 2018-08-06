@@ -25,6 +25,8 @@ module pbl_wind
 	public	:: WDCLASS_ZERO_BASED
 	public	:: SONIC_USONIC3
 	public	:: SONIC_USA1
+	public	:: SPK_REMOVE
+	public	:: SPK_CLIP
 	! 1. Conventions
 	public	:: PolarToCartesian2
 	public	:: PolarToCartesian3
@@ -55,6 +57,8 @@ module pbl_wind
 	integer, parameter	:: WDCLASS_ZERO_BASED       = 1
 	integer, parameter	:: SONIC_USONIC3			= 0
 	integer, parameter	:: SONIC_USA1				= 1
+	integer, parameter	:: SPK_REMOVE				= 0
+	integer, parameter	:: SPK_CLIP					= 1
 	
 	! Internal constants
 	real, parameter		:: Pi = 3.1415927
@@ -89,6 +93,7 @@ module pbl_wind
 		procedure	:: size				=> sd_Size
 		procedure	:: valid			=> sd_Valid
 		procedure	:: removeTrend		=> sd_RemoveTrend
+		procedure	:: treatSpikes		=> sd_TreatSpikes
 		procedure	:: averages			=> sd_Averages
 	end type SonicData
 	
@@ -1541,6 +1546,229 @@ contains
 		)
 		
 	end function sd_RemoveTrend
+	
+	
+	function sd_TreatSpikes(this, iAveragingTime, iMode, rNumStdDevIn) result(iRetCode)
+	
+		! Routine arguments
+		class(SonicData), intent(inout)						:: this				! Current ultrasonic anemometer data set
+		integer, intent(in)									:: iAveragingTime	! Averaging period (s, positive, proper divisor of 3600)
+		integer, intent(in)									:: iMode			! Computing mode (SPK_REMOVE invalidate spikes; SPK_CLIP clips them to the prescribed number of standard deviations from average)
+		real, intent(in), optional							:: rNumStdDevIn		! Number of standard deviations of distance to mean, beyond (below, if negative difference) past which data is considered a spike
+		integer												:: iRetCode
+		
+		! Locals
+		integer								:: iErrCode
+		real(8)								:: rNumStdDev
+		integer, dimension(:), allocatable	:: ivTimeIndex
+		real(8), dimension(:), allocatable	:: rvAggregTimeStamp
+		integer								:: i
+		integer								:: n
+		integer								:: iIndex
+		integer								:: iMaxBlock
+		integer								:: iNumBlocks
+		real(8)								:: rBaseTime
+		real(8)								:: rDelta
+		integer, dimension(:), allocatable	:: ivNumData
+		real(8), dimension(:), allocatable	:: rvSumU
+		real(8), dimension(:), allocatable	:: rvSumV
+		real(8), dimension(:), allocatable	:: rvSumW
+		real(8), dimension(:), allocatable	:: rvSumT
+		real(8), dimension(:), allocatable	:: rvSumUU
+		real(8), dimension(:), allocatable	:: rvSumVV
+		real(8), dimension(:), allocatable	:: rvSumWW
+		real(8), dimension(:), allocatable	:: rvSumTT
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something is to be done
+		if(this % valid() <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(iAveragingTime <= 0 .or. mod(3600, iAveragingTime) /= 0 .or. iMode < SPK_REMOVE .or. iMode > SPK_CLIP) then
+			iRetCode = 2
+			return
+		end if
+		iNumBlocks = 3600 / iAveragingTime
+		n = size(this % rvTimeStamp)
+		if(n <= 0) then
+			iRetCode = 3
+			return
+		end if
+		
+		! Set default value(s)
+		if(present(rNumStdDevIn)) then
+			if(rNumStdDevIn /= 0.) then
+				rNumStdDev = abs(rNumStdDevIn)
+			else
+				rNumStdDev = 3.d0
+			end if
+		else
+			rNumStdDev = 3.d0
+		end if
+		
+		! Construct time-based index, and allocate workspace based on it
+		iErrCode = timeLinearIndex(this % rvTimeStamp, iAveragingTime, ivTimeIndex, rvAggregTimeStamp)
+		if(iErrCode /= 0) then
+			iRetCode = 4
+			return
+		end if
+		iMaxBlock = maxval(ivTimeIndex)
+		if(iMaxBlock <= 0) then
+			iRetCode = 5
+			return
+		end if
+		
+		! Reserve workspace
+		allocate( &
+			ivNumData(iNumBlocks), &
+			rvSumU(iNumBlocks), rvSumV(iNumBlocks), rvSumW(iNumBlocks), rvSumT(iNumBlocks), &
+			rvSumUU(iNumBlocks), rvSumVV(iNumBlocks), rvSumWW(iNumBlocks), rvSumTT(iNumBlocks) &
+		)
+						
+		! Pre-assign time stamps
+		rBaseTime = real(floor(minval(this % rvTimeStamp, mask=.valid. this % rvTimeStamp) / iAveragingTime, kind=8) &
+						* iAveragingTime, kind=8)
+						
+		! Accumulate sums
+		ivNumData = 0
+		rvSumU    = 0.d0
+		rvSumV    = 0.d0
+		rvSumW    = 0.d0
+		rvSumT    = 0.d0
+		rvSumUU   = 0.d0
+		rvSumVV   = 0.d0
+		rvSumWW   = 0.d0
+		rvSumTT   = 0.d0
+		do i = 1, size(ivTimeIndex)
+			if(ivTimeIndex(i) > 0) then
+				iIndex = ivTimeIndex(i)
+				if( &
+					.valid. this % rvTimeStamp(i) .and. &
+					.valid. this % rvU(i) .and. &
+					.valid. this % rvV(i) .and. &
+					.valid. this % rvW(i) .and. &
+					.valid. this % rvT(i) &
+				) then
+					! Update count
+					ivNumData(iIndex) = ivNumData(iIndex) + 1
+					! Update first order accumulators
+					rvSumU(iIndex)  = rvSumU(iIndex) + this % rvU(i)
+					rvSumV(iIndex)  = rvSumV(iIndex) + this % rvV(i)
+					rvSumW(iIndex)  = rvSumW(iIndex) + this % rvW(i)
+					rvSumT(iIndex)  = rvSumT(iIndex) + this % rvT(i)
+					! Update second order accumulators
+					rvSumUU(iIndex) = rvSumUU(iIndex) + this % rvU(i) ** 2
+					rvSumVV(iIndex) = rvSumVV(iIndex) + this % rvV(i) ** 2
+					rvSumWW(iIndex) = rvSumWW(iIndex) + this % rvW(i) ** 2
+					rvSumTT(iIndex) = rvSumTT(iIndex) + this % rvT(i) ** 2
+				end if
+			end if
+		end do
+		
+		! Convert sums to mean and variance
+		do i = 1, iMaxBlock
+			if(ivNumData(i) > 0) then
+				rvSumU(i)  = rvSumU(i) / ivNumData(i)
+				rvSumV(i)  = rvSumV(i) / ivNumData(i)
+				rvSumW(i)  = rvSumW(i) / ivNumData(i)
+				rvSumT(i)  = rvSumT(i) / ivNumData(i)
+				rvSumUU(i) = sqrt(rvSumUU(i) / ivNumData(i) - rvSumU(i)**2)
+				rvSumVV(i) = sqrt(rvSumVV(i) / ivNumData(i) - rvSumV(i)**2)
+				rvSumWW(i) = sqrt(rvSumWW(i) / ivNumData(i) - rvSumW(i)**2)
+				rvSumTT(i) = sqrt(rvSumTT(i) / ivNumData(i) - rvSumT(i)**2)
+			else
+				rvSumU(i)  = NaN_8
+				rvSumV(i)  = NaN_8
+				rvSumW(i)  = NaN_8
+				rvSumT(i)  = NaN_8
+				rvSumUU(i) = NaN_8
+				rvSumVV(i) = NaN_8
+				rvSumWW(i) = NaN_8
+				rvSumTT(i) = NaN_8
+			end if
+		end do
+		
+		! Iterate over all data, and decide whether they are spikes or not;
+		! then, act accordingly
+		do i = 1, size(ivTimeIndex)
+			if(ivTimeIndex(i) > 0) then
+				iIndex = ivTimeIndex(i)
+				if( &
+					.valid. this % rvTimeStamp(i) .and. &
+					.valid. this % rvU(i) .and. &
+					.valid. this % rvV(i) .and. &
+					.valid. this % rvW(i) .and. &
+					.valid. this % rvT(i) &
+				) then
+					! Check values correspond to spikes, and act depending on the
+					! method selected
+					rDelta = (this % rvU(i) - rvSumU(iIndex)) / rvSumUU(iIndex)
+					if(rDelta > rNumStdDev) then
+						if(iMode == SPK_REMOVE) then
+							this % rvU(i) = NaN
+						elseif(iMode == SPK_CLIP) then
+							this % rvU(i) = rvSumU(iIndex) + rvSumUU(i) * rNumStdDev
+						end if
+					elseif(rDelta < -rNumStdDev) then
+						if(iMode == SPK_REMOVE) then
+							this % rvU(i) = NaN
+						elseif(iMode == SPK_CLIP) then
+							this % rvU(i) = rvSumU(iIndex) - rvSumUU(i) * rNumStdDev
+						end if
+					end if
+					if(rDelta > rNumStdDev) then
+						if(iMode == SPK_REMOVE) then
+							this % rvV(i) = NaN
+						elseif(iMode == SPK_CLIP) then
+							this % rvV(i) = rvSumV(iIndex) + rvSumVV(i) * rNumStdDev
+						end if
+					elseif(rDelta < -rNumStdDev) then
+						if(iMode == SPK_REMOVE) then
+							this % rvW(i) = NaN
+						elseif(iMode == SPK_CLIP) then
+							this % rvV(i) = rvSumV(iIndex) - rvSumVV(i) * rNumStdDev
+						end if
+					end if
+					if(rDelta > rNumStdDev) then
+						if(iMode == SPK_REMOVE) then
+							this % rvW(i) = NaN
+						elseif(iMode == SPK_CLIP) then
+							this % rvW(i) = rvSumW(iIndex) + rvSumWW(i) * rNumStdDev
+						end if
+					elseif(rDelta < -rNumStdDev) then
+						if(iMode == SPK_REMOVE) then
+							this % rvW(i) = NaN
+						elseif(iMode == SPK_CLIP) then
+							this % rvW(i) = rvSumW(iIndex) - rvSumWW(i) * rNumStdDev
+						end if
+					end if
+					if(rDelta > rNumStdDev) then
+						if(iMode == SPK_REMOVE) then
+							this % rvT(i) = NaN
+						elseif(iMode == SPK_CLIP) then
+							this % rvT(i) = rvSumT(iIndex) + rvSumTT(i) * rNumStdDev
+						end if
+					elseif(rDelta < -rNumStdDev) then
+						if(iMode == SPK_REMOVE) then
+							this % rvT(i) = NaN
+						elseif(iMode == SPK_CLIP) then
+							this % rvT(i) = rvSumT(iIndex) - rvSumTT(i) * rNumStdDev
+						end if
+					end if
+				end if
+			end if
+		end do
+		
+		! Leave
+		deallocate( &
+			ivNumData, &
+			rvSumU, rvSumV, rvSumW, rvSumT, rvSumUU, rvSumVV, rvSumWW, rvSumTT &
+		)
+		
+	end function sd_TreatSpikes
 	
 	
 	function sd_Averages(this, iAveragingTime, tEc) result(iRetCode)
