@@ -1761,52 +1761,52 @@ contains
 						if(iMode == SPK_REMOVE) then
 							this % rvU(i) = NaN
 						elseif(iMode == SPK_CLIP) then
-							this % rvU(i) = rvSumU(iIndex) + rvSumUU(i) * rNumStdDev
+							this % rvU(i) = rvSumU(iIndex) + rvSumUU(iIndex) * rNumStdDev
 						end if
 					elseif(rDelta < -rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
 							this % rvU(i) = NaN
 						elseif(iMode == SPK_CLIP) then
-							this % rvU(i) = rvSumU(iIndex) - rvSumUU(i) * rNumStdDev
+							this % rvU(i) = rvSumU(iIndex) - rvSumUU(iIndex) * rNumStdDev
 						end if
 					end if
 					if(rDelta > rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
 							this % rvV(i) = NaN
 						elseif(iMode == SPK_CLIP) then
-							this % rvV(i) = rvSumV(iIndex) + rvSumVV(i) * rNumStdDev
+							this % rvV(i) = rvSumV(iIndex) + rvSumVV(iIndex) * rNumStdDev
 						end if
 					elseif(rDelta < -rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
 							this % rvW(i) = NaN
 						elseif(iMode == SPK_CLIP) then
-							this % rvV(i) = rvSumV(iIndex) - rvSumVV(i) * rNumStdDev
+							this % rvV(i) = rvSumV(iIndex) - rvSumVV(iIndex) * rNumStdDev
 						end if
 					end if
 					if(rDelta > rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
 							this % rvW(i) = NaN
 						elseif(iMode == SPK_CLIP) then
-							this % rvW(i) = rvSumW(iIndex) + rvSumWW(i) * rNumStdDev
+							this % rvW(i) = rvSumW(iIndex) + rvSumWW(iIndex) * rNumStdDev
 						end if
 					elseif(rDelta < -rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
 							this % rvW(i) = NaN
 						elseif(iMode == SPK_CLIP) then
-							this % rvW(i) = rvSumW(iIndex) - rvSumWW(i) * rNumStdDev
+							this % rvW(i) = rvSumW(iIndex) - rvSumWW(iIndex) * rNumStdDev
 						end if
 					end if
 					if(rDelta > rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
 							this % rvT(i) = NaN
 						elseif(iMode == SPK_CLIP) then
-							this % rvT(i) = rvSumT(iIndex) + rvSumTT(i) * rNumStdDev
+							this % rvT(i) = rvSumT(iIndex) + rvSumTT(iIndex) * rNumStdDev
 						end if
 					elseif(rDelta < -rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
 							this % rvT(i) = NaN
 						elseif(iMode == SPK_CLIP) then
-							this % rvT(i) = rvSumT(iIndex) - rvSumTT(i) * rNumStdDev
+							this % rvT(i) = rvSumT(iIndex) - rvSumTT(iIndex) * rNumStdDev
 						end if
 					end if
 				end if
