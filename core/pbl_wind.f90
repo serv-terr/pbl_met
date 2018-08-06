@@ -88,6 +88,7 @@ module pbl_wind
 		real, dimension(:), allocatable, private	:: rvT
 	contains
 		procedure	:: buildFromVectors	=> sd_BuildFromVectors
+		procedure	:: getVectors       => sd_GetVectors
 		procedure	:: readSonicLib		=> sd_ReadSonicLib
 		procedure	:: readWindRecorder	=> sd_ReadWindRecorder
 		procedure	:: size				=> sd_Size
@@ -968,6 +969,56 @@ contains
 		this % isValid     = .true.
 		
 	end function sd_BuildFromVectors
+	
+	
+	function sd_GetVectors(this, rvTimeStamp, rvU, rvV, rvW, rvT) result(iRetCode)
+	
+		! Routine arguments
+		class(SonicData), intent(in)					:: this
+		real(8), dimension(:), allocatable, intent(out)	:: rvTimeStamp	! Time stamp, in Epoch new form
+		real, dimension(:), allocatable, intent(out)	:: rvU			! Eastward wind component (m/s)
+		real, dimension(:), allocatable, intent(out)	:: rvV			! Northward wind component (m/s)
+		real, dimension(:), allocatable, intent(out)	:: rvW			! Verticalward wind component (m/s)
+		real, dimension(:), allocatable, intent(out)	:: rvT			! Sonic temperature (°C)
+		integer											:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume succes (will falsify on failure)
+		iRetCode = 0
+		
+		! Get and check vector sizes
+		if(.not.allocated(this % rvTimeStamp)) then
+			iRetCode = 1
+			return
+		end if
+		n = size(this % rvTimeStamp)
+		if(n <= 0) then
+			iRetCode = 2
+			return
+		end if
+		
+		! Reserve workspace
+		if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
+		if(allocated(rvU))         deallocate(rvU)
+		if(allocated(rvV))         deallocate(rvV)
+		if(allocated(rvW))         deallocate(rvW)
+		if(allocated(rvT))         deallocate(rvT)
+		allocate(rvTimeStamp(n))
+		allocate(rvU(n))
+		allocate(rvV(n))
+		allocate(rvW(n))
+		allocate(rvT(n))
+		
+		! Assign values
+		rvTimeStamp = this % rvTimeStamp
+		rvU         = this % rvU
+		rvV         = this % rvV
+		rvW         = this % rvW
+		rvT         = this % rvT
+		
+	end function sd_GetVectors
 	
 	
 	function sd_ReadSonicLib(this, iLUN, sFileName, iOS) result(iRetCode)
