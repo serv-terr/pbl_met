@@ -1808,7 +1808,7 @@ contains
 			3600, &
 			SPK_REMOVE &
 		)
-		print *, "Test 30: Spike removal, with one large spike over a constant signal"
+		print *, "Test 31: Spike removal, with one large spike over a constant signal - removal version"
 		print *
 		print *, "Return code = ", iRetCode, "   (expected: 0)"
 		print *
@@ -1819,6 +1819,25 @@ contains
 				print *, "Spike identified at index ", i, "   (expected:1800)"
 			end if
 		end do
+		print *
+		
+		! Test 32: De-spiking, with a monstre-spike.
+		rvU       = 1.
+		rvU(1800) = 1000.
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % treatSpikes( &
+			3600, &
+			SPK_CLIP &
+		)
+		print *, "Test 32: Spike removal, with one large spike over a constant signal - clipping version"
+		print *
+		print *, "Return code = ", iRetCode, "   (expected: 0)"
+		print *
+		print *, "Spike position:"
+		iRetCode = tSonic % getVectors(rvOutTimeStamp, rvOutU, rvOutV, rvOutW, rvOutT)
+		print *, "Position of maximum value: ", maxloc(rvOutU), "   (expected:1800)"
+		print *, "Maximum value: ", maxval(rvOutU)
+		print *
 		
 	end subroutine tst_SonicData
 	
