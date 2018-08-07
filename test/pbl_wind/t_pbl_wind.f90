@@ -1937,6 +1937,18 @@ contains
 		end do
 		print *
 		
+		! Test 38: De-spiking, with zero-length vectors
+		deallocate(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		allocate(rvTimeSt(0), rvU(0), rvV(0), rvW(0), rvTemp(0))
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % treatSpikes( &
+			3600, &
+			SPK_REMOVE &
+		)
+		print *, "Test 38: Spike removal, with one large spike over a constant signal - removal version"
+		print *
+		print *, "Return code = ", iRetCode, "   (expected: nonzero)"
+		print *
 		
 	end subroutine tst_SonicData
 	
