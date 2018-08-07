@@ -47,6 +47,7 @@ module pbl_wind
 	! 4. Data types
 	public	:: SonicData
 	public	:: TrendData
+	public	:: SpikeCounts
 	public	:: EddyCovData
 	
 	! Public constants
@@ -124,6 +125,16 @@ module pbl_wind
 		procedure	:: clean			=> td_Clean
 		procedure	:: reserve			=> td_Allocate
 	end type TrendData
+	
+	type SpikeCounts
+		integer, dimension(:), allocatable		:: ivNumSpikesU
+		integer, dimension(:), allocatable		:: ivNumSpikesV
+		integer, dimension(:), allocatable		:: ivNumSpikesW
+		integer, dimension(:), allocatable		:: ivNumSpikesT
+	contains
+		procedure	:: clean			=> sc_Clean
+		procedure	:: reserve			=> sc_Allocate
+	end type SpikeCounts
 	
 	type EddyCovData
 		! Status section
@@ -1599,13 +1610,14 @@ contains
 	end function sd_RemoveTrend
 	
 	
-	function sd_TreatSpikes(this, iAveragingTime, iMode, rNumStdDevIn) result(iRetCode)
+	function sd_TreatSpikes(this, iAveragingTime, iMode, rNumStdDevIn, tSpikeCounts) result(iRetCode)
 	
 		! Routine arguments
 		class(SonicData), intent(inout)						:: this				! Current ultrasonic anemometer data set
 		integer, intent(in)									:: iAveragingTime	! Averaging period (s, positive, proper divisor of 3600)
 		integer, intent(in)									:: iMode			! Computing mode (SPK_REMOVE invalidate spikes; SPK_CLIP clips them to the prescribed number of standard deviations from average)
 		real, intent(in), optional							:: rNumStdDevIn		! Number of standard deviations of distance to mean, beyond (below, if negative difference) past which data is considered a spike
+		type(SpikeCounts), intent(out), optional			:: tSpikeCounts		! Counts of spikes
 		integer												:: iRetCode
 		
 		! Locals
@@ -1678,6 +1690,19 @@ contains
 			rvSumU(iNumBlocks), rvSumV(iNumBlocks), rvSumW(iNumBlocks), rvSumT(iNumBlocks), &
 			rvSumUU(iNumBlocks), rvSumVV(iNumBlocks), rvSumWW(iNumBlocks), rvSumTT(iNumBlocks) &
 		)
+		if(present(tSpikeCounts)) then
+			iErrCode = tSpikeCounts % clean()
+			if(iErrCode /= 0) then
+				iRetCode = 6
+				return
+			end if
+			iErrCode = tSpikeCounts % reserve(iNumBlocks)
+			if(iErrCode /= 0) then
+				iErrCode = tSpikeCounts % clean()
+				iRetCode = 7
+				return
+			end if
+		end if
 						
 		! Pre-assign time stamps
 		rBaseTime = real(floor(minval(this % rvTimeStamp, mask=.valid. this % rvTimeStamp) / iAveragingTime, kind=8) &
@@ -1763,12 +1788,14 @@ contains
 						elseif(iMode == SPK_CLIP) then
 							this % rvU(i) = rvSumU(iIndex) + rvSumUU(iIndex) * rNumStdDev
 						end if
+						if(present(tSpikeCounts)) tSpikeCounts % ivNumSpikesU(iIndex) = tSpikeCounts % ivNumSpikesU(iIndex) + 1
 					elseif(rDelta < -rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
 							this % rvU(i) = NaN
 						elseif(iMode == SPK_CLIP) then
 							this % rvU(i) = rvSumU(iIndex) - rvSumUU(iIndex) * rNumStdDev
 						end if
+						if(present(tSpikeCounts)) tSpikeCounts % ivNumSpikesU(iIndex) = tSpikeCounts % ivNumSpikesU(iIndex) + 1
 					end if
 					if(rDelta > rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
@@ -1776,12 +1803,14 @@ contains
 						elseif(iMode == SPK_CLIP) then
 							this % rvV(i) = rvSumV(iIndex) + rvSumVV(iIndex) * rNumStdDev
 						end if
+						if(present(tSpikeCounts)) tSpikeCounts % ivNumSpikesV(iIndex) = tSpikeCounts % ivNumSpikesV(iIndex) + 1
 					elseif(rDelta < -rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
 							this % rvW(i) = NaN
 						elseif(iMode == SPK_CLIP) then
 							this % rvV(i) = rvSumV(iIndex) - rvSumVV(iIndex) * rNumStdDev
 						end if
+						if(present(tSpikeCounts)) tSpikeCounts % ivNumSpikesV(iIndex) = tSpikeCounts % ivNumSpikesV(iIndex) + 1
 					end if
 					if(rDelta > rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
@@ -1789,12 +1818,14 @@ contains
 						elseif(iMode == SPK_CLIP) then
 							this % rvW(i) = rvSumW(iIndex) + rvSumWW(iIndex) * rNumStdDev
 						end if
+						if(present(tSpikeCounts)) tSpikeCounts % ivNumSpikesW(iIndex) = tSpikeCounts % ivNumSpikesW(iIndex) + 1
 					elseif(rDelta < -rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
 							this % rvW(i) = NaN
 						elseif(iMode == SPK_CLIP) then
 							this % rvW(i) = rvSumW(iIndex) - rvSumWW(iIndex) * rNumStdDev
 						end if
+						if(present(tSpikeCounts)) tSpikeCounts % ivNumSpikesW(iIndex) = tSpikeCounts % ivNumSpikesW(iIndex) + 1
 					end if
 					if(rDelta > rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
@@ -1802,12 +1833,14 @@ contains
 						elseif(iMode == SPK_CLIP) then
 							this % rvT(i) = rvSumT(iIndex) + rvSumTT(iIndex) * rNumStdDev
 						end if
+						if(present(tSpikeCounts)) tSpikeCounts % ivNumSpikesT(iIndex) = tSpikeCounts % ivNumSpikesT(iIndex) + 1
 					elseif(rDelta < -rNumStdDev) then
 						if(iMode == SPK_REMOVE) then
 							this % rvT(i) = NaN
 						elseif(iMode == SPK_CLIP) then
 							this % rvT(i) = rvSumT(iIndex) - rvSumTT(iIndex) * rNumStdDev
 						end if
+						if(present(tSpikeCounts)) tSpikeCounts % ivNumSpikesT(iIndex) = tSpikeCounts % ivNumSpikesT(iIndex) + 1
 					end if
 				end if
 			end if
@@ -2037,6 +2070,55 @@ contains
 		allocate(this % rvS2betaT(iNumData))
 		
 	end function td_Allocate
+	
+	
+	function sc_Clean(this) result(iRetCode)
+	
+		! Routine arguments
+		class(SpikeCounts), intent(inout)	:: this
+		integer								:: iRetCode
+		
+		! Locals
+		! --none--
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Remove any allocated vector
+		if(allocated(this % ivNumSpikesU))  deallocate(this % ivNumSpikesU)
+		if(allocated(this % ivNumSpikesV))  deallocate(this % ivNumSpikesV)
+		if(allocated(this % ivNumSpikesW))  deallocate(this % ivNumSpikesW)
+		if(allocated(this % ivNumSpikesT))  deallocate(this % ivNumSpikesT)
+		
+	end function sc_Clean
+	
+	
+	function sc_Allocate(this, iNumData) result(iRetCode)
+	
+		! Routine arguments
+		class(SpikeCounts), intent(inout)	:: this
+		integer, intent(in)					:: iNumData
+		integer								:: iRetCode
+		
+		! Locals
+		! --none--
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Remove any allocated vector
+		allocate(this % ivNumSpikesU(iNumData))
+		allocate(this % ivNumSpikesV(iNumData))
+		allocate(this % ivNumSpikesW(iNumData))
+		allocate(this % ivNumSpikesT(iNumData))
+		
+		! Initialize to zero
+		this % ivNumSpikesU = 0
+		this % ivNumSpikesV = 0
+		this % ivNumSpikesW = 0
+		this % ivNumSpikesT = 0
+		
+	end function sc_Allocate
 	
 	
 	function ec_Clean(this) result(iRetCode)
