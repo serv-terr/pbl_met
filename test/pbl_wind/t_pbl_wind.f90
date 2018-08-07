@@ -1892,6 +1892,25 @@ contains
 		print *, "Return code = ", iRetCode, "   (expected: nonzero)"
 		print *
 		
+		! Test 36: De-spiking, with a monstre-spike and non-default threshold, in presence of invalids.
+		rvU       = NaN
+		rvU(1800) = 1000.
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % treatSpikes( &
+			3600, &
+			SPK_CLIP &
+		)
+		print *, "Test 35: Spike removal, with all invalids but one - clipping version"
+		print *
+		print *, "Return code = ", iRetCode, "   (expected: 0)"
+		print *
+		print *, "Data position:"
+		iRetCode = tSonic % getVectors(rvOutTimeStamp, rvOutU, rvOutV, rvOutW, rvOutT)
+		print *, "Position of maximum value: ", maxloc(rvOutU), "   (expected:1800)"
+		print *, "Maximum value: ", maxval(rvOutU)
+		print *, "Note: No spike can actually be found with one data only, as deviation from s.d. is zero."
+		print *
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
