@@ -1900,7 +1900,7 @@ contains
 			3600, &
 			SPK_CLIP &
 		)
-		print *, "Test 35: Spike removal, with all invalids but one - clipping version"
+		print *, "Test 36: Spike removal, with all invalids but one - clipping version"
 		print *
 		print *, "Return code = ", iRetCode, "   (expected: 0)"
 		print *
@@ -1910,6 +1910,33 @@ contains
 		print *, "Maximum value: ", maxval(rvOutU)
 		print *, "Note: No spike can actually be found with one data only, as deviation from s.d. is zero."
 		print *
+		
+		! Test 37: Spike removal, with positive and negative spikes
+		rvTimeSt = [(real(i-1, kind=8), i = 1, 3600)]
+		rvU       = 1.
+		rvV       = 1.
+		rvW       = 1.
+		rvTemp    = 22.
+		rvU(1200) =  1000.
+		rvU(2400) = -1000.
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % treatSpikes( &
+			3600, &
+			SPK_REMOVE &
+		)
+		print *, "Test 37: Spike removal, with two opposite sign large spikes over a constant signal"
+		print *
+		print *, "Return code = ", iRetCode, "   (expected: 0)"
+		print *
+		print *, "Spike position:"
+		iRetCode = tSonic % getVectors(rvOutTimeStamp, rvOutU, rvOutV, rvOutW, rvOutT)
+		do i = 1, 3600
+			if(.invalid.rvOutU(i)) then
+				print *, "Spike identified at index ", i, "   (expected:1200 for +, 2400 for -)"
+			end if
+		end do
+		print *
+		
 		
 	end subroutine tst_SonicData
 	
