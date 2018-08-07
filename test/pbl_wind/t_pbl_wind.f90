@@ -1922,7 +1922,7 @@ contains
 		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
 		iRetCode = tSonic % treatSpikes( &
 			3600, &
-			SPK_REMOVE &
+			SPK_CLIP &
 		)
 		print *, "Test 37: Spike removal, with two opposite sign large spikes over a constant signal"
 		print *
@@ -1931,8 +1931,8 @@ contains
 		print *, "Spike position:"
 		iRetCode = tSonic % getVectors(rvOutTimeStamp, rvOutU, rvOutV, rvOutW, rvOutT)
 		do i = 1, 3600
-			if(.invalid.rvOutU(i)) then
-				print *, "Spike identified at index ", i, "   (expected:1200 for +, 2400 for -)"
+			if(rvOutU(i) /= rvU(i)) then
+				print *, "Spike identified at index ", i, " with value ", rvOutU(i), "   (expected:1200 for +, 2400 for -)"
 			end if
 		end do
 		print *
