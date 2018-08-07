@@ -1858,6 +1858,40 @@ contains
 		print *, "Maximum value: ", maxval(rvOutU)
 		print *
 		
+		! Test 34: De-spiking, with a monstre-spike and non-default threshold, in presence of invalids.
+		rvU       = 1.
+		rvU(1800) = 1000.
+		rvU(1) = NaN
+		rvU(3600) = NaN
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % treatSpikes( &
+			3600, &
+			SPK_CLIP, &
+			6.0 &
+		)
+		print *, "Test 34: Spike removal, with one spike over a constant signal - clipping version, 6 stddev, 2 NaNs"
+		print *
+		print *, "Return code = ", iRetCode, "   (expected: 0)"
+		print *
+		print *, "Spike position:"
+		iRetCode = tSonic % getVectors(rvOutTimeStamp, rvOutU, rvOutV, rvOutW, rvOutT)
+		print *, "Position of maximum value: ", maxloc(rvOutU), "   (expected:1800)"
+		print *, "Maximum value: ", maxval(rvOutU)
+		print *
+		
+		! Test 35: De-spiking, with all invalids.
+		rvU       = NaN
+		iRetCode = tSonic % buildFromVectors(rvTimeSt, rvU, rvV, rvW, rvTemp)
+		iRetCode = tSonic % treatSpikes( &
+			3600, &
+			SPK_CLIP, &
+			6.0 &
+		)
+		print *, "Test 35: Spike removal, with all NaNs"
+		print *
+		print *, "Return code = ", iRetCode, "   (expected: nonzero)"
+		print *
+		
 	end subroutine tst_SonicData
 	
 end program t_pbl_wind
