@@ -48,6 +48,7 @@ program sonicpro
 	real(8), dimension(:,:), allocatable	:: rmNrotVel
 	real(8), dimension(:,:), allocatable	:: rmVel
 	real(8), dimension(:,:,:), allocatable	:: raCovVel
+	real(8), dimension(:,:,:), allocatable	:: raCovWind
 	real(8), dimension(:,:,:), allocatable	:: raNrotCovVel
 	real(8), dimension(:,:), allocatable	:: rmCovT
 	real(8), dimension(:,:), allocatable	:: rmNrotCovT
@@ -138,7 +139,7 @@ program sonicpro
 		print *, "Error accessing output file in write mode"
 		stop
 	end if
-	write(10,"('date, dir, vel, temp, theta, phi, w.nrot, uu, uv, uw, vv, vw, ww, ut, vt, wt, u.star, H0')")
+	write(10,"('date, dir, vel, temp, theta, phi, w.nrot, uu, uv, uw, vv, vw, ww, ut, vt, wt, u.star, H0, Corr.UW')")
 	do while(iMode /= DE_ERR)
 	
 		! Process file
@@ -208,6 +209,9 @@ program sonicpro
 			cycle
 		end if
 		
+		! Compute wind correlation coefficients
+		iRetCode = WindCorrelation(tEc, raCovWind)
+		
 		! Write data
 		do i = 1, size(rvTimeStamp)
 		
@@ -217,7 +221,7 @@ program sonicpro
 			cartesian = rmNrotVel(i,:)
 			polar = CartesianToPolar3(cartesian, WCONV_PROVENANCE_TO_FLOW)
 			
-			write(10,"(a,',', f5.1, 5(',', f6.2), 10(',', f7.4),',',f7.2)") &
+			write(10,"(a,',', f5.1, 5(',', f6.2), 10(',', f7.4),',',f7.2,',',f7.4)") &
 				sDateTime, &
 				polar(2), &
 				polar(1), &
@@ -227,7 +231,7 @@ program sonicpro
 				raCovVel(i,1,1), raCovVel(i,1,2), raCovVel(i,1,3), &
 				raCovVel(i,2,2), raCovVel(i,2,3), raCovVel(i,3,3), &
 				rmCovT(i,1), rmCovT(i,2), rmCovT(i,3), &
-				rvUstar(i), rvH0(i)
+				rvUstar(i), rvH0(i), raCovWind(i,1,3)
 			
 		end do
 		
