@@ -169,7 +169,8 @@ module pbl_wind
 		procedure	:: getNumValidInput	=> ec_getNumValidInput		! Count number of valid data in an EddyCovData object
 		procedure	:: getInputData		=> ec_getInputData			! Get a copy of input vectors
 		procedure	:: getOutputData	=> ec_getOutputData			! Get a copy of output vectors
-		procedure	:: getRotCovVel		=> ec_GetRotCovVel			! Get values from rotated velocity covariances
+		procedure	:: getRotCovVel		=> ec_GetRotCovVel			! Get values from rotated velocity covariances (only those at row i, column j)
+		procedure	:: getRotCovWind	=> ec_GetRotCovWind			! Get values from rotated velocity covariances (all)
 		procedure	:: getRotCovT		=> ec_GetRotCovT			! Get values from rotated velocity-temperature covariances
 		procedure	:: getTemp			=> ec_GetTemp				! Get values from temperature vector
 		procedure	:: createEmpty		=> ec_CreateEmpty			! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
@@ -2696,6 +2697,35 @@ contains
 		rvValue = this % raRotCovVel(:,j,k)
 		
 	end function ec_GetRotCovVel
+
+	
+	function ec_GetRotCovWind(this, raCov) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)						:: this
+		real(8), dimension(:,:,:), allocatable, intent(out)	:: raCov
+		integer												:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isFilled) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Reserve workspace
+		if(allocated(raCov)) deallocate(raCov)
+		allocate(raCov(size(this % rvTimeStamp),3,3))
+		
+		! Get the value desired
+		raCov = this % raRotCovVel
+		
+	end function ec_GetRotCovWind
 
 	
 	function ec_GetRotCovT(this, j, rvValue) result(iRetCode)
