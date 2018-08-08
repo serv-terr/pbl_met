@@ -22,6 +22,7 @@ module pbl_simil
     ! 1.Turbulence
     public	:: FrictionVelocity
     public	:: SensibleHeatFlux
+    public	:: WindCorrelation
     ! 2.Stability
     
     ! Constants (please do not change)
@@ -140,5 +141,49 @@ contains
 		end do
 		
 	end function SensibleHeatFlux
+    
+
+	function WindCorrelation(tEc, raWindCorr) result(iRetCode)
+	
+		! Routine arguments
+		type(EddyCovData), intent(in)						:: tEc
+		real(8), dimension(:,:,:), allocatable, intent(out)	:: raWindCorr
+		integer												:: iRetCode
+		
+		! Locals
+		integer								:: iErrCode
+		integer								:: iModeIn
+		integer								:: i
+		integer								:: j
+		integer								:: k
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. tEc % isFull()) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Reserve workspace
+		iErrCode = tEc % getRotCovWind(raWindCorr)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			return
+		end if
+		
+		! Compute the three correlation coefficients, and leave variances unscaled
+		! (so transform is reversible)
+		do i = 1, size(raWindCorr, dim=1)
+			do j = 1, 2
+				do k = j+1, 3
+					raWindCorr(i,j,k) = raWindCorr(i,j,k) / sqrt(raWindCorr(i,j,j)*raWindCorr(i,k,k))
+					raWindCorr(i,k,j) = raWindCorr(i,j,k)
+				end do
+			end do
+		end do
+		
+	end function WindCorrelation
     
 end module pbl_simil
