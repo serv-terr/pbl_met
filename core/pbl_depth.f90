@@ -97,5 +97,69 @@ contains
 		F    = h0/(rc*gg*F)
 
 	end function GryningBatchvarovaStep
+	
+
+	function StableZi(Lat, Temp, H0, Ustar, L, N) result(Zi)
+
+		! Routine arguments
+		real, intent(in)	:: Lat		! Latitude (degrees)
+		real, intent(in)	:: Temp		! Air temperature (°C)
+		real, intent(in)	:: H0		! Turbulent sensible heat flux (W/m2)
+		real, intent(in)	:: Ustar	! Friction velocity (m/s)
+		real, intent(in)	:: L		! Obukhov length (m)
+		real, intent(in)	:: N		! Brunt-Vaisala frequency (Hz)
+		real				:: Zi
+
+		! Locals
+		real(8)				:: rLat
+		real(8)				:: f
+		real(8)				:: Ta
+		real(8)				:: a
+		real(8)				:: b1
+		real(8)				:: b2
+		real(8)				:: b3
+		real(8)				:: b
+		real(8)				:: wt
+		real(8)				:: rc
+
+		! Constants
+		real(8), parameter	:: g = 9.807d0
+
+		! Check something is to be done
+		if(L < 1.e-5 .or. Ustar < 1.e-5 .or. Temp < -40.0) then
+			Zi = 1330.0 * Ustar		! Degrade to purely mechanical rough estimate
+			return
+		end if
+		! From now on, stability is guaranteed
+
+		! Compute Coriolis parameter
+		rLat = Lat * 3.14159265358979d0 / 180.d0
+		f    = 2.d0*7.29d-5*SIN(rLat)
+
+		! Compute temperature in K
+		Ta = Temp + 273.15d0
+
+		! Compute w't'
+		rc = 1305.d0 * 273.16d0/Ta
+		wt = H0 / rc
+
+		! Compute Zilitinkevich non-advective function parts
+		a  = (f/(0.5d0*Ustar))**2
+		b1 = 0.1d0 / L
+		b2 = N / (26.d0*Ustar)
+		b3 = SQRT(ABS(g*f*wt/Ta)) / (1.7d0*Ustar)
+		b  = b1 + b2 + b3
+
+		! Compute stable estimate of mixing height
+		Zi = (SQRT(4.d0*a + b**2) - b)/(2.d0*a)
+
+		! Accept only if >= than purely mechanical approx
+		if(Zi > 2.0*1330.0*Ustar .or. Zi < 0.5*1330.0*Ustar) then
+			Zi = 1330.0*Ustar
+		else
+			Zi = MAX(Zi, 1330.0*Ustar)
+		end if
+
+	end function StableZi
     
 end module pbl_depth
