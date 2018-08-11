@@ -36,6 +36,7 @@ module pbl_time
 	public	:: SunRiseSunSet				! Old PBL_MET evaluation of sun rise and sun set times (revised)
 	! 3. Data types
 	public	:: DateTime						! Class, supporting the new REAL(8) time stamps used in Time Series
+	public	:: operator(.sensible.)			! Check a date and time is valid and in range
 	! 4. Support for time stamps as vectors
 	public	:: timeEncode					! Compute aggregation indices for a time stamp vector
 	public	:: timeLinearIndex				! Compute a linear aggregation index for a time stamp vector
@@ -63,6 +64,8 @@ module pbl_time
 		procedure	:: toEpoch		=> dtToEpoch
 		! Printers
 		procedure	:: toIso		=> dtToIso
+		! Calculators
+		procedure	:: sunRiseSet	=> dtSunRiseSet
 	end type DateTime
 	
 	! Internal constants
@@ -99,6 +102,11 @@ module pbl_time
 		module procedure	:: timeGetYearMonth1
 		module procedure	:: timeGetYearMonth2
 	end interface timeGetYearMonth
+	
+	
+	interface operator(.sensible.)
+		module procedure	:: isSensible
+	end interface operator(.sensible.)
 	
 contains
 
@@ -656,14 +664,7 @@ contains
         integer(8) :: iJulianSecond
         
         ! Check input parameters for validity
-        if( &
-            this % iYear   <= 0   .or. &
-            this % iMonth  < 1    .or. this % iMonth  >  12 .OR. &
-            this % iDay    < 1    .or. this % iDay    >  31 .OR. &
-            this % iHour   < 0    .or. this % iHour   >  23 .OR. &
-            this % iMinute < 0    .or. this % iMinute >  59 .OR. &
-            this % rSecond < 0.d0 .or. this % rSecond >= 60.d0 &
-        ) then
+        if(.not. .sensible. this) then
             rEpoch = NaN_8
             return
         end if
@@ -701,6 +702,41 @@ contains
 			iSecond, rSubSecond
 			
     end function dtToIso
+    
+    
+    function dtSunRiseSet(this, rLat, rLon, iZone, rSunRise, rSunSet) result(iRetCode)
+    
+		! Routine arguments
+		class(DateTime), intent(in)	:: this
+		real, intent(in)			:: rLat
+		real, intent(in)			:: rLon
+		integer, intent(in)			:: iZone
+		real(8), intent(out)		:: rSunRise
+		real(8), intent(out)		:: rSunSet
+		integer						:: iRetCode
+		
+		! Locals
+		real, dimension(2)	:: rvSunRiseSet
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+        ! Check input parameters for validity
+        if(.not. .sensible. this) then
+            rSunRise = NaN_8
+            rSunSet  = NaN_8
+            iRetCode = 1
+            return
+        end if
+
+		! Compute sunrise and sunset times
+		rvSunRiseSet = SunRiseSunSet(this % iYear, this % iMonth, this % iDay, rLat, rLon, iZone)
+		
+		! Dispatch results
+		rSunRise = rvSunRiseSet(1)
+		rSunSet  = rvSunRiseSet(2)
+		
+    end function dtSunRiseSet
 
 	! *********************
 	! * Internal routines *
@@ -1120,5 +1156,27 @@ contains
 		end do
 		
 	end function timeGetYearMonth2
+	
+	
+	function isSensible(tDateTime) result(lIsSensible)
+	
+		! Routine arguments
+		type(DateTime), intent(in)	:: tDateTime
+		logical						:: lIsSensible
+		
+		! Locals
+		! --none--
+		
+		! Compute the information desired
+        lIsSensible = .not.( &
+            tDateTime % iYear   <= 0   .or. &
+            tDateTime % iMonth  < 1    .or. tDateTime % iMonth  >  12 .OR. &
+            tDateTime % iDay    < 1    .or. tDateTime % iDay    >  31 .OR. &
+            tDateTime % iHour   < 0    .or. tDateTime % iHour   >  23 .OR. &
+            tDateTime % iMinute < 0    .or. tDateTime % iMinute >  59 .OR. &
+            tDateTime % rSecond < 0.d0 .or. tDateTime % rSecond >= 60.d0 &
+		)
+		
+	end function isSensible
 
 end module pbl_time
