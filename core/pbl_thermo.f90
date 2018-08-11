@@ -53,6 +53,16 @@ module pbl_thermo
 		module procedure AirPressure1
 		module procedure AirPressure2
 	end interface AirPressure
+	
+	interface AirDensity
+	    module procedure AirDensity_4
+	    module procedure AirDensity_8
+	end interface AirDensity
+
+	interface RhoCp
+	    module procedure RhoCp_4
+	    module procedure RhoCp_8
+	end interface RhoCp
 
 contains
 
@@ -656,12 +666,12 @@ contains
 	
 	! Air density given dry bulb temperature and atmospheric pressure.
 	!
-	FUNCTION AirDensity(Td, Pa) RESULT(Rho)
+	FUNCTION AirDensity_4(Td, Pa) RESULT(Rho)
 	
 		! Routine arguments
 		REAL, INTENT(IN)	:: Td	! Dry bulb temperature (K)
 		REAL, INTENT(IN)	:: Pa	! Atmospheric pressure (hPa)
-		REAL			:: Rho	! Air density (kg/m3)
+		REAL			    :: Rho	! Air density (kg/m3)
 		
 		! Locals
 		! --none--
@@ -669,13 +679,33 @@ contains
 		! Compute the information desired
 		Rho = 100.0*Pa/(287.*Td)
 		
-	END FUNCTION AirDensity
+	END FUNCTION AirDensity_4
+	
+	
+	! Air density given dry bulb temperature and atmospheric pressure.
+	!
+	! Double precision version.
+	!
+	FUNCTION AirDensity_8(Td, Pa) RESULT(Rho)
+	
+		! Routine arguments
+		REAL(8), INTENT(IN)	:: Td	! Dry bulb temperature (K)
+		REAL(8), INTENT(IN)	:: Pa	! Atmospheric pressure (hPa)
+		REAL(8) 			:: Rho	! Air density (kg/m3)
+		
+		! Locals
+		! --none--
+		
+		! Compute the information desired
+		Rho = 100.0d0*Pa/(287.d0*Td)
+		
+	END FUNCTION AirDensity_8
 	
 	
 	! Product of air density and the constant-pressure atmospheric thermal capacity,
 	! given dry bulb temperature and atmospheric pressure.
 	!
-	FUNCTION RhoCp(Td, Pa) RESULT(rRhoCp)
+	FUNCTION RhoCp_4(Td, Pa) RESULT(rRhoCp)
 	
 		! Routine arguments
 		REAL, INTENT(IN)		    :: Td		! Dry bulb temperature (K)
@@ -699,7 +729,39 @@ contains
 			rRhoCp = 1305. * 273.15/Td
 		END IF
 		
-	END FUNCTION RhoCp
+	END FUNCTION RhoCp_4
+	
+	
+	! Product of air density and the constant-pressure atmospheric thermal capacity,
+	! given dry bulb temperature and atmospheric pressure.
+	!
+	! Double precision version.
+	!
+	FUNCTION RhoCp_8(Td, Pa) RESULT(rRhoCp)
+	
+		! Routine arguments
+		REAL(8), INTENT(IN)		        :: Td		! Dry bulb temperature (K)
+		REAL(8), INTENT(IN), OPTIONAL	:: Pa		! Air pressure (hPa)
+		REAL(8) 				        :: rRhoCp	! Product of air density and
+								                    ! constant-pressure thermal
+								                    ! capacity
+		
+		! Locals
+		REAL(8)	:: Rho
+		REAL(8)	:: Cp
+		
+		! Compute the information desired
+		IF(PRESENT(Pa)) THEN
+			! Pressure is available: use complete formula
+			Rho = AirDensity_8(Td, Pa)
+			Cp  = 1005.0d0 + (Td - 250.0d0)**2/3364.0d0	! From Garratt, 1992
+			rRhoCp = Rho * Cp
+		ELSE
+			! Pressure not available on entry: use the simplified relation
+			rRhoCp = 1305.d0 * 273.15d0/Td
+		END IF
+		
+	END FUNCTION RhoCp_8
 	
 	
 	! Latent vaporization heat given temperature,
