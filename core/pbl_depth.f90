@@ -19,6 +19,7 @@ module pbl_depth
     private
     
     ! Public interface
+    public	:: EstimateZi
 
 contains
 
