@@ -11,6 +11,8 @@ module pbl_depth
     use pbl_base
     use pbl_wind
     use pbl_simil
+    use pbl_time
+    use pbl_thermo
 
     implicit none
     
@@ -20,44 +22,161 @@ module pbl_depth
 
 contains
 
+	function EstimateZi(rvTimeStamp, iZone, rLat, rLon, iDeltaTime, rvTemp, rvUstar, rvH0, rvN, rvZi) result(iRetCode)
+	
+		! Routine arguments
+		real(8), dimension(:), allocatable, intent(in)				:: rvTimeStamp
+		integer, intent(in)											:: iZone
+		real, intent(in)											:: rLat
+		real, intent(in)											:: rLon
+		integer, intent(in)											:: iDeltaTime
+		real(8), dimension(:), allocatable, intent(in)				:: rvTemp
+		real(8), dimension(:), allocatable, intent(in)				:: rvUstar
+		real(8), dimension(:), allocatable, intent(in)				:: rvH0
+		real(8), dimension(:), allocatable, intent(in), optional	:: rvN
+		real(8), dimension(:), allocatable, intent(out)				:: rvZi
+		integer														:: iRetCode
+		
+		! Locals
+		integer								:: iErrCode
+		integer								:: i
+		real, dimension(2)					:: rvSunRiseSet
+		type(DateTime)						:: tStamp
+		real(8)								:: rSunRise
+		real(8)								:: rSunSet
+		real(8)								:: rHour
+		real(8)								:: rN
+		real(8)								:: rTa
+		real(8)								:: rRc
+		real(8)								:: rZiMec
+		real(8)								:: rZiConv
+		real(8)								:: rWprimeThetaprime
+		real(8)								:: rL
+		
+		! Constants
+		real(8), parameter	:: k = 0.4d0
+		real(8), parameter	:: g = 9.81d0
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not.allocated(rvTimeStamp)) then
+			iRetCode = 1
+			return
+		end if
+		if(size(rvTimeStamp) <= 0) then
+			iRetCode = 2
+			return
+		end if
+		
+		! Reserve workspace
+		if(allocated(rvZi)) deallocate(rvZi)
+		allocate(rvZi(size(rvTimeStamp)))
+		
+		! Main loop: process mixing heights
+    	do i = 1, size(rvTimeStamp)
+    	
+    		if(.invalid.rvTimeStamp(i)) then
+    			rvZi(i) = NaN_8
+    			cycle
+    		end if
+		
+			! Get time stamp at official value (to help tracking events in data files;
+			! true time stamp at mid of averagin interval will be computed immediately after)
+			iErrCode = tStamp % fromEpoch(rvTimeStamp(i) + iDeltaTime / 2.d0)
+			if(iErrCode /= 0) then
+    			rvZi(i) = NaN_8
+    			cycle
+			end if
+			if(.not..sensible. tStamp) then
+    			rvZi(i) = NaN_8
+    			cycle
+			end if
+			
+			! Get time stamp at *mid* of averaging interval
+			rHour = tStamp % iHour + tStamp % iMinute / 60.0d0 + tStamp % rSecond / 3600.0d0
+		
+			! Get astronomical indicators
+			rvSunRiseSet = SunRiseSunSet(tStamp % iYear, tStamp % iMonth, tStamp % iDay, rLat, rLon, iZone)
+			rSunRise = rvSunRiseSet(1)
+			rSunSet  = rvSunRiseSet(2)
+			
+			! Estimate mixing height
+			rTa    = rvTemp(i) + 273.15d0
+			rRc    = RhoCp(rTa)
+			rZiMec = 1330.*rvUstar(i)
+			if(rHour > rSunRise .and. rHour < rSunSet) then
+				rZiConv = MAX(rZiConv, 0.)
+				rZiConv = ConvectiveZi(dble(iDeltaTime),rvH0(i),rvUstar(i),rTa,rRc,rZiConv)
+				rvZi(i) = max(rZiMec, rZiConv)
+			else
+				rZiConv = 0.
+				rWprimeThetaprime = rvH0(i) / rRc
+				rL = - rvUstar(i)**3 * rTa / (k*g*rWprimeThetaprime)
+				if(present(rvN)) then
+					rN = rvN(i)
+				else
+					rN = 0.12
+				end if
+				rvZi(i) = StableZi( &
+					rLat, &
+					rvTemp(i), &
+					rvH0(i), &
+					rvUstar(i), &
+					rL, &
+					rN &
+				)
+			end if
+		
+		end do
+		
+	end function EstimateZi
+
+	! *********************
+	! * Internal routines *
+	! *********************
+
 	function ConvectiveZi(dtime,H0,us,Tm,rc,hold) result(hmix)
 	
 		! Routine arguments
-		real, intent(in)		:: dtime		! Time step (s)
-		real, intent(in)		:: H0			! Turbulent sensible heat flux (W/m2)
-		real, intent(in)		:: us			! Friction velocity (m/s)
-		real, intent(in)		:: Tm			! Temperature (K)
-		real, intent(in)		:: rc			! RhoCp
-		real, intent(in)		:: hold			! Mixing height on previous time step (m)
-		real					:: hmix			! Mixing height past current time step (m)
+		real(8), intent(in)		:: dtime		! Time step (s)
+		real(8), intent(in)		:: H0			! Turbulent sensible heat flux (W/m2)
+		real(8), intent(in)		:: us			! Friction velocity (m/s)
+		real(8), intent(in)		:: Tm			! Temperature (°C)
+		real(8), intent(in)		:: rc			! RhoCp
+		real(8), intent(in)		:: hold			! Mixing height on previous time step (m)
+		real(8)					:: hmix			! Mixing height past current time step (m)
 		
 		! Locals
-		real		:: dt
-		real		:: ggmm
-		real		:: hmm
-		real		:: hk1
-		real		:: hk2
-		real		:: hk3
-		real		:: hk4
+		real(8)		:: dt
+		real(8)		:: Ta
+		real(8)		:: ggmm
+		real(8)		:: hmm
+		real(8)		:: hk1
+		real(8)		:: hk2
+		real(8)		:: hk3
+		real(8)		:: hk4
 		integer		:: i
 		
 		! Constant parameters
 		integer, parameter	:: n_step = 60
 		
 		! Initialize
-		Hmix = NaN
+		Hmix = NaN_8
 		dt   = dtime/n_step
 		if(.invalid.rc) return
+		Ta = Tm + 273.15d0
 
 		! Runge-Kutta step
-		ggmm = 0.005
+		ggmm = 0.005d0
 		hmm  = hold
 		do i=1,n_step
-			hk1  = dt * GryningBatchvarovaStep(rc,Tm,ggmm,us,H0,hmm)
-			hk2  = dt * GryningBatchvarovaStep(rc,Tm,ggmm,us,H0,hmm+hk1/2.)
-			hk3  = dt * GryningBatchvarovaStep(rc,Tm,ggmm,us,H0,hmm+hk2/2.)
-			hk4  = dt * GryningBatchvarovaStep(rc,Tm,ggmm,us,H0,hmm+hk3/2.)
-			hmm  = hmm + (hk1+2.*(hk2+hk3)+hk4)/6.
+			hk1  = dt * GryningBatchvarovaStep(rc,Ta,ggmm,us,H0,hmm)
+			hk2  = dt * GryningBatchvarovaStep(rc,Ta,ggmm,us,H0,hmm+hk1/2.d0)
+			hk3  = dt * GryningBatchvarovaStep(rc,Ta,ggmm,us,H0,hmm+hk2/2.d0)
+			hk4  = dt * GryningBatchvarovaStep(rc,Ta,ggmm,us,H0,hmm+hk3/2.d0)
+			hmm  = hmm + (hk1+2.d0*(hk2+hk3)+hk4)/6.d0
 		end do
 		Hmix = hmm
 
@@ -67,26 +186,26 @@ contains
 	function GryningBatchvarovaStep(rc,Tm,gg,us,h0,hm) result(F)
 	
 		! Routine arguments
-		real, intent(in)	:: rc
-		real, intent(in)	:: Tm
-		real, intent(in)	:: gg
-		real, intent(in)	:: us
-		real, intent(in)	:: h0
-		real, intent(in)	:: hm
-		real				:: F
+		real(8), intent(in)	:: rc
+		real(8), intent(in)	:: Tm
+		real(8), intent(in)	:: gg
+		real(8), intent(in)	:: us
+		real(8), intent(in)	:: h0
+		real(8), intent(in)	:: hm
+		real(8)				:: F
 		
 		! Locals
-		real	:: hL
-		real	:: cost
-		real	:: f1
-		real	:: f2
+		real(8)	:: hL
+		real(8)	:: cost
+		real(8)	:: f1
+		real(8)	:: f2
 		
 		! Constants
-		real, parameter	:: hk = 0.4
-		real, parameter	:: g  = 9.81
-		real, parameter	:: A  = 0.2
-		real, parameter	:: B  = 2.5
-		real, parameter	:: C  = 8.0
+		real(8), parameter	:: hk = 0.4d0
+		real(8), parameter	:: g  = 9.81d0
+		real(8), parameter	:: A  = 0.2d0
+		real(8), parameter	:: B  = 2.5d0
+		real(8), parameter	:: C  = 8.0d0
 
 		! Compute the desired quantity
 		hL   = -rc*Tm*us*us*us/(hk*g*h0)
@@ -103,12 +222,12 @@ contains
 
 		! Routine arguments
 		real, intent(in)	:: Lat		! Latitude (degrees)
-		real, intent(in)	:: Temp		! Air temperature (°C)
-		real, intent(in)	:: H0		! Turbulent sensible heat flux (W/m2)
-		real, intent(in)	:: Ustar	! Friction velocity (m/s)
-		real, intent(in)	:: L		! Obukhov length (m)
-		real, intent(in)	:: N		! Brunt-Vaisala frequency (Hz)
-		real				:: Zi
+		real(8), intent(in)	:: Temp		! Air temperature (°C)
+		real(8), intent(in)	:: H0		! Turbulent sensible heat flux (W/m2)
+		real(8), intent(in)	:: Ustar	! Friction velocity (m/s)
+		real(8), intent(in)	:: L		! Obukhov length (m)
+		real(8), intent(in)	:: N		! Brunt-Vaisala frequency (Hz)
+		real(8)				:: Zi
 
 		! Locals
 		real(8)				:: rLat
