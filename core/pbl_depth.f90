@@ -138,13 +138,13 @@ contains
 	! * Internal routines *
 	! *********************
 
-	function ConvectiveZi(dtime,H0,us,Tm,rc,hold) result(hmix)
+	function ConvectiveZi(dtime,H0,us,Temp,rc,hold) result(hmix)
 	
 		! Routine arguments
 		real(8), intent(in)		:: dtime		! Time step (s)
 		real(8), intent(in)		:: H0			! Turbulent sensible heat flux (W/m2)
 		real(8), intent(in)		:: us			! Friction velocity (m/s)
-		real(8), intent(in)		:: Tm			! Temperature (°C)
+		real(8), intent(in)		:: Temp			! Temperature (°C)
 		real(8), intent(in)		:: rc			! RhoCp
 		real(8), intent(in)		:: hold			! Mixing height on previous time step (m)
 		real(8)					:: hmix			! Mixing height past current time step (m)
@@ -167,7 +167,7 @@ contains
 		Hmix = NaN_8
 		dt   = dtime/n_step
 		if(.invalid.rc) return
-		Ta = Tm + 273.15d0
+		Ta = Temp + 273.15d0
 
 		! Runge-Kutta step
 		ggmm = 0.005d0
