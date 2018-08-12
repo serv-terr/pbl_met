@@ -27,7 +27,7 @@ program t_pbl_depth
 	! Test 1: Nominal case
 	iRetCode = Synthetize(24)
 	iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, rvZi)
-	open(10, file="Zi_Test1.csv", status="unknown", action="write")
+	open(10, file="Zi_Test1_Variant.csv", status="unknown", action="write")
 	write(10, "('Date.Time, Temp, U.star, H0, N, Zi')")
 	do i = 1, size(rvTimeStamp)
 		iRetCode = tStamp % fromEpoch(rvTimeStamp(i))
