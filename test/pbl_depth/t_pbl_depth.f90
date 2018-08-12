@@ -80,7 +80,7 @@ contains
 		! Build time stamp
 		tStamp = DateTime(2018, 3, 21, 0, 0, 0.0d0)
 		rBaseTime = tStamp % toEpoch()
-		rTimeDelta  = 24.d0 / n
+		rTimeDelta  = 24.d0*3600.0d0 / n
 		rvTimeStamp = [(rBaseTime + (i-1)*rTimeDelta, i = 1, n)]
 		
 		! Simulate daily temperature
