@@ -19,6 +19,22 @@ program t_pbl_depth
 	real(8), dimension(:), allocatable	:: rvH0
 	real(8), dimension(:), allocatable	:: rvN
 	real(8), dimension(:), allocatable	:: rvZi
+	character(len=23)					:: sISOdate
+	type(DateTime)						:: tStamp
+	integer								:: iRetCode
+	integer								:: i
+	
+	! Test 1: Nominal case
+	iRetCode = Synthetize(24)
+	iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, rvZi)
+	open(10, file="Zi_Test1.csv", status="unknown", action="write")
+	write(10, "('Date.Time, Temp, U.star, H0, N, Zi')")
+	do i = 1, size(rvTimeStamp)
+		iRetCode = tStamp % fromEpoch(rvTimeStamp(i))
+		sISOdate = tStamp % toISO()
+		write(10, "(a,5(',',f8.4))") sISOdate, rvTemp(i), rvUstar(i), rvH0(i), rvN(i), rvZi(i)
+	end do
+	close(10)
 	
 contains
 
@@ -32,6 +48,7 @@ contains
 		integer								:: iErrCode
 		type(DateTime)						:: tStamp
 		real(8)								:: rBaseTime
+		real(8)								:: rTimeDelta
 		integer								:: i
 		
 		! Locals
@@ -41,7 +58,7 @@ contains
 		iRetCode = 0
 		
 		! Check inputs
-		if(n > 1) then
+		if(n < 1) then
 			iRetCode = 1
 			return
 		end if
@@ -62,11 +79,7 @@ contains
 		
 		! Build time stamp
 		tStamp = DateTime(2018, 3, 21, 0, 0, 0.0d0)
-		iErrCode = tStamp % toEpoch(rBaseTime)
-		if(iErrCode /= 0) then
-			iRetCode = 2
-			return
-		end if
+		rBaseTime = tStamp % toEpoch()
 		rTimeDelta  = 24.d0 / n
 		rvTimeStamp = [(rBaseTime + (i-1)*rTimeDelta, i = 1, n)]
 		
