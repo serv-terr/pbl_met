@@ -23,7 +23,7 @@ module pbl_depth
 
 contains
 
-	function EstimateZi(rvTimeStamp, iZone, rLat, rLon, iDeltaTime, rvTemp, rvUstar, rvH0, rvN, rvZi) result(iRetCode)
+	function EstimateZi(rvTimeStamp, iZone, rLat, rLon, iDeltaTime, rvTemp, rvUstar, rvH0, rvN, nStep, rvZi) result(iRetCode)
 	
 		! Routine arguments
 		real(8), dimension(:), allocatable, intent(in)				:: rvTimeStamp
@@ -35,6 +35,7 @@ contains
 		real(8), dimension(:), allocatable, intent(in)				:: rvUstar
 		real(8), dimension(:), allocatable, intent(in)				:: rvH0
 		real(8), dimension(:), allocatable, intent(in), optional	:: rvN
+		integer, intent(in), optional								:: nStep
 		real(8), dimension(:), allocatable, intent(out)				:: rvZi
 		integer														:: iRetCode
 		
@@ -53,6 +54,7 @@ contains
 		real(8)								:: rZiConv
 		real(8)								:: rWprimeThetaprime
 		real(8)								:: rL
+		integer								:: n_step
 		
 		! Constants
 		real(8), parameter	:: k = 0.4d0
@@ -69,6 +71,15 @@ contains
 		if(size(rvTimeStamp) <= 0) then
 			iRetCode = 2
 			return
+		end if
+		if(present(nStep)) then
+			if(nStep <= 0) then
+				iRetCode = 3
+				return
+			end if
+			n_step = nStep
+		else
+			n_step = 60
 		end if
 		
 		! Reserve workspace
@@ -109,7 +120,7 @@ contains
 			rZiMec = 1330.*rvUstar(i)
 			if(rHour > rSunRise .and. rHour < rSunSet) then
 				rZiConv = MAX(rZiConv, 0.)
-				rZiConv = ConvectiveZi(dble(iDeltaTime),rvH0(i),rvUstar(i),rTa,rRc,rZiConv)
+				rZiConv = ConvectiveZi(dble(iDeltaTime),rvH0(i),rvUstar(i),rTa,rRc,rZiConv,n_step)
 				rvZi(i) = max(rZiMec, rZiConv)
 			else
 				rZiConv = 0.
@@ -138,16 +149,17 @@ contains
 	! * Internal routines *
 	! *********************
 
-	function ConvectiveZi(dtime,H0,us,Temp,rc,hold) result(hmix)
+	function ConvectiveZi(dtime,H0,us,Temp,rc,hold,n_step) result(hmix)
 	
 		! Routine arguments
-		real(8), intent(in)		:: dtime		! Time step (s)
-		real(8), intent(in)		:: H0			! Turbulent sensible heat flux (W/m2)
-		real(8), intent(in)		:: us			! Friction velocity (m/s)
-		real(8), intent(in)		:: Temp			! Temperature (°C)
-		real(8), intent(in)		:: rc			! RhoCp
-		real(8), intent(in)		:: hold			! Mixing height on previous time step (m)
-		real(8)					:: hmix			! Mixing height past current time step (m)
+		real(8), intent(in)				:: dtime		! Time step (s)
+		real(8), intent(in)				:: H0			! Turbulent sensible heat flux (W/m2)
+		real(8), intent(in)				:: us			! Friction velocity (m/s)
+		real(8), intent(in)				:: Temp			! Temperature (°C)
+		real(8), intent(in)				:: rc			! RhoCp
+		real(8), intent(in)				:: hold			! Mixing height on previous time step (m)
+		integer, intent(in)				:: n_step		! Number of sub-steps within a whole step
+		real(8)							:: hmix			! Mixing height past current time step (m)
 		
 		! Locals
 		real(8)		:: dt
@@ -160,8 +172,11 @@ contains
 		real(8)		:: hk4
 		integer		:: i
 		
-		! Constant parameters
-		integer, parameter	:: n_step = 60
+		! Check something can be made
+		if(n_step <= 0) then
+			hmix = NaN_8
+			return
+		end if
 		
 		! Initialize
 		Hmix = NaN_8
