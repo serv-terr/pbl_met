@@ -40,14 +40,14 @@ program t_pbl_depth
 	! Test 2: Effect of number of substeps
 	iRetCode = Synthetize(24)
 	open(10, file="Zi_Test2.csv", status="unknown", action="write")
-	write(10, "('N.steps, Zi(14), Zi(18)')")
+	write(10, "('N.steps, Zi(00), Zi(14), Zi(17), Zi(23)')")
 	do j = 1, 101, 10
 		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, j, rvZi)
 		do i = 1, size(rvTimeStamp)
 			iRetCode = tStamp % fromEpoch(rvTimeStamp(i))
 			sISOdate = tStamp % toISO()
 		end do
-		write(10, "(i3,',',f8.4,',',f8.4)") j, rvZi(15), rvZi(18)
+		write(10, "(i3,4(',',f8.4))") j, rvZi(1), rvZi(15), rvZi(18), rvZi(24)
 	end do
 	close(10)
 	
