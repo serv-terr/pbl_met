@@ -91,6 +91,17 @@ program t_pbl_depth
 	end do
 	close(10)
 	
+	! Test 7: Effect of sensible heat flux shift
+	open(10, file="Zi_Test7.csv", status="unknown", action="write")
+	write(10, "('H0.shift, Zi(00), Zi(14), Zi(17), Zi(23)')")
+	do j = -100, 100, 10
+		iRetCode = Synthetize(24)
+		rvH0 = rvH0 + j
+		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		write(10, "(f6.1,4(',',f9.4))") dble(j), rvZi(1), rvZi(15), rvZi(18), rvZi(24)
+	end do
+	close(10)
+	
 contains
 
 	function Synthetize(n) result(iRetCode)
