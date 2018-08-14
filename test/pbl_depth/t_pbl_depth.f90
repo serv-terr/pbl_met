@@ -43,11 +43,18 @@ program t_pbl_depth
 	write(10, "('N.steps, Zi(00), Zi(14), Zi(17), Zi(23)')")
 	do j = 1, 101, 10
 		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, j, rvZi)
-		do i = 1, size(rvTimeStamp)
-			iRetCode = tStamp % fromEpoch(rvTimeStamp(i))
-			sISOdate = tStamp % toISO()
-		end do
 		write(10, "(i3,4(',',f8.4))") j, rvZi(1), rvZi(15), rvZi(18), rvZi(24)
+	end do
+	close(10)
+	
+	! Test 2: Effect of temperature shift
+	open(10, file="Zi_Test3.csv", status="unknown", action="write")
+	write(10, "('Temp, Zi(00), Zi(14), Zi(17), Zi(23)')")
+	do j = -40, 60, 10
+		iRetCode = Synthetize(24)
+		rvTemp = rvTemp + j
+		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		write(10, "(i3,4(',',f9.4))") j, rvZi(1), rvZi(15), rvZi(18), rvZi(24)
 	end do
 	close(10)
 	
