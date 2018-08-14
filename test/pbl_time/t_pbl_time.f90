@@ -113,6 +113,17 @@ program t_pbl_depth
 	end do
 	close(10)
 	
+	! Test 9: Effect of Brunt-Vaisala frequency value
+	open(10, file="Zi_Test9.csv", status="unknown", action="write")
+	write(10, "('N, Zi(00), Zi(14), Zi(17), Zi(23)')")
+	do j = 1, 20
+		iRetCode = Synthetize(24)
+		rvN = rvN * j/1000.d0
+		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		write(10, "(f5.3,4(',',f9.4))") j / 1000.d0, rvZi(1), rvZi(15), rvZi(18), rvZi(24)
+	end do
+	close(10)
+	
 contains
 
 	function Synthetize(n) result(iRetCode)
