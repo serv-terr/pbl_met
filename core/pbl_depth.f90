@@ -129,7 +129,7 @@ contains
 				if(present(rvN)) then
 					rN = rvN(i)
 				else
-					rN = 0.12
+					rN = 0.012
 				end if
 				rvZi(i) = StableZi( &
 					rLat, &
