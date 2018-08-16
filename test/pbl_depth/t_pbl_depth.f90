@@ -22,6 +22,8 @@ program t_pbl_depth
 	character(len=23)					:: sISOdate
 	type(DateTime)						:: tStamp
 	integer								:: iRetCode
+	integer								:: iNumSteps
+	integer								:: iTimeDelta
 	integer								:: i
 	integer								:: j
 	
@@ -132,6 +134,20 @@ program t_pbl_depth
 		rvN = rvN * j/1000.d0
 		iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
 		write(10, "(f5.3,4(',',f9.4))") j / 1000.d0, rvZi(1), rvZi(15), rvZi(18), rvZi(24)
+	end do
+	close(10)
+	
+	! Test 11: Effect of thinning step over maximum Zi
+	open(10, file="Zi_Test11.csv", status="unknown", action="write")
+	write(10, "('N.step, Delta.t,Zi.max')")
+	iNumSteps = 24
+	iTimeDelta = 3600
+	do j = 1, 5
+		iRetCode = Synthetize(iNumSteps)
+		iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., iTimeDelta, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		write(10, "(i10,',',i5,',',f9.4)") iNumSteps, iTimeDelta, maxval(rvZi)
+		iNumSteps = iNumSteps * 2
+		iTimeDelta = iTimeDelta / 2
 	end do
 	close(10)
 	
