@@ -151,6 +151,13 @@ program t_pbl_depth
 	end do
 	close(10)
 	
+	! Test 12: What happens, if no data at all?
+	iRetCode = Synthetize(0)
+	iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., iTimeDelta, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+	print *, "Test 12: effect of no data"
+	print *, "Actual return code: ", iRetCode, "   (expected: non-zero)"
+	print *
+	
 contains
 
 	function Synthetize(n) result(iRetCode)
