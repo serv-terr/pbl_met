@@ -55,6 +55,7 @@ contains
 		real(8)								:: rWprimeThetaprime
 		real(8)								:: rL
 		integer								:: n_step
+		integer, dimension(5)				:: ivVectorLength
 		
 		! Constants
 		real(8), parameter	:: k = 0.4d0
@@ -64,17 +65,38 @@ contains
 		iRetCode = 0
 		
 		! Check something can be made
-		if(.not.allocated(rvTimeStamp)) then
+		if( &
+			.not.allocated(rvTimeStamp) .or. &
+			.not.allocated(rvTemp) .or. &
+			.not.allocated(rvUstar) .or. &
+			.not.allocated(rvH0) &
+		) then
 			iRetCode = 1
 			return
 		end if
-		if(size(rvTimeStamp) <= 0) then
+		if(present(rvN)) then
+			if(.not.allocated(rvTimeStamp)) then
+				iRetCode = 1
+				return
+			end if
+		end if
+		ivVectorLength(1) = size(rvTimeStamp)
+		ivVectorLength(2) = size(rvTemp)
+		ivVectorLength(3) = size(rvUstar)
+		ivVectorLength(4) = size(rvH0)
+		ivVectorLength(5) = size(rvTimeStamp)
+		if(present(rvN)) ivVectorLength(5) = size(rvN)
+		if(minval(ivVectorLength) <= 0) then
 			iRetCode = 2
+			return
+		end if
+		if(minval(ivVectorLength) /= maxval(ivVectorLength)) then
+			iRetCode = 3
 			return
 		end if
 		if(present(nStep)) then
 			if(nStep <= 0) then
-				iRetCode = 3
+				iRetCode = 4
 				return
 			end if
 			n_step = nStep
@@ -265,7 +287,7 @@ contains
 			Zi = 1330.0 * Ustar		! Degrade to purely mechanical rough estimate
 			return
 		end if
-		! From now on, stability is guaranteed
+		! From now on, strong stability is guaranteed
 
 		! Compute Coriolis parameter
 		rLat = Lat * 3.14159265358979d0 / 180.d0
