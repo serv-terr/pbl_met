@@ -180,7 +180,7 @@ contains
 		iRetCode = 0
 		
 		! Check inputs
-		if(n < 1) then
+		if(n < 0) then
 			iRetCode = 1
 			return
 		end if
