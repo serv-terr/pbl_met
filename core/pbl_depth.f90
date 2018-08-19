@@ -56,6 +56,7 @@ contains
 		real(8)								:: rL
 		integer								:: n_step
 		integer, dimension(5)				:: ivVectorLength
+		integer, dimension(5)				:: ivValidNum
 		
 		! Constants
 		real(8), parameter	:: k = 0.4d0
@@ -102,6 +103,16 @@ contains
 			n_step = nStep
 		else
 			n_step = 60
+		end if
+		ivValidNum(1) = count(.valid.rvTimeStamp)
+		ivValidNum(2) = count(.valid.rvTemp)
+		ivValidNum(3) = count(.valid.rvUstar)
+		ivValidNum(4) = count(.valid.rvH0)
+		ivValidNum(5) = count(.valid.rvTimeStamp)
+		if(present(rvN)) ivValidNum(5) = count(.valid.rvN)
+		if(minval(ivValidNum) <= 0) then
+			iRetCode = 5
+			return
 		end if
 		
 		! Reserve workspace
