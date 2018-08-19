@@ -167,6 +167,14 @@ program t_pbl_depth
 	print *, "Actual return code: ", iRetCode, "   (expected: non-zero)"
 	print *
 	
+	! Test 14: What happens, if data are all invalid
+	iRetCode = Synthetize(1024)
+	rvUstar = NaN_8
+	iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., iTimeDelta, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+	print *, "Test 14: effect of different length input vectors"
+	print *, "Actual return code: ", iRetCode, "   (expected: non-zero)"
+	print *
+	
 contains
 
 	function Synthetize(n) result(iRetCode)
