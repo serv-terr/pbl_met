@@ -20,6 +20,16 @@ module pbl_depth
     
     ! Public interface
     public	:: EstimateZi
+    
+    ! Data types
+    
+    type LapseRateSpec
+    	real(8)	:: A
+    	real(8)	:: B
+    	real(8)	:: C
+    contains
+    	procedure	:: setDefault	=> lrSetDefault
+    end type LapseRateSpec
 
 contains
 
@@ -329,5 +339,21 @@ contains
 		end if
 
 	end function StableZi
+	
+	
+	subroutine lrSetDefault(this)
+	
+		! Routine arguments
+		class(LapseRateSpec), intent(out)	:: this
+		
+		! Locals
+		! --none--
+		
+		! Assign default values (from, I guess, Mexico City campaign, circa 1998)
+		this % A = 3.d0
+		this % B = 1.98d-3
+		this % C = 2.27d-6
+		
+	end subroutine lrSetDefault
     
 end module pbl_depth
