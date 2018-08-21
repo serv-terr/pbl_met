@@ -29,6 +29,7 @@ module pbl_depth
     	real(8)	:: C
     contains
     	procedure	:: setDefault	=> lrSetDefault
+    	procedure	:: getLapseRate	=> lrGetLapseRate
     end type LapseRateSpec
 
 contains
@@ -355,5 +356,25 @@ contains
 		this % C = 2.27d-6
 		
 	end subroutine lrSetDefault
+	
+	
+	function lrGetLapseRate(this, z) result(gamma)
+	
+		! Routine arguments
+		class(LapseRateSpec), intent(in)	:: this
+		real(8), intent(in)					:: z
+		real(8)								:: gamma
+		
+		! Locals
+		! --none--
+		
+		! Evaluate lapse rate
+		if(z > 0.0) then
+			gamma = this % A / (z + 1.d0) - this % B + this % C * z
+		else
+			gamma = this % A - this % B
+		end if
+		
+	end function lrGetLapseRate
     
 end module pbl_depth
