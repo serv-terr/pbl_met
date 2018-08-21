@@ -209,8 +209,8 @@ contains
 		! Locals
 		real(8)		:: dt
 		real(8)		:: Ta
-		real(8)		:: ggmm
-		real(8)		:: hmm
+		real(8)		:: gamma
+		real(8)		:: tempZi
 		real(8)		:: hk1
 		real(8)		:: hk2
 		real(8)		:: hk3
@@ -231,24 +231,24 @@ contains
 
 		! Runge-Kutta step
 		if(present(tLrate)) then
-			ggmm = tLrate % getLapseRate(hold)
+			gamma = tLrate % getLapseRate(hold)
 		else
-			ggmm = 0.005d0
+			gamma = 0.005d0
 		end if
-		hmm  = hold
+		tempZi  = hold
 		do i=1,n_step
-			hk1  = dt * GryningBatchvarovaStep(rc,Ta,ggmm,us,H0,hmm)
-			hk2  = dt * GryningBatchvarovaStep(rc,Ta,ggmm,us,H0,hmm+hk1/2.d0)
-			hk3  = dt * GryningBatchvarovaStep(rc,Ta,ggmm,us,H0,hmm+hk2/2.d0)
-			hk4  = dt * GryningBatchvarovaStep(rc,Ta,ggmm,us,H0,hmm+hk3/2.d0)
-			hmm  = hmm + (hk1+2.d0*(hk2+hk3)+hk4)/6.d0
+			hk1  = dt * GryningBatchvarovaStep(rc,Ta,gamma,us,H0,tempZi)
+			hk2  = dt * GryningBatchvarovaStep(rc,Ta,gamma,us,H0,tempZi+hk1/2.d0)
+			hk3  = dt * GryningBatchvarovaStep(rc,Ta,gamma,us,H0,tempZi+hk2/2.d0)
+			hk4  = dt * GryningBatchvarovaStep(rc,Ta,gamma,us,H0,tempZi+hk3/2.d0)
+			tempZi  = tempZi + (hk1+2.d0*(hk2+hk3)+hk4)/6.d0
 			if(present(tLrate)) then
-				ggmm = tLrate % getLapseRate(hmm)
+				gamma = tLrate % getLapseRate(tempZi)
 			else
-				ggmm = 0.005d0
+				gamma = 0.005d0
 			end if
 		end do
-		Hmix = hmm
+		Hmix = tempZi
 
 	end function ConvectiveZi
 
