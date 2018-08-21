@@ -193,17 +193,18 @@ contains
 	! * Internal routines *
 	! *********************
 
-	function ConvectiveZi(dtime,H0,us,Temp,rc,hold,n_step) result(hmix)
+	function ConvectiveZi(dtime,H0,us,Temp,rc,hold,n_step, tLrate) result(hmix)
 	
 		! Routine arguments
-		real(8), intent(in)				:: dtime		! Time step (s)
-		real(8), intent(in)				:: H0			! Turbulent sensible heat flux (W/m2)
-		real(8), intent(in)				:: us			! Friction velocity (m/s)
-		real(8), intent(in)				:: Temp			! Temperature (°C)
-		real(8), intent(in)				:: rc			! RhoCp
-		real(8), intent(in)				:: hold			! Mixing height on previous time step (m)
-		integer, intent(in)				:: n_step		! Number of sub-steps within a whole step
-		real(8)							:: hmix			! Mixing height past current time step (m)
+		real(8), intent(in)							:: dtime		! Time step (s)
+		real(8), intent(in)							:: H0			! Turbulent sensible heat flux (W/m2)
+		real(8), intent(in)							:: us			! Friction velocity (m/s)
+		real(8), intent(in)							:: Temp			! Temperature (°C)
+		real(8), intent(in)							:: rc			! RhoCp
+		real(8), intent(in)							:: hold			! Mixing height on previous time step (m)
+		integer, intent(in)							:: n_step		! Number of sub-steps within a whole step
+		type(LapseRateSpec), intent(in), optional	:: tLrate		! If specified, lapse rate is computed from here instead of assumed as constant (default behavior)
+		real(8)										:: hmix			! Mixing height past current time step (m)
 		
 		! Locals
 		real(8)		:: dt
@@ -229,7 +230,11 @@ contains
 		Ta = Temp + 273.15d0
 
 		! Runge-Kutta step
-		ggmm = 0.005d0
+		if(present(tLrate)) then
+			ggmm = tLrate % getLapseRate(hold)
+		else
+			ggmm = 0.005d0
+		end if
 		hmm  = hold
 		do i=1,n_step
 			hk1  = dt * GryningBatchvarovaStep(rc,Ta,ggmm,us,H0,hmm)
@@ -237,6 +242,11 @@ contains
 			hk3  = dt * GryningBatchvarovaStep(rc,Ta,ggmm,us,H0,hmm+hk2/2.d0)
 			hk4  = dt * GryningBatchvarovaStep(rc,Ta,ggmm,us,H0,hmm+hk3/2.d0)
 			hmm  = hmm + (hk1+2.d0*(hk2+hk3)+hk4)/6.d0
+			if(present(tLrate)) then
+				ggmm = tLrate % getLapseRate(hmm)
+			else
+				ggmm = 0.005d0
+			end if
 		end do
 		Hmix = hmm
 
