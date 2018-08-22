@@ -20,6 +20,7 @@ module pbl_depth
     
     ! Public interface
     public	:: EstimateZi
+    public	:: LapseRateSpec
     
     ! Data types
     
@@ -34,7 +35,7 @@ module pbl_depth
 
 contains
 
-	function EstimateZi(rvTimeStamp, iZone, rLat, rLon, iDeltaTime, rvTemp, rvUstar, rvH0, rvN, nStep, rvZi) result(iRetCode)
+	function EstimateZi(rvTimeStamp, iZone, rLat, rLon, iDeltaTime, rvTemp, rvUstar, rvH0, rvN, nStep, tLrate, rvZi) result(iRetCode)
 	
 		! Routine arguments
 		real(8), dimension(:), allocatable, intent(in)				:: rvTimeStamp
@@ -47,6 +48,7 @@ contains
 		real(8), dimension(:), allocatable, intent(in)				:: rvH0
 		real(8), dimension(:), allocatable, intent(in), optional	:: rvN
 		integer, intent(in), optional								:: nStep
+		type(LapseRateSpec), intent(in), optional					:: tLrate
 		real(8), dimension(:), allocatable, intent(out)				:: rvZi
 		integer														:: iRetCode
 		
@@ -164,7 +166,11 @@ contains
 			rZiMec = 1330.*rvUstar(i)
 			if(rHour > rSunRise .and. rHour < rSunSet) then
 				rZiConv = MAX(rZiConv, 0.)
-				rZiConv = ConvectiveZi(dble(iDeltaTime),rvH0(i),rvUstar(i),rTa,rRc,rZiConv,n_step)
+				if(present(tLrate)) then
+					rZiConv = ConvectiveZi(dble(iDeltaTime),rvH0(i),rvUstar(i),rTa,rRc,rZiConv,n_step,tLrate)
+				else
+					rZiConv = ConvectiveZi(dble(iDeltaTime),rvH0(i),rvUstar(i),rTa,rRc,rZiConv,n_step)
+				end if
 				rvZi(i) = max(rZiMec, rZiConv)
 			else
 				rZiConv = 0.
@@ -349,6 +355,7 @@ contains
 			Zi = MAX(Zi, 1330.0*Ustar)
 		end if
 
+ù
 	end function StableZi
 	
 	
