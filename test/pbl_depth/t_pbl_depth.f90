@@ -19,8 +19,10 @@ program t_pbl_depth
 	real(8), dimension(:), allocatable	:: rvH0
 	real(8), dimension(:), allocatable	:: rvN
 	real(8), dimension(:), allocatable	:: rvZi
+	real(8), dimension(:), allocatable	:: rvZi_1
 	character(len=23)					:: sISOdate
 	type(DateTime)						:: tStamp
+	type(LapseRateSpec)					:: tGamma
 	integer								:: iRetCode
 	integer								:: iNumSteps
 	integer								:: iTimeDelta
@@ -29,7 +31,7 @@ program t_pbl_depth
 	
 	! Test 1: Nominal case
 	iRetCode = Synthetize(24)
-	iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+	iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 	open(10, file="Zi_Test1_Variant.csv", status="unknown", action="write")
 	write(10, "('Date.Time, Temp, U.star, H0, N, Zi')")
 	do i = 1, size(rvTimeStamp)
@@ -44,10 +46,11 @@ program t_pbl_depth
 	open(10, file="Zi_Test2.csv", status="unknown", action="write")
 	write(10, "('N.steps, Zi(00), Zi(14), Zi(17), Zi(23)')")
 	do j = 1, 101, 10
-		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, j, rvZi)
+		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=j, rvZi=rvZi)
 		write(10, "(i3,4(',',f8.4))") j, rvZi(1), rvZi(15), rvZi(18), rvZi(24)
 	end do
 	close(10)
+	
 	
 	! Test 3: Effect of temperature shift
 	open(10, file="Zi_Test3.csv", status="unknown", action="write")
@@ -55,7 +58,7 @@ program t_pbl_depth
 	do j = -40, 60, 10
 		iRetCode = Synthetize(24)
 		rvTemp = rvTemp + j
-		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 		write(10, "(i3,4(',',f9.4))") j, rvZi(1), rvZi(15), rvZi(18), rvZi(24)
 	end do
 	close(10)
@@ -66,7 +69,7 @@ program t_pbl_depth
 	do j = 0, 20, 1
 		iRetCode = Synthetize(24)
 		rvTemp = rvTemp * j/10.d0
-		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 		write(10, "(f3.1,4(',',f9.4))") j/10.d0, rvZi(1), rvZi(15), rvZi(18), rvZi(24)
 	end do
 	close(10)
@@ -77,7 +80,7 @@ program t_pbl_depth
 	do j = 0, 100, 5
 		iRetCode = Synthetize(24)
 		rvUstar = rvUstar + j / 100.d0
-		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 		write(10, "(f4.2,4(',',f9.4))") j / 100.d0, rvZi(1), rvZi(15), rvZi(18), rvZi(24)
 	end do
 	close(10)
@@ -88,7 +91,7 @@ program t_pbl_depth
 	do j = 0, 20, 1
 		iRetCode = Synthetize(24)
 		rvUstar = rvUstar * j/10.d0
-		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 		write(10, "(f3.1,4(',',f9.4))") j/10.d0, rvZi(1), rvZi(15), rvZi(18), rvZi(24)
 	end do
 	close(10)
@@ -99,7 +102,7 @@ program t_pbl_depth
 	do j = -100, 100, 10
 		iRetCode = Synthetize(24)
 		rvH0 = rvH0 + j
-		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 		write(10, "(f6.1,4(',',f9.4))") dble(j), rvZi(1), rvZi(15), rvZi(18), rvZi(24)
 	end do
 	close(10)
@@ -110,7 +113,7 @@ program t_pbl_depth
 	do j = 0, 20, 1
 		iRetCode = Synthetize(24)
 		rvH0 = rvH0 * j/10.d0
-		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 		write(10, "(f6.1,4(',',f9.4))") dble(j), rvZi(1), rvZi(15), rvZi(18), rvZi(24)
 	end do
 	close(10)
@@ -121,7 +124,7 @@ program t_pbl_depth
 	do j = 1, 20
 		iRetCode = Synthetize(24)
 		rvN = rvN * j/1000.d0
-		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 		write(10, "(f5.3,4(',',f9.4))") j / 1000.d0, rvZi(1), rvZi(15), rvZi(18), rvZi(24)
 	end do
 	close(10)
@@ -132,7 +135,7 @@ program t_pbl_depth
 	do j = 1, 20
 		iRetCode = Synthetize(24)
 		rvN = rvN * j/1000.d0
-		iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., 3600, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., 3600, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 		write(10, "(f5.3,4(',',f9.4))") j / 1000.d0, rvZi(1), rvZi(15), rvZi(18), rvZi(24)
 	end do
 	close(10)
@@ -144,7 +147,7 @@ program t_pbl_depth
 	iTimeDelta = 3600
 	do j = 1, 5
 		iRetCode = Synthetize(iNumSteps)
-		iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., iTimeDelta, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+		iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., iTimeDelta, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 		write(10, "(i10,',',i5,',',f9.4)") iNumSteps, iTimeDelta, maxval(rvZi)
 		iNumSteps = iNumSteps * 2
 		iTimeDelta = iTimeDelta / 2
@@ -153,7 +156,7 @@ program t_pbl_depth
 	
 	! Test 12: What happens, if no data at all?
 	iRetCode = Synthetize(0)
-	iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., iTimeDelta, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+	iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., iTimeDelta, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 	print *, "Test 12: effect of no data"
 	print *, "Actual return code: ", iRetCode, "   (expected: non-zero)"
 	print *
@@ -162,7 +165,7 @@ program t_pbl_depth
 	iRetCode = Synthetize(1024)
 	deallocate(rvUstar)
 	allocate(rvUstar(1023))
-	iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., iTimeDelta, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+	iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., iTimeDelta, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 	print *, "Test 13: effect of different length input vectors"
 	print *, "Actual return code: ", iRetCode, "   (expected: non-zero)"
 	print *
@@ -170,10 +173,24 @@ program t_pbl_depth
 	! Test 14: What happens, if data are all invalid
 	iRetCode = Synthetize(1024)
 	rvUstar = NaN_8
-	iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., iTimeDelta, rvTemp, rvUstar, rvH0, rvN, 60, rvZi)
+	iRetCode = EstimateZi(rvTimeStamp, 0, 45., 0., iTimeDelta, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
 	print *, "Test 14: effect of different length input vectors"
 	print *, "Actual return code: ", iRetCode, "   (expected: non-zero)"
 	print *
+	
+	! Test 17: Comparing default- to known-gamma estimates
+	iRetCode = Synthetize(24)
+	iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, rvZi=rvZi)
+	call tGamma % setDefault()
+	iRetCode = EstimateZi(rvTimeStamp, 0, 0., 0., 3600, rvTemp, rvUstar, rvH0, rvN=rvN, nStep=60, tLrate=tGamma, rvZi=rvZi_1)
+	open(10, file="Zi_Test17.csv", status="unknown", action="write")
+	write(10, "('Date.Time, Temp, U.star, H0, N, Zi.Gamma.Default, Zi.Gamma.Standard')")
+	do i = 1, size(rvTimeStamp)
+		iRetCode = tStamp % fromEpoch(rvTimeStamp(i))
+		sISOdate = tStamp % toISO()
+		write(10, "(a,6(',',f8.4))") sISOdate, rvTemp(i), rvUstar(i), rvH0(i), rvN(i), rvZi(i), rvZi_1(i)
+	end do
+	close(10)
 	
 contains
 
