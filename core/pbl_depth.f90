@@ -348,14 +348,13 @@ contains
 		! Compute stable estimate of mixing height
 		Zi = (SQRT(4.d0*a + b**2) - b)/(2.d0*a)
 
-		! Accept only if >= than purely mechanical approx
+		! Accept only within 100% difference from purely mechanical approx
 		if(Zi > 2.0*1330.0*Ustar .or. Zi < 0.5*1330.0*Ustar) then
 			Zi = 1330.0*Ustar
 		else
 			Zi = MAX(Zi, 1330.0*Ustar)
 		end if
 
-ù
 	end function StableZi
 	
 	
