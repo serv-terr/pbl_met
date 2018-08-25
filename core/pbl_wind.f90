@@ -1291,6 +1291,8 @@ contains
 		if(allocated(this % rvV)) deallocate(this % rvV)
 		if(allocated(this % rvW)) deallocate(this % rvW)
 		if(allocated(this % rvT)) deallocate(this % rvT)
+		if(allocated(this % rvQ)) deallocate(this % rvQ)
+		if(allocated(this % rvC)) deallocate(this % rvC)
 		allocate(this % rvTimeStamp(iNumData))
 		allocate(this % rvU(iNumData))
 		allocate(this % rvV(iNumData))
