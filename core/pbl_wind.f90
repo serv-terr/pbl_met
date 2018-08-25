@@ -928,21 +928,23 @@ contains
 	end function DirMean
 	
 	
-	function sd_BuildFromVectors(this, rvTimeStamp, rvU, rvV, rvW, rvT) result(iRetCode)
+	function sd_BuildFromVectors(this, rvTimeStamp, rvU, rvV, rvW, rvT, rvQ, rvC) result(iRetCode)
 	
 		! Routine arguments
-		class(SonicData), intent(out)		:: this
-		real(8), dimension(:), intent(in)	:: rvTimeStamp	! Time stamp, in Epoch new form
-		real, dimension(:), intent(in)		:: rvU			! Eastward wind component (m/s)
-		real, dimension(:), intent(in)		:: rvV			! Northward wind component (m/s)
-		real, dimension(:), intent(in)		:: rvW			! Verticalward wind component (m/s)
-		real, dimension(:), intent(in)		:: rvT			! Sonic temperature (°C)
-		integer								:: iRetCode
+		class(SonicData), intent(out)				:: this
+		real(8), dimension(:), intent(in)			:: rvTimeStamp	! Time stamp, in Epoch new form
+		real, dimension(:), intent(in)				:: rvU			! Eastward wind component (m/s)
+		real, dimension(:), intent(in)				:: rvV			! Northward wind component (m/s)
+		real, dimension(:), intent(in)				:: rvW			! Verticalward wind component (m/s)
+		real, dimension(:), intent(in)				:: rvT			! Sonic temperature (°C)
+		real, dimension(:), intent(in), optional	:: rvQ			! Water vapor (mmol/mol)
+		real, dimension(:), intent(in), optional	:: rvC			! Carbon dioxide (mmol/mol) (if present, also water vapor must be present)
+		integer										:: iRetCode
 		
 		! Locals
-		integer	::nstamp, nu, nv, nw, nt, n
+		integer	::nstamp, nu, nv, nw, nt, nq, nc, n
 		
-		! Assume succes (will falsify on failure)
+		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
 		! Get and check vector sizes
@@ -961,6 +963,22 @@ contains
 		end if
 		n = nstamp
 		! Post-condition: nstamp == nu == nv == nw == nt == n
+
+		! Get and check optional vector sizes
+		if(present(rvQ)) then
+			nq = size(rvQ)
+			if(nq /= n) then
+				iRetCode = 1
+				return
+			end if
+			if(present(rvC)) then
+				nc = size(rvC)
+				if(nc /= n) then
+					iRetCode = 1
+					return
+				end if
+			end if
+		end if
 		
 		! Reserve workspace
 		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
@@ -968,11 +986,15 @@ contains
 		if(allocated(this % rvV))         deallocate(this % rvV)
 		if(allocated(this % rvW))         deallocate(this % rvW)
 		if(allocated(this % rvT))         deallocate(this % rvT)
+		if(allocated(this % rvQ))         deallocate(this % rvQ)
+		if(allocated(this % rvC))         deallocate(this % rvC)
 		allocate(this % rvTimeStamp(n))
 		allocate(this % rvU(n))
 		allocate(this % rvV(n))
 		allocate(this % rvW(n))
 		allocate(this % rvT(n))
+		if(present(rvQ)) allocate(this % rvQ(n))
+		if(present(rvC)) allocate(this % rvC(n))
 		
 		! Assign values
 		this % rvTimeStamp = rvTimeStamp
@@ -980,6 +1002,8 @@ contains
 		this % rvV         = rvV
 		this % rvW         = rvW
 		this % rvT         = rvT
+		if(present(rvQ)) this % rvQ = rvQ
+		if(present(rvQ)) this % rvC = rvC
 		this % isValid     = .true.
 		
 	end function sd_BuildFromVectors
