@@ -1009,16 +1009,18 @@ contains
 	end function sd_BuildFromVectors
 	
 	
-	function sd_GetVectors(this, rvTimeStamp, rvU, rvV, rvW, rvT) result(iRetCode)
+	function sd_GetVectors(this, rvTimeStamp, rvU, rvV, rvW, rvT, rvQ, rvC) result(iRetCode)
 	
 		! Routine arguments
-		class(SonicData), intent(in)					:: this
-		real(8), dimension(:), allocatable, intent(out)	:: rvTimeStamp	! Time stamp, in Epoch new form
-		real, dimension(:), allocatable, intent(out)	:: rvU			! Eastward wind component (m/s)
-		real, dimension(:), allocatable, intent(out)	:: rvV			! Northward wind component (m/s)
-		real, dimension(:), allocatable, intent(out)	:: rvW			! Verticalward wind component (m/s)
-		real, dimension(:), allocatable, intent(out)	:: rvT			! Sonic temperature (°C)
-		integer											:: iRetCode
+		class(SonicData), intent(in)							:: this
+		real(8), dimension(:), allocatable, intent(out)			:: rvTimeStamp	! Time stamp, in Epoch new form
+		real, dimension(:), allocatable, intent(out)			:: rvU			! Eastward wind component (m/s)
+		real, dimension(:), allocatable, intent(out)			:: rvV			! Northward wind component (m/s)
+		real, dimension(:), allocatable, intent(out)			:: rvW			! Verticalward wind component (m/s)
+		real, dimension(:), allocatable, intent(out)			:: rvT			! Sonic temperature (°C)
+		real, dimension(:), allocatable, intent(out), optional	:: rvQ			! Water vapor (mmol/mol)
+		real, dimension(:), allocatable, intent(out), optional	:: rvC			! Carbon dioxide (mmol/mol)
+		integer													:: iRetCode
 		
 		! Locals
 		integer	:: n
@@ -1043,11 +1045,15 @@ contains
 		if(allocated(rvV))         deallocate(rvV)
 		if(allocated(rvW))         deallocate(rvW)
 		if(allocated(rvT))         deallocate(rvT)
+		if(allocated(rvQ))         deallocate(rvQ)
+		if(allocated(rvC))         deallocate(rvC)
 		allocate(rvTimeStamp(n))
 		allocate(rvU(n))
 		allocate(rvV(n))
 		allocate(rvW(n))
 		allocate(rvT(n))
+		if(present(rvQ)) allocate(rvQ(n))
+		if(present(rvC)) allocate(rvC(n))
 		
 		! Assign values
 		rvTimeStamp = this % rvTimeStamp
@@ -1055,6 +1061,8 @@ contains
 		rvV         = this % rvV
 		rvW         = this % rvW
 		rvT         = this % rvT
+		if(present(rvQ)) rvQ = this % rvQ
+		if(present(rvC)) rvC = this % rvC
 		
 	end function sd_GetVectors
 	
