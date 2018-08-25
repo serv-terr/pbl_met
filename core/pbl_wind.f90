@@ -1045,15 +1045,19 @@ contains
 		if(allocated(rvV))         deallocate(rvV)
 		if(allocated(rvW))         deallocate(rvW)
 		if(allocated(rvT))         deallocate(rvT)
-		if(allocated(rvQ))         deallocate(rvQ)
-		if(allocated(rvC))         deallocate(rvC)
 		allocate(rvTimeStamp(n))
 		allocate(rvU(n))
 		allocate(rvV(n))
 		allocate(rvW(n))
 		allocate(rvT(n))
-		if(present(rvQ)) allocate(rvQ(n))
-		if(present(rvC)) allocate(rvC(n))
+		if(present(rvQ)) then
+			if(allocated(rvQ))     deallocate(rvQ)
+			allocate(rvQ(n))
+		end if
+		if(present(rvC)) then
+			if(allocated(rvC))     deallocate(rvC)
+			allocate(rvC(n))
+		end if
 		
 		! Assign values
 		rvTimeStamp = this % rvTimeStamp
