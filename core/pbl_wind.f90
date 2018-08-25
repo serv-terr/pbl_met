@@ -1428,30 +1428,44 @@ contains
 		real(8), dimension(:), allocatable	:: rvSumV
 		real(8), dimension(:), allocatable	:: rvSumW
 		real(8), dimension(:), allocatable	:: rvSumT
+		real(8), dimension(:), allocatable	:: rvSumQ
+		real(8), dimension(:), allocatable	:: rvSumC
 		real(8), dimension(:), allocatable	:: rvSumUU
 		real(8), dimension(:), allocatable	:: rvSumVV
 		real(8), dimension(:), allocatable	:: rvSumWW
 		real(8), dimension(:), allocatable	:: rvSumTT
+		real(8), dimension(:), allocatable	:: rvSumQQ
+		real(8), dimension(:), allocatable	:: rvSumCC
 		real(8), dimension(:), allocatable	:: rvSumXU
 		real(8), dimension(:), allocatable	:: rvSumXV
 		real(8), dimension(:), allocatable	:: rvSumXW
 		real(8), dimension(:), allocatable	:: rvSumXT
+		real(8), dimension(:), allocatable	:: rvSumXQ
+		real(8), dimension(:), allocatable	:: rvSumXC
 		real(8), dimension(:), allocatable	:: rvEstU
 		real(8), dimension(:), allocatable	:: rvEstV
 		real(8), dimension(:), allocatable	:: rvEstW
 		real(8), dimension(:), allocatable	:: rvEstT
+		real(8), dimension(:), allocatable	:: rvEstQ
+		real(8), dimension(:), allocatable	:: rvEstC
 		real(8), dimension(:), allocatable	:: rvSumEstU
 		real(8), dimension(:), allocatable	:: rvSumEstV
 		real(8), dimension(:), allocatable	:: rvSumEstW
 		real(8), dimension(:), allocatable	:: rvSumEstT
+		real(8), dimension(:), allocatable	:: rvSumEstQ
+		real(8), dimension(:), allocatable	:: rvSumEstC
 		real(8), dimension(:), allocatable	:: rvAlphaU
 		real(8), dimension(:), allocatable	:: rvAlphaV
 		real(8), dimension(:), allocatable	:: rvAlphaW
 		real(8), dimension(:), allocatable	:: rvAlphaT
+		real(8), dimension(:), allocatable	:: rvAlphaQ
+		real(8), dimension(:), allocatable	:: rvAlphaC
 		real(8), dimension(:), allocatable	:: rvBetaU
 		real(8), dimension(:), allocatable	:: rvBetaV
 		real(8), dimension(:), allocatable	:: rvBetaW
 		real(8), dimension(:), allocatable	:: rvBetaT
+		real(8), dimension(:), allocatable	:: rvBetaQ
+		real(8), dimension(:), allocatable	:: rvBetaC
 		real(8)								:: rEpsFact
 		
 		! Assume success (will falsify on failure)
