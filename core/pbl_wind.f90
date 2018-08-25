@@ -107,22 +107,32 @@ module pbl_wind
 		real(8), dimension(:), allocatable		:: rvAlphaV
 		real(8), dimension(:), allocatable		:: rvAlphaW
 		real(8), dimension(:), allocatable		:: rvAlphaT
+		real(8), dimension(:), allocatable		:: rvAlphaQ
+		real(8), dimension(:), allocatable		:: rvAlphaC
 		real(8), dimension(:), allocatable		:: rvBetaU
 		real(8), dimension(:), allocatable		:: rvBetaV
 		real(8), dimension(:), allocatable		:: rvBetaW
 		real(8), dimension(:), allocatable		:: rvBetaT
+		real(8), dimension(:), allocatable		:: rvBetaQ
+		real(8), dimension(:), allocatable		:: rvBetaC
 		real(8), dimension(:), allocatable		:: rvS2epsU
 		real(8), dimension(:), allocatable		:: rvS2epsV
 		real(8), dimension(:), allocatable		:: rvS2epsW
 		real(8), dimension(:), allocatable		:: rvS2epsT
+		real(8), dimension(:), allocatable		:: rvS2epsQ
+		real(8), dimension(:), allocatable		:: rvS2epsC
 		real(8), dimension(:), allocatable		:: rvS2alphaU
 		real(8), dimension(:), allocatable		:: rvS2alphaV
 		real(8), dimension(:), allocatable		:: rvS2alphaW
 		real(8), dimension(:), allocatable		:: rvS2alphaT
+		real(8), dimension(:), allocatable		:: rvS2alphaQ
+		real(8), dimension(:), allocatable		:: rvS2alphaC
 		real(8), dimension(:), allocatable		:: rvS2betaU
 		real(8), dimension(:), allocatable		:: rvS2betaV
 		real(8), dimension(:), allocatable		:: rvS2betaW
 		real(8), dimension(:), allocatable		:: rvS2betaT
+		real(8), dimension(:), allocatable		:: rvS2betaQ
+		real(8), dimension(:), allocatable		:: rvS2betaC
 	contains
 		procedure	:: clean			=> td_Clean
 		procedure	:: reserve			=> td_Allocate
@@ -2100,31 +2110,43 @@ contains
 		if(allocated(this % rvAlphaV))   deallocate(this % rvAlphaV)
 		if(allocated(this % rvAlphaW))   deallocate(this % rvAlphaW)
 		if(allocated(this % rvAlphaT))   deallocate(this % rvAlphaT)
+		if(allocated(this % rvAlphaQ))   deallocate(this % rvAlphaQ)
+		if(allocated(this % rvAlphaC))   deallocate(this % rvAlphaC)
 		if(allocated(this % rvBetaU))    deallocate(this % rvBetaU)
 		if(allocated(this % rvBetaV))    deallocate(this % rvBetaV)
 		if(allocated(this % rvBetaW))    deallocate(this % rvBetaW)
 		if(allocated(this % rvBetaT))    deallocate(this % rvBetaT)
+		if(allocated(this % rvBetaQ))    deallocate(this % rvBetaQ)
+		if(allocated(this % rvBetaC))    deallocate(this % rvBetaC)
 		if(allocated(this % rvS2epsU))   deallocate(this % rvS2epsU)
 		if(allocated(this % rvS2epsV))   deallocate(this % rvS2epsV)
 		if(allocated(this % rvS2epsW))   deallocate(this % rvS2epsW)
 		if(allocated(this % rvS2epsT))   deallocate(this % rvS2epsT)
+		if(allocated(this % rvS2epsQ))   deallocate(this % rvS2epsQ)
+		if(allocated(this % rvS2epsC))   deallocate(this % rvS2epsC)
 		if(allocated(this % rvS2alphaU)) deallocate(this % rvS2alphaU)
 		if(allocated(this % rvS2alphaV)) deallocate(this % rvS2alphaV)
 		if(allocated(this % rvS2alphaW)) deallocate(this % rvS2alphaW)
 		if(allocated(this % rvS2alphaT)) deallocate(this % rvS2alphaT)
+		if(allocated(this % rvS2alphaQ)) deallocate(this % rvS2alphaQ)
+		if(allocated(this % rvS2alphaC)) deallocate(this % rvS2alphaC)
 		if(allocated(this % rvS2betaU))  deallocate(this % rvS2betaU)
 		if(allocated(this % rvS2betaV))  deallocate(this % rvS2betaV)
 		if(allocated(this % rvS2betaW))  deallocate(this % rvS2betaW)
 		if(allocated(this % rvS2betaT))  deallocate(this % rvS2betaT)
+		if(allocated(this % rvS2betaQ))  deallocate(this % rvS2betaQ)
+		if(allocated(this % rvS2betaC))  deallocate(this % rvS2betaC)
 		
 	end function td_Clean
 	
 	
-	function td_Allocate(this, iNumData) result(iRetCode)
+	function td_Allocate(this, iNumData, lAlsoQ, lAlsoC) result(iRetCode)
 	
 		! Routine arguments
 		class(TrendData), intent(inout)	:: this
 		integer, intent(in)				:: iNumData
+		logical, intent(in), optional	:: lAlsoQ
+		logical, intent(in), optional	:: lAlsoC
 		integer							:: iRetCode
 		
 		! Locals
@@ -2139,22 +2161,52 @@ contains
 		allocate(this % rvAlphaV(iNumData))
 		allocate(this % rvAlphaW(iNumData))
 		allocate(this % rvAlphaT(iNumData))
+		if(present(lAlsoQ)) then
+			if(lAlsoQ) allocate(this % rvAlphaQ(iNumData))
+		end if
+		if(present(lAlsoC)) then
+			if(lAlsoC) allocate(this % rvAlphaC(iNumData))
+		end if
 		allocate(this % rvBetaU(iNumData))
 		allocate(this % rvBetaV(iNumData))
 		allocate(this % rvBetaW(iNumData))
 		allocate(this % rvBetaT(iNumData))
+		if(present(lAlsoQ)) then
+			if(lAlsoQ) allocate(this % rvBetaQ(iNumData))
+		end if
+		if(present(lAlsoC)) then
+			if(lAlsoC) allocate(this % rvBetaC(iNumData))
+		end if
 		allocate(this % rvS2epsU(iNumData))
 		allocate(this % rvS2epsV(iNumData))
 		allocate(this % rvS2epsW(iNumData))
 		allocate(this % rvS2epsT(iNumData))
+		if(present(lAlsoQ)) then
+			if(lAlsoQ) allocate(this % rvS2epsQ(iNumData))
+		end if
+		if(present(lAlsoC)) then
+			if(lAlsoC) allocate(this % rvS2epsC(iNumData))
+		end if
 		allocate(this % rvS2alphaU(iNumData))
 		allocate(this % rvS2alphaV(iNumData))
 		allocate(this % rvS2alphaW(iNumData))
 		allocate(this % rvS2alphaT(iNumData))
+		if(present(lAlsoQ)) then
+			if(lAlsoQ) allocate(this % rvS2alphaQ(iNumData))
+		end if
+		if(present(lAlsoC)) then
+			if(lAlsoC) allocate(this % rvS2alphaC(iNumData))
+		end if
 		allocate(this % rvS2betaU(iNumData))
 		allocate(this % rvS2betaV(iNumData))
 		allocate(this % rvS2betaW(iNumData))
 		allocate(this % rvS2betaT(iNumData))
+		if(present(lAlsoQ)) then
+			if(lAlsoQ) allocate(this % rvS2betaQ(iNumData))
+		end if
+		if(present(lAlsoC)) then
+			if(lAlsoC) allocate(this % rvS2betaC(iNumData))
+		end if
 		
 	end function td_Allocate
 	
