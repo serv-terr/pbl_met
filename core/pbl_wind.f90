@@ -87,6 +87,8 @@ module pbl_wind
 		real, dimension(:), allocatable, private	:: rvV
 		real, dimension(:), allocatable, private	:: rvW
 		real, dimension(:), allocatable, private	:: rvT
+		real, dimension(:), allocatable, private	:: rvQ
+		real, dimension(:), allocatable, private	:: rvC
 	contains
 		procedure	:: buildFromVectors	=> sd_BuildFromVectors
 		procedure	:: getVectors       => sd_GetVectors
