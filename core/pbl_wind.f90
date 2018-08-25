@@ -1089,6 +1089,9 @@ contains
 		type(DateTime)		:: tStamp
 		real(8)				:: rTimeBase
 		integer				:: iNumData
+		logical				:: lPresentQ = .false.
+		logical				:: lPresentC = .false.
+		integer				:: iOptions
 		integer				:: i
 		integer				:: iYear, iMonth, iDay, iHour
 		
@@ -1122,15 +1125,28 @@ contains
 		tStamp = DateTime(iYear, iMonth, iDay, iHour, 0, 0.d0)
 		rTimeBase = tStamp % toEpoch()
 		
+		! Get and parse header line, to see whether H2O and CO2 are also present
+		read(iLUN, "(a)", iostat=iErrCode) sBuffer
+		if(iErrCode /= 0) then
+			iRetCode = 5
+			return
+		end if
+		if(scan(sBuffer, "q") > 0) lPresentQ = .true.
+		if(scan(sBuffer, "c") > 0) lPresentC = .true.
+		if(lPresentC .and. .not. lPresentQ) then
+			iRetCode = 6
+			return
+		end if
+
 		! Count data and reserve workspace
-		iNumData = -1	! Implicitly consider the 1-line header, not contributing to data count
+		iNumData = 0
 		do
 			read(iLUN, "(a)", iostat=iErrCode) sBuffer
 			if(iErrCode /= 0) exit
 			iNumData = iNumData + 1
 		end do
 		if(iNumData <= 0) then
-			iRetCode = 5
+			iRetCode = 7
 			close(iLUN)
 			return
 		end if
@@ -1139,22 +1155,50 @@ contains
 		if(allocated(this % rvV)) deallocate(this % rvV)
 		if(allocated(this % rvW)) deallocate(this % rvW)
 		if(allocated(this % rvT)) deallocate(this % rvT)
+		if(allocated(this % rvQ)) deallocate(this % rvQ)
+		if(allocated(this % rvC)) deallocate(this % rvC)
 		allocate(this % rvTimeStamp(iNumData))
 		allocate(this % rvU(iNumData))
 		allocate(this % rvV(iNumData))
 		allocate(this % rvW(iNumData))
 		allocate(this % rvT(iNumData))
+		if(lPresentQ) allocate(this % rvQ(iNumData))
+		if(lPresentC) allocate(this % rvC(iNumData))
+
+		! Prepare to read, discerning the case with optional data
+		iOptions = 0
+		if(lPresentQ) iOptions = 1
+		if(lPresentC) iOptions = 2
 		
 		! Read actual data
 		rewind(iLUN)
 		read(iLUN, "(a)") sBuffer	! Skip header line
 		do i = 1, iNumData
-			read(iLUN, *) &
-				this % rvTimeStamp(i), &
-				this % rvU(i), &
-				this % rvV(i), &
-				this % rvW(i), &
-				this % rvT(i)
+			if(iOptions == 0) then
+				read(iLUN, *) &
+					this % rvTimeStamp(i), &
+					this % rvU(i), &
+					this % rvV(i), &
+					this % rvW(i), &
+					this % rvT(i)
+			elseif(iOptions == 1) then
+				read(iLUN, *) &
+					this % rvTimeStamp(i), &
+					this % rvU(i), &
+					this % rvV(i), &
+					this % rvW(i), &
+					this % rvT(i), &
+					this % rvQ(i)
+			elseif(iOptions == 2) then
+				read(iLUN, *) &
+					this % rvTimeStamp(i), &
+					this % rvU(i), &
+					this % rvV(i), &
+					this % rvW(i), &
+					this % rvT(i), &
+					this % rvQ(i), &
+					this % rvC(i)
+			end if
 		end do
 		close(iLUN)
 		
