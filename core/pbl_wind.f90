@@ -1374,7 +1374,9 @@ contains
 		! Locals
 		integer	:: i
 		
-		! Scan data set, and count all totally valid records
+		! Scan data set, and count all totally valid records (count excludes invalid data
+		! in H2O and CO2, if present, since their acquistion process is in part independent
+		! on sonic anemometer)
 		iValid = 0
 		do i = 1, size(this % rvTimeStamp)
 			if( &
