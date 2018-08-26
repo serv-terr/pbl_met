@@ -1420,6 +1420,8 @@ contains
 		integer								:: iIndex
 		integer								:: iMaxBlock
 		integer								:: iNumBlocks
+		logical								:: lIsQ
+		logical								:: lIsC
 		real(8)								:: rBaseTime
 		integer, dimension(:), allocatable	:: ivNumData
 		real(8), dimension(:), allocatable	:: rvSumX
@@ -1511,6 +1513,26 @@ contains
 			rvSumEstU(iNumBlocks), rvSumEstV(iNumBlocks), rvSumEstW(iNumBlocks), rvSumEstT(iNumBlocks), &
 			rvEstU(n), rvEstV(n), rvEstW(n), rvEstT(n) &
 		)
+		lIsQ = allocated(this % rvQ)
+		if(lIsQ) then
+			allocate( &
+				rvSumQ(iNumBlocks), rvSumQQ(iNumBlocks), &
+				rvSumXQ(iNumBlocks), &
+				rvAlphaQ(iNumBlocks), rvBetaQ(iNumBlocks), &
+				rvSumEstQ(iNumBlocks), &
+				rvEstQ(n) &
+			)
+		end if
+		lIsC = allocated(this % rvC)
+		if(lIsC) then
+			allocate( &
+				rvSumC(iNumBlocks), rvSumCC(iNumBlocks), &
+				rvSumXC(iNumBlocks), &
+				rvAlphaC(iNumBlocks), rvBetaC(iNumBlocks), &
+				rvSumEstC(iNumBlocks), &
+				rvEstC(n) &
+			)
+		end if
 						
 		! Pre-assign time stamps
 		rBaseTime = real(floor(minval(this % rvTimeStamp, mask=.valid. this % rvTimeStamp) / iAveragingTime, kind=8) &
@@ -1532,6 +1554,16 @@ contains
 		rvSumXV   = 0.d0
 		rvSumXW   = 0.d0
 		rvSumXT   = 0.d0
+		if(lIsQ) then
+			rvSumQ  = 0.d0
+			rvSumQQ = 0.d0
+			rvSumXQ = 0.d0
+		end if
+		if(lIsC) then
+			rvSumC  = 0.d0
+			rvSumCC = 0.d0
+			rvSumXC = 0.d0
+		end if
 		do i = 1, size(ivTimeIndex)
 			if(ivTimeIndex(i) > 0) then
 				iIndex = ivTimeIndex(i)
