@@ -1422,6 +1422,7 @@ contains
 		integer								:: iNumBlocks
 		logical								:: lIsQ
 		logical								:: lIsC
+		logical								:: lValid
 		real(8)								:: rBaseTime
 		integer, dimension(:), allocatable	:: ivNumData
 		real(8), dimension(:), allocatable	:: rvSumX
@@ -1567,13 +1568,15 @@ contains
 		do i = 1, size(ivTimeIndex)
 			if(ivTimeIndex(i) > 0) then
 				iIndex = ivTimeIndex(i)
-				if( &
+				lValid = &
 					.valid. this % rvTimeStamp(i) .and. &
 					.valid. this % rvU(i) .and. &
 					.valid. this % rvV(i) .and. &
 					.valid. this % rvW(i) .and. &
-					.valid. this % rvT(i) &
-				) then
+					.valid. this % rvT(i)
+				if(lIsQ) lValid = lValid .and. .valid. this % rvQ(i)
+				if(lIsC) lValid = lValid .and. .valid. this % rvC(i)
+				if(lValid) then
 					! Update count
 					ivNumData(iIndex) = ivNumData(iIndex) + 1
 					! Update first order accumulators
@@ -1592,6 +1595,17 @@ contains
 					rvSumVV(iIndex) = rvSumVV(iIndex) + this % rvV(i) ** 2
 					rvSumWW(iIndex) = rvSumWW(iIndex) + this % rvW(i) ** 2
 					rvSumTT(iIndex) = rvSumTT(iIndex) + this % rvT(i) ** 2
+					! Update scalar accumulators
+					if(lIsQ) then
+						rvSumQ(iIndex)  = rvSumQ(iIndex) + this % rvQ(i)
+						rvSumXQ(iIndex) = rvSumXQ(iIndex) + this % rvTimeStamp(i) * this % rvQ(i)
+						rvSumQQ(iIndex) = rvSumQQ(iIndex) + this % rvQ(i) ** 2
+					end if
+					if(lIsC) then
+						rvSumC(iIndex)  = rvSumC(iIndex) + this % rvC(i)
+						rvSumXC(iIndex) = rvSumXC(iIndex) + this % rvTimeStamp(i) * this % rvC(i)
+						rvSumCC(iIndex) = rvSumCC(iIndex) + this % rvC(i) ** 2
+					end if
 				end if
 			end if
 		end do
@@ -1606,6 +1620,14 @@ contains
 			rvAlphaW(i) = (rvSumW(i) - rvBetaW(i) * rvSumX(i)) / ivNumData(i)
 			rvBetaT(i)  = (ivNumData(i)*rvSumXT(i) - rvSumX(i)*rvSumT(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
 			rvAlphaT(i) = (rvSumT(i) - rvBetaT(i) * rvSumX(i)) / ivNumData(i)
+			if(lIsQ) then
+				rvBetaQ(i)  = (ivNumData(i)*rvSumXQ(i) - rvSumX(i)*rvSumQ(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
+				rvAlphaQ(i) = (rvSumQ(i) - rvBetaQ(i) * rvSumX(i)) / ivNumData(i)
+			end if
+			if(lIsC) then
+				rvBetaC(i)  = (ivNumData(i)*rvSumXC(i) - rvSumX(i)*rvSumC(i)) / (ivNumData(i)*rvSumXX(i) - rvSumX(i)**2)
+				rvAlphaC(i) = (rvSumC(i) - rvBetaC(i) * rvSumX(i)) / ivNumData(i)
+			end if
 		end do
 		
 		! Estimate trend values and accumulate their sums
@@ -1613,16 +1635,20 @@ contains
 		rvSumEstV = 0.d0
 		rvSumEstW = 0.d0
 		rvSumEstT = 0.d0
+		if(lIsQ) rvSumEstQ = 0.d0
+		if(lIsC) rvSumEstC = 0.d0
 		do i = 1, size(ivTimeIndex)
 			if(ivTimeIndex(i) > 0) then
 				iIndex = ivTimeIndex(i)
-				if( &
+				lValid = &
 					.valid. this % rvTimeStamp(i) .and. &
 					.valid. this % rvU(i) .and. &
 					.valid. this % rvV(i) .and. &
 					.valid. this % rvW(i) .and. &
-					.valid. this % rvT(i) &
-				) then
+					.valid. this % rvT(i)
+				if(lIsQ) lValid = lValid .and. .valid. this % rvQ(i)
+				if(lIsC) lValid = lValid .and. .valid. this % rvC(i)
+				if(lValid) then
 					rvEstU(i) = rvAlphaU(iIndex) + rvBetaU(iIndex) * this % rvTimeStamp(i)
 					rvEstV(i) = rvAlphaV(iIndex) + rvBetaV(iIndex) * this % rvTimeStamp(i)
 					rvEstW(i) = rvAlphaW(iIndex) + rvBetaW(iIndex) * this % rvTimeStamp(i)
@@ -1631,11 +1657,21 @@ contains
 					rvSumEstV(iIndex) = rvSumEstV(iIndex) + rvEstV(i)
 					rvSumEstW(iIndex) = rvSumEstW(iIndex) + rvEstW(i)
 					rvSumEstT(iIndex) = rvSumEstT(iIndex) + rvEstT(i)
+					if(lIsQ) then
+						rvEstQ(i) = rvAlphaQ(iIndex) + rvBetaQ(iIndex) * this % rvTimeStamp(i)
+						rvSumEstQ(iIndex) = rvSumEstQ(iIndex) + rvEstQ(i)
+					end if
+					if(lIsC) then
+						rvEstC(i) = rvAlphaC(iIndex) + rvBetaC(iIndex) * this % rvTimeStamp(i)
+						rvSumEstC(iIndex) = rvSumEstC(iIndex) + rvEstC(i)
+					end if
 				else
 					rvEstU(i) = NaN_8
 					rvEstV(i) = NaN_8
 					rvEstW(i) = NaN_8
 					rvEstT(i) = NaN_8
+					if(lIsQ) rvEstQ(i) = NaN_8
+					if(lIsC) rvEstC(i) = NaN_8
 				end if
 			end if
 		end do
@@ -1644,17 +1680,21 @@ contains
 		do i = 1, size(ivTimeIndex)
 			if(ivTimeIndex(i) > 0) then
 				iIndex = ivTimeIndex(i)
-				if( &
+				lValid = &
 					.valid. this % rvTimeStamp(i) .and. &
 					.valid. this % rvU(i) .and. &
 					.valid. this % rvV(i) .and. &
 					.valid. this % rvW(i) .and. &
-					.valid. this % rvT(i) &
-				) then
+					.valid. this % rvT(i)
+				if(lIsQ) lValid = lValid .and. .valid. this % rvQ(i)
+				if(lIsC) lValid = lValid .and. .valid. this % rvC(i)
+				if(lValid) then
 					this % rvU(i) = this % rvU(i) - rvEstU(i) + rvSumEstU(iIndex) / ivNumData(iIndex)
 					this % rvV(i) = this % rvV(i) - rvEstV(i) + rvSumEstV(iIndex) / ivNumData(iIndex)
 					this % rvW(i) = this % rvW(i) - rvEstW(i) + rvSumEstW(iIndex) / ivNumData(iIndex)
 					this % rvT(i) = this % rvT(i) - rvEstT(i) + rvSumEstT(iIndex) / ivNumData(iIndex)
+					if(lIsQ) this % rvQ(i) = this % rvQ(i) - rvEstQ(i) + rvSumEstQ(iIndex) / ivNumData(iIndex)
+					if(lIsC) this % rvC(i) = this % rvC(i) - rvEstC(i) + rvSumEstC(iIndex) / ivNumData(iIndex)
 				end if
 			end if
 		end do
