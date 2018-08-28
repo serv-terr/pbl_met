@@ -143,6 +143,8 @@ module pbl_wind
 		integer, dimension(:), allocatable		:: ivNumSpikesV
 		integer, dimension(:), allocatable		:: ivNumSpikesW
 		integer, dimension(:), allocatable		:: ivNumSpikesT
+		integer, dimension(:), allocatable		:: ivNumSpikesQ
+		integer, dimension(:), allocatable		:: ivNumSpikesC
 	contains
 		procedure	:: clean			=> sc_Clean
 		procedure	:: reserve			=> sc_Allocate
