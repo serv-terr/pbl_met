@@ -1385,19 +1385,25 @@ contains
 		
 		! Locals
 		integer	:: i
+		logical :: lValid
+		logical :: lIsQ
+		logical :: lIsC
 		
-		! Scan data set, and count all totally valid records (count excludes invalid data
-		! in H2O and CO2, if present, since their acquistion process is in part independent
-		! on sonic anemometer)
+		! Scan data set, and count all totally valid records (count includes invalid data
+		! in H2O and CO2, if present)
 		iValid = 0
+		lIsQ = allocated(this % rvQ)
+		lIsC = allocated(this % rvC)
 		do i = 1, size(this % rvTimeStamp)
-			if( &
+			lValid = &
 				.valid. this % rvTimeStamp(i) .and. &
 				.valid. this % rvU(i) .and. &
 				.valid. this % rvV(i) .and. &
 				.valid. this % rvW(i) .and. &
-				.valid. this % rvT(i) &
-			) then
+				.valid. this % rvT(i)
+			if(lIsQ) lValid = lValid .and. .valid. this % rvQ(i)
+			if(lIsC) lValid = lValid .and. .valid. this % rvC(i)
+			if(lValid) then
 				iValid = iValid + 1
 			end if
 		end do
@@ -1884,10 +1890,14 @@ contains
 		real(8), dimension(:), allocatable	:: rvSumV
 		real(8), dimension(:), allocatable	:: rvSumW
 		real(8), dimension(:), allocatable	:: rvSumT
+		real(8), dimension(:), allocatable	:: rvSumQ
+		real(8), dimension(:), allocatable	:: rvSumC
 		real(8), dimension(:), allocatable	:: rvSumUU
 		real(8), dimension(:), allocatable	:: rvSumVV
 		real(8), dimension(:), allocatable	:: rvSumWW
 		real(8), dimension(:), allocatable	:: rvSumTT
+		real(8), dimension(:), allocatable	:: rvSumQQ
+		real(8), dimension(:), allocatable	:: rvSumCC
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
