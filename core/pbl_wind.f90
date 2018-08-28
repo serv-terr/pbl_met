@@ -1880,6 +1880,8 @@ contains
 		real(8), dimension(:), allocatable	:: rvAggregTimeStamp
 		integer								:: i
 		integer								:: n
+		logical								:: lIsQ
+		logical								:: lIsC
 		integer								:: iIndex
 		integer								:: iMaxBlock
 		integer								:: iNumBlocks
@@ -1947,6 +1949,18 @@ contains
 			rvSumU(iNumBlocks), rvSumV(iNumBlocks), rvSumW(iNumBlocks), rvSumT(iNumBlocks), &
 			rvSumUU(iNumBlocks), rvSumVV(iNumBlocks), rvSumWW(iNumBlocks), rvSumTT(iNumBlocks) &
 		)
+		lIsQ = allocated(this % rvQ)
+		if(lIsQ) then
+			allocate( &
+				rvSumQ(iNumBlocks), rvSumQQ(iNumBlocks) &
+			)
+		end if
+		lIsC = allocated(this % rvC)
+		if(lIsC) then
+			allocate( &
+				rvSumC(iNumBlocks), rvSumCC(iNumBlocks) &
+			)
+		end if
 		if(present(tSpikeCounts)) then
 			iErrCode = tSpikeCounts % clean()
 			if(iErrCode /= 0) then
