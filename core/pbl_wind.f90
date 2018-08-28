@@ -1706,7 +1706,7 @@ contains
 				iRetCode = 6
 				return
 			end if
-			iErrCode = tTrend % reserve(iMaxBlock)
+			iErrCode = tTrend % reserve(iMaxBlock, lIsQ, lIsC)
 			if(iErrCode /= 0) then
 				iRetCode = 6
 				return
@@ -1723,6 +1723,14 @@ contains
 				tTrend % rvBetaV(i)   = rvBetaV(i)
 				tTrend % rvBetaW(i)   = rvBetaW(i)
 				tTrend % rvBetaT(i)   = rvBetaT(i)
+				if(lIsQ) then
+					tTrend % rvAlphaQ(i) = rvAlphaQ(i)
+					tTrend % rvBetaQ(i)  = rvBetaQ(i)
+				end if
+				if(lIsC) then
+					tTrend % rvAlphaC(i) = rvAlphaC(i)
+					tTrend % rvBetaC(i)  = rvBetaC(i)
+				end if
 				
 				! Compute diagnostic values
 				n = ivNumData(i)
@@ -1746,18 +1754,42 @@ contains
 						n * rvSumTT(i) - rvSumT(i)**2 - &
 						rvBetaT(i)**2 * (n * rvSumXX(i) - rvSumX(i)**2) &
 					)
+					if(lIsQ) then
+						tTrend % rvS2epsQ(i) = rEpsFact * ( &
+							n * rvSumQQ(i) - rvSumQ(i)**2 - &
+							rvBetaQ(i)**2 * (n * rvSumXX(i) - rvSumX(i)**2) &
+						)
+					end if
+					if(lIsC) then
+						tTrend % rvS2epsC(i) = rEpsFact * ( &
+							n * rvSumCC(i) - rvSumC(i)**2 - &
+							rvBetaC(i)**2 * (n * rvSumXX(i) - rvSumX(i)**2) &
+						)
+					end if
 					
 					! Compute slope squared sigmas
 					tTrend % rvS2betaU(i) = n*tTrend % rvS2epsU(i) / (n*rvSumXX(i) - rvSumX(i)**2)
 					tTrend % rvS2betaV(i) = n*tTrend % rvS2epsV(i) / (n*rvSumXX(i) - rvSumX(i)**2)
 					tTrend % rvS2betaW(i) = n*tTrend % rvS2epsW(i) / (n*rvSumXX(i) - rvSumX(i)**2)
 					tTrend % rvS2betaT(i) = n*tTrend % rvS2epsT(i) / (n*rvSumXX(i) - rvSumX(i)**2)
+					if(lIsQ) then
+						tTrend % rvS2betaQ(i) = n*tTrend % rvS2epsQ(i) / (n*rvSumXX(i) - rvSumX(i)**2)
+					end if
+					if(lIsC) then
+						tTrend % rvS2betaC(i) = n*tTrend % rvS2epsC(i) / (n*rvSumXX(i) - rvSumX(i)**2)
+					end if
 					
 					! Compute intercept squared sigmas
 					tTrend % rvS2alphaU(i) = tTrend % rvS2betaU(i) * rvSumXX(i) / n
 					tTrend % rvS2alphaV(i) = tTrend % rvS2betaV(i) * rvSumXX(i) / n
 					tTrend % rvS2alphaW(i) = tTrend % rvS2betaW(i) * rvSumXX(i) / n
 					tTrend % rvS2alphaT(i) = tTrend % rvS2betaT(i) * rvSumXX(i) / n
+					if(lIsQ) then
+						tTrend % rvS2alphaQ(i) = tTrend % rvS2betaQ(i) * rvSumXX(i) / n
+					end if
+					if(lIsC) then
+						tTrend % rvS2alphaC(i) = tTrend % rvS2betaC(i) * rvSumXX(i) / n
+					end if
 						
 				else
 				
@@ -1776,6 +1808,18 @@ contains
 					tTrend % rvS2betaW(i) = NaN_8
 					tTrend % rvS2betaT(i) = NaN_8
 					
+					if(lIsQ) then
+						tTrend % rvS2epsQ(i)   = NaN_8
+						tTrend % rvS2alphaQ(i) = NaN_8
+						tTrend % rvS2betaQ(i)  = NaN_8
+					end if
+					
+					if(lIsC) then
+						tTrend % rvS2epsC(i)   = NaN_8
+						tTrend % rvS2alphaC(i) = NaN_8
+						tTrend % rvS2betaC(i)  = NaN_8
+					end if
+					
 				end if
 			end do
 		end if
@@ -1789,6 +1833,24 @@ contains
 			rvSumEstU, rvSumEstV, rvSumEstW, rvSumEstT, &
 			rvEstU, rvEstV, rvEstW, rvEstT &
 		)
+		if(lIsQ) then
+			deallocate( &
+				rvSumQ, rvSumQQ, &
+				rvSumXQ, &
+				rvAlphaQ, rvBetaQ, &
+				rvSumEstQ, &
+				rvEstQ &
+			)
+		end if
+		if(lIsC) then
+			deallocate( &
+				rvSumC, rvSumCC, &
+				rvSumXC, &
+				rvAlphaC, rvBetaC, &
+				rvSumEstC, &
+				rvEstC &
+			)
+		end if
 		
 	end function sd_RemoveTrend
 	
