@@ -2378,15 +2378,19 @@ contains
 		if(allocated(this % ivNumSpikesV))  deallocate(this % ivNumSpikesV)
 		if(allocated(this % ivNumSpikesW))  deallocate(this % ivNumSpikesW)
 		if(allocated(this % ivNumSpikesT))  deallocate(this % ivNumSpikesT)
+		if(allocated(this % ivNumSpikesQ))  deallocate(this % ivNumSpikesQ)
+		if(allocated(this % ivNumSpikesC))  deallocate(this % ivNumSpikesC)
 		
 	end function sc_Clean
 	
 	
-	function sc_Allocate(this, iNumData) result(iRetCode)
+	function sc_Allocate(this, iNumData, lAlsoQ, lAlsoC) result(iRetCode)
 	
 		! Routine arguments
 		class(SpikeCounts), intent(inout)	:: this
 		integer, intent(in)					:: iNumData
+		logical, intent(in), optional		:: lAlsoQ
+		logical, intent(in), optional		:: lAlsoC
 		integer								:: iRetCode
 		
 		! Locals
@@ -2406,6 +2410,16 @@ contains
 		this % ivNumSpikesV = 0
 		this % ivNumSpikesW = 0
 		this % ivNumSpikesT = 0
+		
+		! H2O case
+		if(lAlsoQ) then
+			allocate(this % ivNumSpikesQ(iNumData))
+			this % ivNumSpikesQ = 0
+		end if
+		if(lAlsoC) then
+			allocate(this % ivNumSpikesC(iNumData))
+			this % ivNumSpikesC = 0
+		end if
 		
 	end function sc_Allocate
 	
