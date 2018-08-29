@@ -1,5 +1,5 @@
 ! Module usa1 - Access to Metek ultrasonic anemometer data, as prepared by the
-! WindRecorder data logger, by Servizi Territorio srl.
+! WindRecorder and MeteoFlux Core V2 data loggers, by Servizi Territorio srl.
 !
 ! This module is part of the pbl_met library.
 !
@@ -22,11 +22,15 @@ module usa1
 	public	:: DE_FIRST
 	public	:: DE_NEXT
 	public	:: DE_ERR
+	public	:: LOGGER_WINDRECORDER
+	public	:: LOGGER_METEOFLUXCORE_V2
 	
 	! Constants
 	integer, parameter	:: DE_FIRST = 0
 	integer, parameter	:: DE_NEXT  = 1
 	integer, parameter	:: DE_ERR   = 2
+	integer, parameter	:: LOGGER_WINDRECORDER     = 1
+	integer, parameter	:: LOGGER_METEOFLUXCORE_V2 = 2
 	
 	! Data types
 	
@@ -53,7 +57,7 @@ module usa1
 	
 contains
 
-	function up_MapFiles(this, sDataPath, rTimeBase, iNumHours, lHasSubdirs) result(iRetCode)
+	function up_MapFiles(this, sDataPath, rTimeBase, iNumHours, lHasSubdirs, iLoggerType) result(iRetCode)
 	
 		! Routine arguments
 		class(Usa1DataDir), intent(inout)	:: this
@@ -61,10 +65,12 @@ contains
 		real(8), intent(in)					:: rTimeBase
 		integer, intent(in)					:: iNumHours
 		logical, intent(in)					:: lHasSubdirs
+		integer, intent(in), optional		:: iLoggerType	! May be LOGGER_WINDRECORDER (default) or LOGGER_METEOFLUXCORE_V2 (in which case data are assumed to be uncompressed)
 		integer								:: iRetCode
 		
 		! Locals
 		integer				:: iErrCode
+		integer				:: iDataLogger
 		integer				:: iHour
 		real(8)				:: rCurTime
 		type(DateTime)		:: tDt
@@ -80,6 +86,15 @@ contains
 		if(.invalid.rTimeBase .or. iNumHours <= 0 .or. rTimeBase < 0.d0) then
 			iRetCode = 1
 			return
+		end if
+		if(present(iLoggerType)) then
+			if(iLoggerType <= 0 .or. iLoggerType > 2) then
+				iRetCode = 2
+				return
+			end if
+			iDataLogger = iLoggerType
+		else
+			iDataLogger = LOGGER_WINDRECORDER
 		end if
 		
 		! Ensure the time base is aligned to an hour
@@ -103,15 +118,28 @@ contains
 			end if
 			
 			! Compose file name according to WindRecorder convention
-			if(this % lHasSubdirs) then
-				write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2)") &
-					trim(sDataPath), &
-					tDt % iYear, tDt % iMonth, &
-					tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
-			else
-				write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2)") &
-					trim(sDataPath), &
-					tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+			if(iDataLogger == LOGGER_WINDRECORDER) then
+				if(this % lHasSubdirs) then
+					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2)") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				else
+					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2)") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				end if
+			elseif(iDataLogger == LOGGER_METEOFLUXCORE_V2) then
+				if(this % lHasSubdirs) then
+					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2, 'R')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				else
+					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2, 'R')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				end if
 			end if
 			
 			! Check expected file exists and update map size
@@ -140,16 +168,29 @@ contains
 				return
 			end if
 			
-			! Compose file name according to WindRecorder convention
-			if(this % lHasSubdirs) then
-				write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2)") &
-					trim(sDataPath), &
-					tDt % iYear, tDt % iMonth, &
-					tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
-			else
-				write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2)") &
-					trim(sDataPath), &
-					tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+			! Compose file name according to the appropriate convention
+			if(iDataLogger == LOGGER_WINDRECORDER) then
+				if(this % lHasSubdirs) then
+					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2)") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				else
+					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2)") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				end if
+			elseif(iDataLogger == LOGGER_METEOFLUXCORE_V2) then
+				if(this % lHasSubdirs) then
+					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2, 'R')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				else
+					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2, 'R')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				end if
 			end if
 			
 			! Check expected file exists and update map size
