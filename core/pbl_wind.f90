@@ -94,6 +94,7 @@ module pbl_wind
 		procedure	:: getVectors       => sd_GetVectors
 		procedure	:: readSonicLib		=> sd_ReadSonicLib
 		procedure	:: readWindRecorder	=> sd_ReadWindRecorder
+		procedure	:: readMeteoFlux	=> sd_ReadMeteoFluxCoreUncompressed
 		procedure	:: size				=> sd_Size
 		procedure	:: valid			=> sd_Valid
 		procedure	:: removeTrend		=> sd_RemoveTrend
@@ -1357,6 +1358,241 @@ contains
 		
 	end function sd_ReadWindRecorder
 	
+	
+	! Decode an uncompressed MFC V2 raw data file
+	function sd_ReadMeteoFluxCoreUncompressed( &
+		this, &
+		iLUN, &
+		sFileName, &
+		iIndexQ, &
+		rMultiplierQ, &
+		rOffsetQ, &
+		iIndexC, &
+		rMultiplierC, &
+		rOffsetC, &
+		iDelayLag &
+	) result(iRetCode)
+
+		! Routine arguments
+		class(SonicData), intent(out)	:: this
+		integer, intent(in)				:: iLUN
+		character(len=*), intent(in)	:: sFileName
+		integer, intent(in), optional	:: iIndexQ
+		real, intent(in), optional		:: rMultiplierQ
+		real, intent(in), optional		:: rOffsetQ
+		integer, intent(in), optional	:: iIndexC
+		real, intent(in), optional		:: rMultiplierC
+		real, intent(in), optional		:: rOffsetC
+		integer, intent(in), optional	:: iDelayLag
+		integer							:: iRetCode
+		
+		! Locals
+		integer				:: iErrCode
+		type(DateTime)		:: tDt
+		integer				:: iYear, iMonth, iDay, iHour
+		real(8)				:: rBaseTime
+		logical				:: isFile
+		integer(2)			:: timeStamp, c1, c2, c3, c4
+		integer				:: iNumQuadruples
+		real, dimension(14)	:: dataLine
+		logical				:: somePreviousData
+		integer				:: iNumUnexpected
+		integer				:: iData
+		integer				:: iLen
+		logical				:: lIsQ
+		logical				:: lIsC
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check input file exists
+		inquire(file=sFileName, exist=isFile)
+		if(.not.isFile) then
+			iRetCode = 1
+			return
+		end if
+		lIsQ = present(iIndexQ) .and. present(rMultiplierQ) .and. present(rOffsetQ)
+		lIsC = present(iIndexC) .and. present(rMultiplierC) .and. present(rOffsetC)
+		if(lIsQ) then
+			if(iIndexQ <= 4 .or. iIndexQ > 14) then
+				iRetCode = 2
+				return
+			end if
+		end if
+		if(lIsC) then
+			if(iIndexC <= 4 .or. iIndexC > 14) then
+				iRetCode = 3
+				return
+			end if
+		end if
+		if(lIsQ .and. lIsC) then
+			if(iIndexQ == iIndexC) then
+				iRetCode = 4
+				return
+			end if
+		end if
+		if(present(iDelayLag)) then
+			if(iDelayLag < 0) then
+				iRetCode = 5
+				return
+			end if
+		end if
+		
+		! Get time information from file name, and construct base time stamp from it
+		iLen = len_trim(sFileName)
+		if(iLen < 12) then
+			iRetCode = 6
+			return
+		end if
+		read(sFileName(iLen-11:), "(i4,2i2,1x,i2)") iYear, iMonth, iDay, iHour
+		tDt = DateTime(iYear, iMonth, iDay, iHour, 0, 0.d0)
+		rBaseTime = tDt % toEpoch()
+		
+		! Access data file and count how many sonic quadruples are contained within of it;
+		! use this data piece to reserve workspace
+		open(iLUN, file=sFileName, status='old', action='read', access='stream', iostat=iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 7
+			return
+		end if
+		iNumQuadruples = 0
+		do
+			read(iLUN, iostat=iErrCode) timeStamp, c1, c2, c3, c4
+			if(iErrCode /= 0) exit
+			if(timeStamp / 5000 <= 0) iNumQuadruples = iNumQuadruples + 1
+		end do
+		if(iNumQuadruples <= 0) then
+			iRetCode = 8
+			return
+		end if
+		if(ALLOCATED(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(ALLOCATED(this % rvU))         deallocate(this % rvU)
+		if(ALLOCATED(this % rvV))         deallocate(this % rvV)
+		if(ALLOCATED(this % rvW))         deallocate(this % rvW)
+		if(ALLOCATED(this % rvT))         deallocate(this % rvT)
+		if(ALLOCATED(this % rvQ))         deallocate(this % rvQ)
+		if(ALLOCATED(this % rvC))         deallocate(this % rvC)
+		allocate(this % rvTimeStamp(iNumQuadruples))
+		allocate(this % rvU(iNumQuadruples))
+		allocate(this % rvV(iNumQuadruples))
+		allocate(this % rvW(iNumQuadruples))
+		allocate(this % rvT(iNumQuadruples))
+		allocate(this % rvQ(iNumQuadruples))
+		allocate(this % rvC(iNumQuadruples))
+		this % rvTimeStamp = NaN_8
+		this % rvU         = NaN
+		this % rvV         = NaN
+		this % rvW         = NaN
+		this % rvT         = NaN
+		this % rvQ         = NaN
+		this % rvC         = NaN
+		
+		! Decode the data just counted in file
+		rewind(iLUN)
+		iData            = 0
+		iNumUnexpected   = 0
+		dataLine         = NaN
+		somePreviousData = .false.
+		do
+			read(iLUN, iostat=iErrCode) timeStamp, c1, c2, c3, c4
+			if(iErrCode /= 0) exit
+			select case(timeStamp / 5000)
+			case(0)	! Sonic quadruple
+
+				! Save previous data line, if it exists
+				if(somePreviousData) then
+					iData                      = iData + 1
+					this % rvTimeStamp(iData)  = mod(timeStamp, 5000) + rBaseTime
+					this % rvU(iData)          = dataLine(1)
+					this % rvV(iData)          = dataLine(2)
+					this % rvW(iData)          = dataLine(3)
+					this % rvT(iData)          = dataLine(4)
+					if(lIsQ) this % rvQ(iData) = dataLine(iIndexQ) * rMultiplierQ + rOffsetQ
+					if(lIsC) this % rvC(iData) = dataLine(iIndexC) * rMultiplierC + rOffsetC
+					dataLine                   = NaN
+				end if
+
+				! Sonic quadruple
+				dataLine(1) = c1 / 100.0
+				dataLine(2) = c2 / 100.0
+				dataLine(3) = c3 / 100.0
+				dataLine(4) = c4 / 100.0
+
+				! Notify a data line now exists
+				somePreviousData = .true.
+
+			case(1)	! Analog block 1
+			
+				dataLine(5) = c1
+				dataLine(6) = c2
+				dataLine(7) = c3
+				dataLine(8) = c4
+
+			case(2)	! Analog block 2
+
+				dataLine( 9) = c1
+				dataLine(10) = c2
+				dataLine(11) = c3
+				dataLine(12) = c4
+
+			case(3)	! Counters
+
+				dataLine(13) = c1
+				dataLine(14) = c2
+
+			case default	! Unexpected
+			
+				iNumUnexpected = iNumUnexpected + 1
+
+			end select
+		end do
+		
+		! Save last (pending) data and release file connection
+		iData = iData + 1
+		if(iData > iNumQuadruples) then
+			close(iLUN)
+			iRetCode = 9
+			return
+		end if
+		this % rvTimeStamp(iData)  = MOD(timeStamp, 5000) + rBaseTime
+		this % rvU(iData)          = dataLine(1)
+		this % rvV(iData)          = dataLine(2)
+		this % rvW(iData)          = dataLine(3)
+		this % rvT(iData)          = dataLine(4)
+		if(lIsQ) this % rvQ(iData) = dataLine(iIndexQ) * rMultiplierQ + rOffsetQ
+		if(lIsC) this % rvC(iData) = dataLine(iIndexC) * rMultiplierC + rOffsetC
+		close(iLUN)
+		
+		! Clean out H2O and CO2 vectors, whichever containing no valid data
+		if(count(.valid. this % rvQ) <= 0) deallocate(this % rvQ)
+		if(count(.valid. this % rvC) <= 0) deallocate(this % rvC)
+		if(allocated(this % rvC) .and. .not.allocated(this % rvQ)) then
+			iRetCode = 10
+			return
+		end if
+		
+		! Apply the specified delay to H2O and CO2
+		if(present(iDelayLag)) then
+			if(lIsQ) then
+				do iData = 1, size(this % rvQ) - iDelayLag
+					this % rvQ(iData) = this % rvQ(iData + iDelayLag)
+				end do
+				if(iDelayLag > 0) then
+					this % rvQ(size(this % rvQ) - iDelayLag + 1:) = NaN
+				end if
+			end if
+			if(lIsC) then
+				do iData = 1, size(this % rvC) - iDelayLag
+					this % rvC(iData) = this % rvC(iData + iDelayLag)
+				end do
+				if(iDelayLag > 0) then
+					this % rvC(size(this % rvC) - iDelayLag + 1:) = NaN
+				end if
+			end if
+		end if
+		
+	end function sd_ReadMeteoFluxCoreUncompressed
+
 	
 	function sd_Size(this) result(iSize)
 	
