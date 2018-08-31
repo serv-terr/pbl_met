@@ -20,6 +20,12 @@ module pbl_time
 	public	:: DELTA_1_HOUR
 	public	:: DELTA_8_HOURS
 	public	:: DELTA_1_DAY
+	public	:: CLP_YEAR
+	public	:: CLP_MONTH
+	public	:: CLP_DAY
+	public	:: CLP_HOUR
+	public	:: CLP_MINUTE
+	public	:: CLP_SECOND
 	! 1. Date and time management
 	public	:: JulianDay					! Integer-valued Julian day
 	public	:: UnpackDate					! Inverse of integer-valued Julian day
@@ -48,6 +54,12 @@ module pbl_time
 	integer, parameter	:: DELTA_1_HOUR  = 3600
 	integer, parameter	:: DELTA_8_HOURS = DELTA_1_HOUR * 8
 	integer, parameter	:: DELTA_1_DAY   = DELTA_1_HOUR * 24
+	integer, parameter	:: CLP_YEAR      = 1
+	integer, parameter	:: CLP_MONTH     = 2
+	integer, parameter	:: CLP_DAY       = 3
+	integer, parameter	:: CLP_HOUR      = 4
+	integer, parameter	:: CLP_MINUTE    = 5
+	integer, parameter	:: CLP_SECOND    = 6
 	
 	! Data types
 	type DateTime
@@ -653,29 +665,106 @@ contains
     end function dtFromEpoch
     
 
-    function dtToEpoch(this) result(rEpoch)
+    function dtToEpoch(this, iClipping) result(rEpoch)
 
         ! Routine arguments
         class(DateTime), intent(in)		:: this
+        integer, intent(in), optional	:: iClipping
         real(8)							:: rEpoch
 
         ! Locals
         integer    :: iJulianDay
         integer(8) :: iJulianSecond
+        integer    :: iClip
         
         ! Check input parameters for validity
         if(.not. .sensible. this) then
             rEpoch = NaN_8
             return
         end if
+        if(present(iClipping)) then
+        	if(iClipping < CLP_YEAR .or. iClipping > CLP_SECOND) then
+        		rEpoch = NaN_8
+        		return
+        	end if
+        	iClip = iClipping
+        else
+        	iClip = 0
+        end if
+        
+        ! Dispatch processing
+        select case(iClip)
+        case(0)	! No clipping (default)
 
-        ! Compute based Julian day
-        iJulianDay = JulianDay(this % iYear, this % iMonth, this % iDay) - BASE_DAY
+	        ! Compute based Julian day
+	        iJulianDay = JulianDay(this % iYear, this % iMonth, this % iDay) - BASE_DAY
 
-        ! Convert based Julian day to second, and add seconds from time,
-        ! regardless of hour type.
-        iJulianSecond = iJulianDay * 24_8 * 3600_8
-        rEpoch = iJulianSecond + this % rSecond + 60_4*(this % iMinute + 60_4*this % iHour)
+	        ! Convert based Julian day to second, and add seconds from time,
+	        ! regardless of hour type.
+	        iJulianSecond = iJulianDay * 24_8 * 3600_8
+	        rEpoch = iJulianSecond + this % rSecond + 60_4*(this % iMinute + 60_4*this % iHour)
+
+        case(CLP_YEAR)
+
+	        ! Compute based Julian day
+	        iJulianDay = JulianDay(this % iYear, 1, 1) - BASE_DAY
+
+	        ! Convert based Julian day to second, and add seconds from time,
+	        ! regardless of hour type.
+	        iJulianSecond = iJulianDay * 24_8 * 3600_8
+	        rEpoch = iJulianSecond
+
+        case(CLP_MONTH)
+
+	        ! Compute based Julian day
+	        iJulianDay = JulianDay(this % iYear, this % iMonth, 1) - BASE_DAY
+
+	        ! Convert based Julian day to second, and add seconds from time,
+	        ! regardless of hour type.
+	        iJulianSecond = iJulianDay * 24_8 * 3600_8
+	        rEpoch = iJulianSecond
+
+        case(CLP_DAY)
+
+	        ! Compute based Julian day
+	        iJulianDay = JulianDay(this % iYear, this % iMonth, this % iDay) - BASE_DAY
+
+	        ! Convert based Julian day to second, and add seconds from time,
+	        ! regardless of hour type.
+	        iJulianSecond = iJulianDay * 24_8 * 3600_8
+	        rEpoch = iJulianSecond
+
+        case(CLP_HOUR)
+
+	        ! Compute based Julian day
+	        iJulianDay = JulianDay(this % iYear, this % iMonth, this % iDay) - BASE_DAY
+
+	        ! Convert based Julian day to second, and add seconds from time,
+	        ! regardless of hour type.
+	        iJulianSecond = iJulianDay * 24_8 * 3600_8
+	        rEpoch = iJulianSecond + 60_4*(60_4*this % iHour)
+
+        case(CLP_MINUTE)
+
+	        ! Compute based Julian day
+	        iJulianDay = JulianDay(this % iYear, this % iMonth, this % iDay) - BASE_DAY
+
+	        ! Convert based Julian day to second, and add seconds from time,
+	        ! regardless of hour type.
+	        iJulianSecond = iJulianDay * 24_8 * 3600_8
+	        rEpoch = iJulianSecond + 60_4*(this % iMinute + 60_4*this % iHour)
+
+        case(CLP_SECOND)
+
+	        ! Compute based Julian day
+	        iJulianDay = JulianDay(this % iYear, this % iMonth, this % iDay) - BASE_DAY
+
+	        ! Convert based Julian day to second, and add seconds from time,
+	        ! regardless of hour type.
+	        iJulianSecond = iJulianDay * 24_8 * 3600_8
+	        rEpoch = iJulianSecond + int(this % rSecond, kind=8) + 60_4*(this % iMinute + 60_4*this % iHour)
+
+        end select
 
     end function dtToEpoch
 
