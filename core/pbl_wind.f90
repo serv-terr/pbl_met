@@ -95,6 +95,7 @@ module pbl_wind
 		procedure	:: readSonicLib		=> sd_ReadSonicLib
 		procedure	:: readWindRecorder	=> sd_ReadWindRecorder
 		procedure	:: readMeteoFlux	=> sd_ReadMeteoFluxCoreUncompressed
+		procedure	:: writeSonicLib	=> sd_WriteSonicLib
 		procedure	:: size				=> sd_Size
 		procedure	:: valid			=> sd_Valid
 		procedure	:: removeTrend		=> sd_RemoveTrend
@@ -1592,6 +1593,91 @@ contains
 		end if
 		
 	end function sd_ReadMeteoFluxCoreUncompressed
+	
+	
+	function sd_WriteSonicLib(this, iLUN, sFileName) result(iRetCode)
+	
+		! Routine arguments
+		class(SonicData), intent(in)	:: this
+		integer, intent(in)				:: iLUN
+		character(len=*), intent(in)	:: sFileName
+		integer							:: iRetCode
+		
+		! Locals
+		integer			:: iErrCode
+		logical			:: lIsQ
+		logical			:: lAreBoth
+		integer			:: i
+		real(8)			:: rBaseTime
+		type(DateTime)	:: tDt
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check run type
+		if(allocated(this % rvQ)) then
+			lIsQ = .true.
+			if(allocated(this % rvC)) then
+				lAreBoth = .true.
+			else
+				lAreBoth = .false.
+			end if
+		else
+			lIsQ = .false.
+		end if
+		
+		! Compute base time
+		rBaseTime = minval(this % rvTimeStamp)
+		iErrCode = tDt % fromEpoch(rBaseTime)
+		if(iErrCode /= 0) then
+			iRetCode = 1
+			return
+		end if
+		rBaseTime = tDt % toEpoch(CLP_HOUR)
+		
+		! Perform actual write to SonicLib file
+		open(iLUN, file=sFileName, status="old", action="read", iostat=iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(.not.lIsQ) then
+			write(iLUN, "('time.stamp, u, v, w, t')")
+			do i = 1, size(this % rvTimeStamp)
+				write(iLUN, "(f8.3,4(',',f6.2))") &
+					this % rvTimeStamp(i) - rBaseTime, &
+					this % rvU(i), &
+					this % rvV(i), &
+					this % rvW(i), &
+					this % rvT(i)
+			end do
+		elseif(lIsQ .and..not.lAreBoth) then
+			write(iLUN, "('time.stamp, u, v, w, t, q')")
+			do i = 1, size(this % rvTimeStamp)
+				write(iLUN, "(f8.3,4(',',f6.2),',',e15.7)") &
+					this % rvTimeStamp(i) - rBaseTime, &
+					this % rvU(i), &
+					this % rvV(i), &
+					this % rvW(i), &
+					this % rvT(i), &
+					this % rvQ(i)
+			end do
+		else
+			write(iLUN, "('time.stamp, u, v, w, t, q, c')")
+			do i = 1, size(this % rvTimeStamp)
+				write(iLUN, "(f8.3,4(',',f6.2),2(',',e15.7))") &
+					this % rvTimeStamp(i) - rBaseTime, &
+					this % rvU(i), &
+					this % rvV(i), &
+					this % rvW(i), &
+					this % rvT(i), &
+					this % rvQ(i), &
+					this % rvC(i)
+			end do
+		end if
+		close(iLUN)
+		
+	end function sd_WriteSonicLib
 
 	
 	function sd_Size(this) result(iSize)
