@@ -19,16 +19,28 @@ module pbl_simil
     ! 0.Constants
     public	:: USTAR_PERMISSIVE
     public	:: USTAR_FINICKY
+    public	:: MTD_BUSINGER
+    public	:: MTD_VANULDEN_HOLTSLAG
+    public	:: MTD_BELIJAARS_HOLTSLAG
+    public	:: MTD_CARL
     ! 1.Turbulence
     public	:: FrictionVelocity
     public	:: SensibleHeatFlux
     public	:: WindCorrelation
     ! 2.Stability
+    ! 3.Universal similarity functions
+    public	:: psih
+    public	:: psim
     
     ! Constants (please do not change)
     
     integer, parameter	:: USTAR_PERMISSIVE = 0
     integer, parameter	:: USTAR_FINICKY    = 1
+    
+    integer, parameter	:: MTD_BUSINGER           = 1
+    integer, parameter	:: MTD_VANULDEN_HOLTSLAG  = 2
+    integer, parameter	:: MTD_BELIJAARS_HOLTSLAG = 3
+    integer, parameter	:: MTD_CARL               = 4
     
 contains
 
@@ -185,5 +197,134 @@ contains
 		end do
 		
 	end function WindCorrelation
+	
+	
+	function psih(zr, L, method) result(rPsiH)
+	
+		! Routine arguments
+		real, intent(in)				:: zr		! Reference height (m)
+		real, intent(in)				:: L		! Obukhov length (m)
+		integer, intent(in), optional	:: method	! Method for stable part (MTD_BUSINGER: Businger; MTD_VANULDEN_HOLTSLAG:van Ulden-Holtslag, default; MTD_BELIJAARS_HOLTSLAG:Belijaars-Holtslag)
+		real							:: rPsiH
+		
+		! Locals
+		real	:: S	! Stability parameter at height 'zr'
+		real	:: y
+		real	:: exz
+		real	:: c1
+		real	:: c2
+		real	:: c3
+		integer	:: iMethod
+		
+		! Check something can be made
+		rPsiH = NaN
+		if(L /= 0.0) return
+		S     = zr/L
+		
+		! Compute the desired quantity
+		if(L < 0.) then
+		
+			! Convective part by Businger relation
+			y = sqrt(1.-16.*S)
+			rPsiH = 2.*alog((1.+y)/2.)
+			
+		else
+		
+			! Assign actual method
+			if(present(method)) then
+				iMethod = method
+			else
+				iMethod = MTD_VANULDEN_HOLTSLAG
+			end if
+			
+			! Perform computing
+			select case(iMethod)
+			case(MTD_BUSINGER)
+				rPsiH = -5. * S
+			case(MTD_VANULDEN_HOLTSLAG)
+				rPsiH = -17. * (1.-exp(-0.29*S))
+			case(MTD_BELIJAARS_HOLTSLAG)
+				exz = exp(-0.35*S)
+				c1  = 1.+0.666667*S
+				c2  = S-5./0.35
+				c3  = 0.667*5./0.35
+				rPsiH = -c1**1.5 - 0.667*c2*exz - c3 + 1.
+			end select
+		
+		end if
+		
+	end function psih
     
+
+	function psim(zr, L, stableMethod, convectiveMethod) result(rPsiM)
+	
+		! Routine arguments
+		real, intent(in)				:: zr				! Reference height (m)
+		real, intent(in)				:: L				! Obukhov length (m)
+		integer, intent(in), optional	:: stableMethod		! Method for stable part (MTD_BUSINGER: Businger; MTD_VANULDEN_HOLTSLAG:van Ulden-Holtslag, default; MTD_BELIJAARS_HOLTSLAG:Belijaars-Holtslag)
+		integer, intent(in), optional	:: convectiveMethod	! Method for convective part (MTD_BUSINGER: Businger, default; MTD_VANULDEN_HOLTSLAG:van Ulden-Holtslag; MTD_CARL:Carl)
+		real							:: rPsiM
+		
+		! Locals
+		real	:: S	! Stability parameter at height 'zr'
+		real	:: x
+		integer	:: iMethodStable
+		integer	:: iMethodConvective
+		
+		! Constant
+		real, parameter :: a = 0.7
+		real, parameter :: b = 0.75
+		real, parameter :: c = 5.
+		real, parameter :: d = 0.35
+		
+		! Check something can be made
+		rPsiM = NaN
+		if(L /= 0.0) return
+		S     = zr/L
+		
+		! Compute the desired quantity
+		if(L < 0.) then ! Convective part
+		
+			! Assign actual method
+			if(present(convectiveMethod)) then
+				iMethodConvective = convectiveMethod
+			else
+				iMethodConvective = MTD_BUSINGER
+			end if
+			
+			! Perform computing
+			select case(iMethodConvective)
+			case(MTD_BUSINGER)
+				x    = (1.-16.*S)**0.25
+				rPsiM = log((1.+x*x)/2.*((1.+x)/2.)**2) - 2.*atan(x) + 1.570796
+			case(MTD_VANULDEN_HOLTSLAG)
+				rPsiM = (1.-16.*S)**0.25 - 1.
+			case(MTD_BELIJAARS_HOLTSLAG)
+				x      = (1.-16.*S)**0.3333
+				rPsiM = 1.5 * log(x*x+x+1.) - 1.7320508 * atan((2.*x+1)/1.7320508) + 0.165881
+			end select
+			
+		else ! Stable
+		
+			! Assign actual method
+			if(present(stableMethod)) then
+				iMethodStable = stableMethod
+			else
+				iMethodStable = MTD_VANULDEN_HOLTSLAG
+			end if
+			
+			! Perform computing
+			select case(iMethodStable)
+			case(MTD_BUSINGER)
+				rPsiM = -5.*S
+			case(MTD_VANULDEN_HOLTSLAG)
+				rPsiM = -17. * (1.-exp(-0.29*S))
+			case(MTD_CARL)
+				rPsiM = -a*S-b*(S-c/d)*exp(-d*S)-b*c/d
+			end select
+		
+		end if
+		
+	end function psim
+	      
 end module pbl_simil
