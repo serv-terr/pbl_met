@@ -27,7 +27,8 @@ module pbl_simil
     public	:: FrictionVelocity
     public	:: SensibleHeatFlux
     public	:: WindCorrelation
-    ! 2.Stability
+    ! 2.Stability, and stability-related
+    public	:: wStar
     ! 3.Universal similarity functions
     public	:: psih
     public	:: psim
@@ -198,7 +199,37 @@ contains
 		
 	end function WindCorrelation
 	
+
+	Function wStar(Ta,H0,zi) result(ws)
 	
+		! Routine arguments
+		real, intent(in)	:: Ta	! Air temperature (K)
+		real, intent(in)	:: H0	! Turbulent sensible heat flux (W/m2)
+		real, intent(in)	:: zi	! Mixing height (mù
+		real				:: ws
+		
+		! Locals
+		real	:: rc
+		
+		! Constants
+		real, parameter	:: G = 9.807
+		
+		! Check something can be made
+		ws = NaN
+		if(Ta <= 0. .or. zi < 0.) return
+		
+		! Compute the Deardoff velocity
+		if(H0 < 0.) then
+			ws = 0.
+		else
+			rc = RhoCp(Ta)
+			if(.invalid.rc) return
+			ws = (G * zi * H0 / (rc * Ta))**0.33333
+		end if
+
+	end function wStar
+      
+      
 	function psih(zr, L, method) result(rPsiH)
 	
 		! Routine arguments
