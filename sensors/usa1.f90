@@ -24,6 +24,7 @@ module usa1
 	public	:: DE_ERR
 	public	:: LOGGER_WINDRECORDER
 	public	:: LOGGER_METEOFLUXCORE_V2
+	public	:: LOGGER_SONICLIB_MFC2
 	
 	! Constants
 	integer, parameter	:: DE_FIRST = 0
@@ -31,6 +32,7 @@ module usa1
 	integer, parameter	:: DE_ERR   = 2
 	integer, parameter	:: LOGGER_WINDRECORDER     = 1
 	integer, parameter	:: LOGGER_METEOFLUXCORE_V2 = 2
+	integer, parameter	:: LOGGER_SONICLIB_MFC2    = 3
 	
 	! Data types
 	
@@ -65,7 +67,7 @@ contains
 		real(8), intent(in)					:: rTimeBase
 		integer, intent(in)					:: iNumHours
 		logical, intent(in)					:: lHasSubdirs
-		integer, intent(in), optional		:: iLoggerType	! May be LOGGER_WINDRECORDER (default) or LOGGER_METEOFLUXCORE_V2 (in which case data are assumed to be uncompressed)
+		integer, intent(in), optional		:: iLoggerType	! May be LOGGER_WINDRECORDER (default) or LOGGER_METEOFLUXCORE_V2 (in which case data are assumed to be uncompressed) or LOGGER_SONICLIB_MFC2
 		integer								:: iRetCode
 		
 		! Locals
@@ -140,6 +142,17 @@ contains
 						trim(sDataPath), &
 						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
 				end if
+			elseif(iDataLogger == LOGGER_SONICLIB) then
+				if(this % lHasSubdirs) then
+					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2, 'R.csv')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				else
+					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2, 'R.csv')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				end if
 			end if
 			
 			! Check expected file exists and update map size
@@ -188,6 +201,17 @@ contains
 						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
 				else
 					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2, 'R')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				end if
+			elseif(iDataLogger == LOGGER_SONICLIB_MFC2) then
+				if(this % lHasSubdirs) then
+					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2, 'R.csv')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				else
+					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2, 'R.csv')") &
 						trim(sDataPath), &
 						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
 				end if
@@ -279,6 +303,5 @@ contains
 		end if
 		
 	end function up_Size
-	
 	
 end module usa1
