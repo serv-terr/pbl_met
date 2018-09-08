@@ -142,7 +142,7 @@ contains
 						trim(sDataPath), &
 						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
 				end if
-			elseif(iDataLogger == LOGGER_SONICLIB) then
+			elseif(iDataLogger == LOGGER_SONICLIB_MFC2) then
 				if(this % lHasSubdirs) then
 					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2, 'R.csv')") &
 						trim(sDataPath), &
