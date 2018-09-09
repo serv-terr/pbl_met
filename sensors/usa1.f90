@@ -90,7 +90,7 @@ contains
 			return
 		end if
 		if(present(iLoggerType)) then
-			if(iLoggerType <= 0 .or. iLoggerType > 2) then
+			if(iLoggerType <= 0 .or. iLoggerType > LOGGER_SONICLIB_MFC2) then
 				iRetCode = 2
 				return
 			end if
