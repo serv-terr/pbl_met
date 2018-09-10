@@ -1256,7 +1256,6 @@ contains
 		! Check file exists
 		inquire(file=sFileName, exist=lExist)
 		if(.not.lExist) then
-			print *, trim(sFileName)
 			iRetCode = 1
 			return
 		end if
@@ -1636,9 +1635,9 @@ contains
 		rBaseTime = tDt % toEpoch(CLP_HOUR)
 		
 		! Perform actual write to SonicLib file
-		open(iLUN, file=sFileName, status="old", action="read", iostat=iErrCode)
+		open(iLUN, file=sFileName, status="unknown", action="write", iostat=iErrCode)
 		if(iErrCode /= 0) then
-			iRetCode = 1
+			iRetCode = 2
 			return
 		end if
 		if(.not.lIsQ) then
