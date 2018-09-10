@@ -98,6 +98,8 @@ module pbl_wind
 		procedure	:: writeSonicLib	=> sd_WriteSonicLib
 		procedure	:: size				=> sd_Size
 		procedure	:: valid			=> sd_Valid
+		procedure	:: isWater			=> sd_IsWater
+		procedure	:: isCarbonDioxide	=> sd_IsCarbonDioxide
 		procedure	:: removeTrend		=> sd_RemoveTrend
 		procedure	:: treatSpikes		=> sd_TreatSpikes
 		procedure	:: averages			=> sd_Averages
@@ -1730,6 +1732,58 @@ contains
 		end do
 		
 	end function sd_Valid
+	
+	
+	function sd_IsWater(this) result(lIs)
+	
+		! Routine arguments
+		class(SonicData), intent(in)	:: this
+		logical							:: lIs
+		
+		! Locals
+		! --none--
+		
+		! Get the information piece desired (notice explicit short-circuit evaluation is used,
+		! mainly for clarity-of-intent
+		lIs = allocated(this % rvQ)
+		if(lIs) then
+			lIs = lIs .and. size(this % rvQ) > 0
+			if(lIs) then
+				lIs = lIs .and. count(.valid. this % rvQ) > 0
+			end if
+		end if
+		
+	end function sd_IsWater
+	
+	
+	function sd_IsCarbonDioxide(this) result(lIs)
+	
+		! Routine arguments
+		class(SonicData), intent(in)	:: this
+		logical							:: lIs
+		
+		! Locals
+		logical	:: lIsQ
+		
+		! Get the information piece desired (notice explicit short-circuit evaluation is used,
+		! mainly for clarity-of-intent
+		lIsQ = allocated(this % rvQ)
+		if(lIs) then
+			lIsQ = lIsQ .and. size(this % rvQ) > 0
+			if(lIs) then
+				lIsQ = lIsQ .and. count(.valid. this % rvQ) > 0
+			end if
+		end if
+		lIs = allocated(this % rvC)
+		if(lIs) then
+			lIs = lIs .and. size(this % rvC) > 0
+			if(lIs) then
+				lIs = lIs .and. count(.valid. this % rvC) > 0
+			end if
+		end if
+		lIs = lIs .and. lIsQ	! Essential, to ensure CO2-related eddy covariance processing makes sense (it would not, if water is missing)
+		
+	end function sd_IsCarbonDioxide
 	
 	
 	function sd_RemoveTrend(this, iAveragingTime, tTrend) result(iRetCode)
