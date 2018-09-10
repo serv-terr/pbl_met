@@ -1,156 +1,307 @@
-! Program am_test - Eddy-covariance program, devoted to testing pbl_met routines towards
-! the Ameriflux Gold Files.
+! Module usa1 - Access to Metek ultrasonic anemometer data, as prepared by the
+! WindRecorder and MeteoFlux Core V2 data loggers, by Servizi Territorio srl.
 !
 ! This module is part of the pbl_met library.
 !
 ! Copyright 2018 by Servizi Territorio srl
 !
-! This is open-source code, covered by lGPL 3.0 license.
+! This is open-source code, covered by lGPL 3.0 license
 !
-! Author: Mauri Favaron
-!
-program am_test
+module usa1
 
 	use pbl_met
-	use usa1
-	
+
 	implicit none
 	
-	! Locals
-	character(len=256)						:: sDataPath
-	character(len=256)						:: sFileName
-	character(len=256)						:: sOutputFile
-	character(len=19)						:: sFirstDateTime
-	character(len=19)						:: sLastDateTime
-	character(len=16)						:: sBuffer
-	integer									:: iRetCode
-	integer									:: iNumHours
-	type(DateTime)							:: tFrom
-	type(DateTime)							:: tCurTime
-	type(Usa1DataDir)						:: tDir
-	type(SonicData)							:: tSonic
-	type(EddyCovData)						:: tEc
-	real(8)									:: rFrom
-	real(8)									:: rTo
-	real(8)									:: rHold
-	integer									:: iMode
-	integer									:: i
-	integer									:: iAvgTime
-	character(len=23)						:: sDateTime
-	integer, dimension(:), allocatable		:: ivNumData
-	real(8), dimension(:), allocatable		:: rvTimeStamp
-	real(8), dimension(:), allocatable		:: rvTheta
-	real(8), dimension(:), allocatable		:: rvPhi
-	real(8), dimension(:), allocatable		:: rvPsi
-	real(8), dimension(:), allocatable		:: rvT
-	real(8), dimension(:), allocatable		:: rvVarT
-	real(8), dimension(:,:), allocatable	:: rmNrotVel
-	real(8), dimension(:,:), allocatable	:: rmVel
-	real(8), dimension(:,:,:), allocatable	:: raCovVel
-	real(8), dimension(:,:,:), allocatable	:: raCovWind
-	real(8), dimension(:,:,:), allocatable	:: raNrotCovVel
-	real(8), dimension(:,:), allocatable	:: rmCovT
-	real(8), dimension(:,:), allocatable	:: rmNrotCovT
-	real, dimension(3)						:: cartesian
-	real, dimension(3)						:: polar
-	real(8), dimension(:), allocatable		:: rvUstar
-	real(8), dimension(:), allocatable		:: rvH0
-	integer									:: iDayIdx
+	private
+	
+	! Public interface
+	! 1. Data types
+	public	:: Usa1DataDir
+	! 2. Constants
+	public	:: DE_FIRST
+	public	:: DE_NEXT
+	public	:: DE_ERR
+	public	:: LOGGER_WINDRECORDER
+	public	:: LOGGER_METEOFLUXCORE_V2
+	public	:: LOGGER_SONICLIB_MFC2
 	
 	! Constants
-	character(len=19), dimension(2), parameter	:: svAfDate  = ["2015-04-14 00:00:00", "2015-06-30 00:00:00"]
-	character(len=19), dimension(2), parameter	:: svOutFile = ["AF_20150414.csv", "AF_20150630.csv"]
+	integer, parameter	:: DE_FIRST = 0
+	integer, parameter	:: DE_NEXT  = 1
+	integer, parameter	:: DE_ERR   = 2
+	integer, parameter	:: LOGGER_WINDRECORDER     = 1
+	integer, parameter	:: LOGGER_METEOFLUXCORE_V2 = 2
+	integer, parameter	:: LOGGER_SONICLIB_MFC2    = 3
 	
-	! Get parameters
-	if(command_argument_count() /= 0) then
-		print *, "sonicpro - Minimalistic eddy covariance calculator"
-		print *
-		print *, "Usage:"
-		print *
-		print *, "  ./am_test"
-		print *
-		print *
-		print *, "Program 'am_test' is part of the pbl_met project, and is"
-		print *, "released under an lGPL-3.0 open source license."
-		print *
-		stop
-	end if
-	sDataPath = "./"
-	iAvgTime  = 1800	! Ameriflux prescribed test condition
+	! Data types
 	
-	! Iterate over the two test days
-	do iDayIdx = 1, size(svAfDate)
+	type Usa1DataDir
 	
-		sOutputFile = svOutFile(iDayIdx)
-	
-		! Convert dates and times to DateTime values
-		read(svAfDate(iDayIdx), "(i4.4,3(1x,i2.2))", iostat=iRetCode) &
-			tFrom % iYear, &
-			tFrom % iMonth, &
-			tFrom % iDay, &
-			tFrom % iHour
-		if(iRetCode /= 0) then
-			print *, "Invalid <DateTimeFrom>"
-			stop
-		end if
-		tFrom % iMinute = 0
-		tFrom % rSecond = 0.d0
-		rFrom = tFrom % toEpoch()
-		rTo = rFrom + 23.d0 * 3600.d0
-		if(rTo < rFrom) then
-			rHold = rFrom
-			rFrom = rTo
-			rTo   = rHold
-		end if
-	
-		! Compute number of hours in set
-		iNumHours = nint((rTo - rFrom)/3600.d0) + 1
-	
-		! Map data files
-		iRetCode = tDir % mapFiles(sDataPath, rFrom, iNumHours, .false., iLoggerType = LOGGER_SONICLIB_MFC2)
-		if(iRetCode /= 0) then
-			print *, "Error searching for AmeriFlux Golden data files"
-			stop
-		end if
-	
-		! Iterate over data files, and process them in sequence
-		iMode = DE_FIRST
-		iRetCode = tDir % getFile(iMode, sFileName)
-		if(iRetCode /= 0) then
-			print *, "Error accessing file list - Return code = ", iRetCode
-			stop
-		end if
-		open(10, file=sOutputFile, status='unknown', iostat = iRetCode)
-		if(iRetCode /= 0) then
-			print *, "Error accessing output file in write mode"
-			stop
-		end if
-		write(10,"('date, dir, vel, temp, theta, phi, w.nrot, uu, uv, uw, vv, vw, ww, ut, vt, wt, u.star, H0, Corr.UW')")
-		do while(iMode /= DE_ERR)
-	
-			! Process file
-			print *, 'Processing ', trim(sFileName)
+		! Information contents
+		character(len=256), private								:: sDataPath
+		real(8), private										:: rTimeBase
+		integer, private										:: iNumHours
+		logical, private										:: lHasSubdirs
+		character(len=256), dimension(:), allocatable, private	:: svFileName
+		real(8), dimension(:), allocatable, private				:: rvTimeStamp
 		
-			! Read data to hourly SonicData object
-			iRetCode = tSonic % readSonicLib(11, sFileName, OS_UNIX)
-			if(iRetCode /= 0) then
-				print *, "Error reading file - Return code = ", iRetCode
-				cycle
+		! Internal state
+		integer													:: iPos
+		
+	contains
+	
+		procedure	:: mapFiles		=> up_MapFiles
+		procedure	:: getFile		=> up_GetFile
+		procedure	:: size			=> up_Size
+		
+	end type Usa1DataDir
+	
+contains
+
+	function up_MapFiles(this, sDataPath, rTimeBase, iNumHours, lHasSubdirs, iLoggerType) result(iRetCode)
+	
+		! Routine arguments
+		class(Usa1DataDir), intent(inout)	:: this
+		character(len=*), intent(in)		:: sDataPath
+		real(8), intent(in)					:: rTimeBase
+		integer, intent(in)					:: iNumHours
+		logical, intent(in)					:: lHasSubdirs
+		integer, intent(in), optional		:: iLoggerType	! May be LOGGER_WINDRECORDER (default) or LOGGER_METEOFLUXCORE_V2 (in which case data are assumed to be uncompressed) or LOGGER_SONICLIB_MFC2
+		integer								:: iRetCode
+		
+		! Locals
+		integer				:: iErrCode
+		integer				:: iDataLogger
+		integer				:: iHour
+		real(8)				:: rCurTime
+		type(DateTime)		:: tDt
+		integer				:: iNumFiles
+		integer				:: iFile
+		character(len=256)	:: sBuffer
+		logical				:: lIsFile
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.invalid.rTimeBase .or. iNumHours <= 0 .or. rTimeBase < 0.d0) then
+			iRetCode = 1
+			return
+		end if
+		if(present(iLoggerType)) then
+			if(iLoggerType <= 0 .or. iLoggerType > LOGGER_SONICLIB_MFC2) then
+				iRetCode = 2
+				return
 			end if
+			iDataLogger = iLoggerType
+		else
+			iDataLogger = LOGGER_WINDRECORDER
+		end if
 		
-			! Get next file name, if exists; the value of iMode parameter is changed automatically,
-			! so there is no need to set it directly
-			iRetCode = tDir % getFile(iMode, sFileName)
-			if(iRetCode /= 0) then
-				print *, "Error accessing file list - Return code = ", iRetCode
-				cycle
+		! Ensure the time base is aligned to an hour
+		this % rTimeBase   = nint(rTimeBase / 3600.d0, kind=8) * 3600.d0
+
+		! Set type's other fixed parameters
+		this % sDataPath   = sDataPath
+		this % iNumHours   = iNumHours
+		this % lHasSubdirs = lHasSubdirs
+		
+		! Count the files matching the WindRecorder naming convention
+		iNumFiles = 0
+		do iHour = 1, iNumHours
+		
+			! Compute current hour
+			rCurTime = rTimeBase + 3600.d0*(iHour - 1)
+			iErrCode = tDt % FromEpoch(rCurTime)
+			if(iErrCode /= 0) then
+				iRetCode = 2
+				return
 			end if
-		
+			
+			! Compose file name according to WindRecorder convention
+			if(iDataLogger == LOGGER_WINDRECORDER) then
+				if(this % lHasSubdirs) then
+					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2)") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				else
+					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2)") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				end if
+			elseif(iDataLogger == LOGGER_METEOFLUXCORE_V2) then
+				if(this % lHasSubdirs) then
+					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2, 'R')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				else
+					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2, 'R')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				end if
+			elseif(iDataLogger == LOGGER_SONICLIB_MFC2) then
+				if(this % lHasSubdirs) then
+					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2, 'R.csv')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				else
+					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2, 'R.csv')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				end if
+			end if
+			
+			! Check expected file exists and update map size
+			inquire(file=sBuffer, exist=lIsFile)
+			if(lIsFile) iNumFiles = iNumFiles + 1
+			
 		end do
 		
-		! End with current output file
-		close(10)
-
-	end do
-
-end program am_test
+		! Reserve workspace
+		if(iNumFiles <= 0) then
+			iRetCode = 3
+			return
+		end if
+		if(allocated(this % svFileName)) deallocate(this % svFileName)
+		allocate(this % svFileName(iNumFiles))
+		
+		! Populate the file map
+		iFile = 0
+		do iHour = 1, iNumHours
+		
+			! Compute current hour
+			rCurTime = rTimeBase + 3600.d0*(iHour - 1)
+			iErrCode = tDt % FromEpoch(rCurTime)
+			if(iErrCode /= 0) then
+				iRetCode = 2
+				return
+			end if
+			
+			! Compose file name according to the appropriate convention
+			if(iDataLogger == LOGGER_WINDRECORDER) then
+				if(this % lHasSubdirs) then
+					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2)") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				else
+					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2)") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				end if
+			elseif(iDataLogger == LOGGER_METEOFLUXCORE_V2) then
+				if(this % lHasSubdirs) then
+					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2, 'R')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				else
+					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2, 'R')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				end if
+			elseif(iDataLogger == LOGGER_SONICLIB_MFC2) then
+				if(this % lHasSubdirs) then
+					write(sBuffer, "(a, '/', i4.4, i2.2, '/', i4.4, 2i2.2, '.', i2.2, 'R.csv')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				else
+					write(sBuffer, "(a, '/', i4.4, 2i2.2, '.', i2.2, 'R.csv')") &
+						trim(sDataPath), &
+						tDt % iYear, tDt % iMonth, tDt % iDay, tDt % iHour
+				end if
+			end if
+			
+			! Check expected file exists and update map size
+			inquire(file=sBuffer, exist=lIsFile)
+			if(lIsFile) then
+				iFile = iFile + 1
+				this % svFileName(iFile) = sBuffer
+			end if
+			
+		end do
+		
+	end function up_MapFiles
+	
+	
+	function up_GetFile(this, iMode, sFileName) result(iRetCode)
+	
+		! Routine arguments
+		class(Usa1DataDir), intent(inout)	:: this
+		integer, intent(inout)				:: iMode
+		character(len=*), intent(out)		:: sFileName
+		integer								:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(iMode < DE_FIRST .or. iMode > DE_ERR) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Set position according to current mode
+		select case(iMode)
+		case(DE_FIRST)
+			this % iPos = 1
+			if(allocated(this % svFileName)) then
+				n = size(this % svFileName)
+				if(this % iPos > n) then
+					iMode     = DE_ERR
+					sFileName = ""
+				else
+					sFileName = this % svFileName(this % iPos)
+					iMode     = DE_NEXT
+				end if
+			else
+				iRetCode = 2
+			end if
+		case(DE_NEXT)
+			this % iPos = this % iPos + 1
+			if(allocated(this % svFileName)) then
+				n = size(this % svFileName)
+				if(this % iPos > n) then
+					iMode     = DE_ERR
+					sFileName = ""
+				else
+					sFileName = this % svFileName(this % iPos)
+					iMode     = DE_NEXT
+				end if
+			else
+				iRetCode = 2
+			end if
+		case(DE_ERR)
+			sFileName = ""
+		end select
+		
+	end function up_GetFile
+	
+	
+	function up_Size(this) result(iSize)
+	
+		! Routine arguments
+		class(Usa1DataDir), intent(in)	:: this
+		integer							:: iSize
+		
+		! Locals
+		! --none--
+		
+		! Get the information desired
+		if(allocated(this % svFileName)) then
+			iSize = size(this % svFileName)
+		else
+			iSize = 0
+		end if
+		
+	end function up_Size
+	
+end module usa1
