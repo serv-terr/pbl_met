@@ -65,6 +65,9 @@ module pbl_wind
 	real, parameter		:: Pi = 3.1415927
 	real, parameter		:: ToRad = Pi/180.
 	real, parameter		:: ToDeg = 180./Pi
+	real, parameter		:: MOL_AIR   = 28.96	! Molar mass of dry air (g/mol)
+	real, parameter		:: MOL_H2O   = 18.0153	! Molar mass of water (g/mol)
+	real, parameter		:: MOL_CO2   = 44.0100	! Molar mass of carbon dioxide (g/mol)
 	
 	! Polymorphic interfaces
 	
