@@ -2868,6 +2868,8 @@ contains
 		if(allocated(this % rmRotVel))    deallocate(this % rmRotVel)
 		if(allocated(this % raRotCovVel)) deallocate(this % raRotCovVel)
 		if(allocated(this % rmRotCovT))   deallocate(this % rmRotCovT)
+		if(allocated(this % rmRotCovQ))   deallocate(this % rmRotCovQ)
+		if(allocated(this % rmRotCovC))   deallocate(this % rmRotCovC)
 		
 	end function ec_Clean
 	
