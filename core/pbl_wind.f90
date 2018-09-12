@@ -2896,12 +2896,18 @@ contains
 			this % raCovVel(iNumData,3,3), &
 			this % rmCovT(iNumData,3), &
 			this % rvVarT(iNumData), &
+			this % rmCovQ(iNumData,3), &
+			this % rvVarQ(iNumData), &
+			this % rmCovC(iNumData,3), &
+			this % rvVarC(iNumData), &
 			this % rvTheta(iNumData), &
 			this % rvPhi(iNumData), &
 			this % rvPsi(iNumData), &
 			this % rmRotVel(iNumData,3), &
 			this % raRotCovVel(iNumData,3,3), &
 			this % rmRotCovT(iNumData,3), &
+			this % rmRotCovQ(iNumData,3), &
+			this % rmRotCovC(iNumData,3), &
 			stat = iErrCode &
 		)
 		if(iErrCode /= 0) then
