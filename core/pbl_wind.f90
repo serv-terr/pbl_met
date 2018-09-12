@@ -171,6 +171,10 @@ module pbl_wind
 		real(8), dimension(:,:,:), allocatable, private		:: raCovVel			! Time series of momentum covariances (m2/s2)
 		real(8), dimension(:,:), allocatable, private		:: rmCovT			! Time series of covariances between velocities and temperature (m°C/s)
 		real(8), dimension(:), allocatable, private			:: rvVarT			! Time series of temperature variances (°C2)
+		real(8), dimension(:,:), allocatable, private		:: rmCovQ			! Time series of covariances between velocities and water (m mmol/mol s)
+		real(8), dimension(:), allocatable, private			:: rvVarQ			! Time series of water variances (mmol2/mol2)
+		real(8), dimension(:,:), allocatable, private		:: rmCovC			! Time series of covariances between velocities and carbon dioxide (m mmol/mol s)
+		real(8), dimension(:), allocatable, private			:: rvVarC			! Time series of carbon dioxide variances (mmol2/mol2)
 		! Output section (data entering here through EddyCovData % process(...) member function
 		! 1) Basic, rotated
 		real(8), dimension(:), allocatable, private			:: rvTheta			! Time series of first rotation angles (°)
