@@ -183,6 +183,8 @@ module pbl_wind
 		real(8), dimension(:,:), allocatable, private		:: rmRotVel			! Time series of rotated mean velocities (m/s)
 		real(8), dimension(:,:,:), allocatable, private		:: raRotCovVel		! Time series of rotated momentum covariances (m2/s2)
 		real(8), dimension(:,:), allocatable, private		:: rmRotCovT		! Time series of rotated covariances between velocities and temperature (m°C/s)
+		real(8), dimension(:,:), allocatable, private		:: rmRotCovQ		! Time series of rotated covariances between velocities and water (m mmol/mol s)
+		real(8), dimension(:,:), allocatable, private		:: rmRotCovC		! Time series of rotated covariances between velocities and carbon dioxide (m mmol/mol s)
 		! 2) Derived, pre eddy-covariance
 		! 3) Derived, common turbulence indicators
 	contains
