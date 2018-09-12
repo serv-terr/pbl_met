@@ -2854,6 +2854,10 @@ contains
 		if(allocated(this % raCovVel))    deallocate(this % raCovVel)
 		if(allocated(this % rmCovT))      deallocate(this % rmCovT)
 		if(allocated(this % rvVarT))      deallocate(this % rvVarT)
+		if(allocated(this % rmCovQ))      deallocate(this % rmCovQ)
+		if(allocated(this % rvVarQ))      deallocate(this % rvVarQ)
+		if(allocated(this % rmCovC))      deallocate(this % rmCovC)
+		if(allocated(this % rvVarC))      deallocate(this % rvVarC)
 		
 		! Clean outputs
 		if(allocated(this % rvTheta))     deallocate(this % rvTheta)
