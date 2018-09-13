@@ -168,6 +168,8 @@ module pbl_wind
 		! Input section (data entering here through SonicData % averages(...) member function
 		real(8), dimension(:,:), allocatable, private		:: rmVel			! Time series of mean velocities (m/s)
 		real(8), dimension(:), allocatable, private			:: rvT				! Time series of mean temperatures (°C)
+		real(8), dimension(:), allocatable, private			:: rvQ				! Time series of mean water concentration (mmol/mol)
+		real(8), dimension(:), allocatable, private			:: rvC				! Time series of mean carbon dioxide concentrations (mmol/mol)
 		real(8), dimension(:,:,:), allocatable, private		:: raCovVel			! Time series of momentum covariances (m2/s2)
 		real(8), dimension(:,:), allocatable, private		:: rmCovT			! Time series of covariances between velocities and temperature (m°C/s)
 		real(8), dimension(:), allocatable, private			:: rvVarT			! Time series of temperature variances (°C2)
@@ -2949,12 +2951,16 @@ contains
 			print *, 'Input section ---------------------------------------'
 			print "(a, f6.2, 2(1x, f6.2))", "Wind: ", this % rmVel(i,:)
 			print "(a, f6.2, 2(1x, f6.2))", "Temp: ", this % rvT(i)
+			print "(a, f6.2, 2(1x, f6.2))", "H2O:  ", this % rvQ(i)
+			print "(a, f6.2, 2(1x, f6.2))", "CO2:  ", this % rvC(i)
 			print *, "Cov(vel):"
 			do j = 1, 3
 				print "(f7.4,2(',',f7.4))", this % raCovVel(i,j,:)
 			end do
 			print "(a, f7.4, 2(1x, f7.4))", "Cov(Temp): ", this % rmCovT(i,:)
 			print "(a, f7.4, 2(1x, f7.4))", "Var(Temp): ", this % rvVarT(i)
+			print "(a, f7.4, 2(1x, f7.4))", "Cov(H2O):  ", this % rmCovQ(i,:)
+			print "(a, f7.4, 2(1x, f7.4))", "Cov(CO2):  ", this % rmCovC(i,:)
 			if(this % isFilled) then
 				print *, 'Output section --------------------------------------'
 				print "('Theta, Psi, Phi:',3(1x,f8.4))", this % rvTheta(i), this % rvPhi(i), this % rvPsi(i)
@@ -2964,6 +2970,8 @@ contains
 					print "(f7.4,2(',',f7.4))", this % raRotCovVel(i,j,:)
 				end do
 				print "(a, f7.4, 2(1x, f7.4))", "Rotated cov(Temp): ", this % rmRotCovT(i,:)
+				print "(a, f7.4, 2(1x, f7.4))", "Rotated cov(H2O):  ", this % rmRotCovQ(i,:)
+				print "(a, f7.4, 2(1x, f7.4))", "Rotated cov(CO2):  ", this % rmRotCovC(i,:)
 			end if
 		end do
 		
