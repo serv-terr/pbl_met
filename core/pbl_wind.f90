@@ -3119,9 +3119,15 @@ contains
 		this % ivNumData   = 0
 		this % rmVel       = NaN_8
 		this % rvT         = NaN_8
+		this % rvQ         = NaN_8
+		this % rvC         = NaN_8
 		this % raCovVel    = NaN_8
 		this % rmCovT      = NaN_8
+		this % rmCovQ      = NaN_8
+		this % rmCovC      = NaN_8
 		this % rvVarT      = NaN_8
+		this % rvVarQ      = NaN_8
+		this % rvVarC      = NaN_8
 		
 		! Initialize all outputs to make any gaps evident in future
 		this % rvTheta     = NaN_8
@@ -3130,6 +3136,8 @@ contains
 		this % rmRotVel    = NaN_8
 		this % raRotCovVel = NaN_8
 		this % rmRotCovT   = NaN_8
+		this % rmRotCovQ   = NaN_8
+		this % rmRotCovC   = NaN_8
 		
 		! Confirm averaging time
 		this % averagingTime = iAveragingTime
