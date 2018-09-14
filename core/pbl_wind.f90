@@ -2897,6 +2897,8 @@ contains
 			this % ivNumData(iNumData), &
 			this % rmVel(iNumData,3), &
 			this % rvT(iNumData), &
+			this % rvQ(iNumData), &
+			this % rvC(iNumData), &
 			this % raCovVel(iNumData,3,3), &
 			this % rmCovT(iNumData,3), &
 			this % rvVarT(iNumData), &
