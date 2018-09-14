@@ -197,6 +197,7 @@ module pbl_wind
 		procedure	:: getAvgTime		=> ec_getAvgTime			! Get averaging time (as it is)
 		procedure	:: getNumValidInput	=> ec_getNumValidInput		! Count number of valid data in an EddyCovData object
 		procedure	:: getInputData		=> ec_getInputData			! Get a copy of input vectors
+		procedure	:: getInputGases	=> ec_getInputGases			! Get a copy of input gases vectors
 		procedure	:: getOutputData	=> ec_getOutputData			! Get a copy of output vectors
 		procedure	:: getRotCovVel		=> ec_GetRotCovVel			! Get values from rotated velocity covariances (only those at row i, column j)
 		procedure	:: getRotCovWind	=> ec_GetRotCovWind			! Get values from rotated velocity covariances (all)
@@ -3348,6 +3349,62 @@ contains
 		rvVarT    = this % rvVarT
 		
 	end function ec_GetInputData
+
+	
+	function ec_GetInputGases(this, ivNumData, rvQ, rmCovQ, rvVarQ, rvC, rmCovC, rvVarC) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)							:: this
+		integer, dimension(:), allocatable, intent(out)			:: ivNumData
+		real(8), dimension(:), allocatable, intent(out)			:: rvQ
+		real(8), dimension(:,:), allocatable, intent(out)		:: rmCovQ
+		real(8), dimension(:), allocatable, intent(out)			:: rvVarQ
+		real(8), dimension(:), allocatable, intent(out)			:: rvC
+		real(8), dimension(:,:), allocatable, intent(out)		:: rmCovC
+		real(8), dimension(:), allocatable, intent(out)			:: rvVarC
+		integer													:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isPrimed) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Clean output data
+		if(allocated(ivNumData)) deallocate(ivNumData)
+		if(allocated(rvQ)) deallocate(rvQ)
+		if(allocated(rvC)) deallocate(rvC)
+		if(allocated(rmCovQ)) deallocate(rmCovQ)
+		if(allocated(rmCovC)) deallocate(rmCovC)
+		if(allocated(rvVarQ)) deallocate(rvVarQ)
+		if(allocated(rvVarC)) deallocate(rvVarC)
+		
+		! Get array size, and reserve workspace
+		n = size(this % rvTimeStamp)
+		allocate(ivNumData(n))
+		allocate(rvQ(n))
+		allocate(rvC(n))
+		allocate(rmCovQ(n,3))
+		allocate(rmCovC(n,3))
+		allocate(rvVarQ(n))
+		allocate(rvVarC(n))
+		
+		! Retrieve data
+		ivNumData = this % ivNumData
+		rvQ       = this % rvQ
+		rvC       = this % rvC
+		rmCovQ    = this % rmCovQ
+		rmCovC    = this % rmCovC
+		rvVarQ    = this % rvVarQ
+		rvVarC    = this % rvVarC
+		
+	end function ec_GetInputGases
 
 	
 	function ec_GetOutputData(this, rvTheta, rvPhi, rvPsi, rmRotVel, raRotCovVel, rmRotCovT) result(iRetCode)
