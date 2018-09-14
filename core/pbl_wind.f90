@@ -2855,6 +2855,8 @@ contains
 		if(allocated(this % ivNumData))   deallocate(this % ivNumData)
 		if(allocated(this % rmVel))       deallocate(this % rmVel)
 		if(allocated(this % rvT))         deallocate(this % rvT)
+		if(allocated(this % rvQ))         deallocate(this % rvQ)
+		if(allocated(this % rvC))         deallocate(this % rvC)
 		if(allocated(this % raCovVel))    deallocate(this % raCovVel)
 		if(allocated(this % rmCovT))      deallocate(this % rmCovT)
 		if(allocated(this % rvVarT))      deallocate(this % rvVarT)
