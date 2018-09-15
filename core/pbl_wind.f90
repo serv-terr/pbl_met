@@ -3818,10 +3818,14 @@ contains
 		real(8)								:: psi
 		real(8)								:: um2, vm2, wm2
 		real(8)								:: ut2, vt2, wt2
+		real(8)								:: uq2, vq2, wq2
+		real(8)								:: uc2, vc2, wc2
 		real(8)								:: su2, sv2, sw2
 		real(8)								:: uv2, uw2, vw2
 		real(8)								:: um3, vm3, wm3
 		real(8)								:: ut3, vt3, wt3
+		real(8)								:: uq3, vq3, wq3
+		real(8)								:: uc3, vc3, wc3
 		real(8)								:: su3, sv3, sw3
 		real(8)								:: uv3, uw3, vw3
 		
@@ -3881,6 +3885,14 @@ contains
 			this % rmRotCovT(i,1) =  this % rmCovT(i,1) * cos_the + this % rmCovT(i,2) * sin_the
 			this % rmRotCovT(i,2) = -this % rmCovT(i,1) * sin_the + this % rmCovT(i,2) * cos_the
 			this % rmRotCovT(i,3) =  this % rmCovT(i,3)
+			! 2) Wind-water covariances
+			this % rmRotCovQ(i,1) =  this % rmCovQ(i,1) * cos_the + this % rmCovQ(i,2) * sin_the
+			this % rmRotCovQ(i,2) = -this % rmCovQ(i,1) * sin_the + this % rmCovQ(i,2) * cos_the
+			this % rmRotCovQ(i,3) =  this % rmCovQ(i,3)
+			! 2) Wind-co2 covariances
+			this % rmRotCovC(i,1) =  this % rmCovC(i,1) * cos_the + this % rmCovC(i,2) * sin_the
+			this % rmRotCovC(i,2) = -this % rmCovC(i,1) * sin_the + this % rmCovC(i,2) * cos_the
+			this % rmRotCovC(i,3) =  this % rmCovC(i,3)
 			! 3) Wind covariances
 			this % raRotCovVel(i,1,1) = this % raCovVel(i,1,1)*costhe2 + this % raCovVel(i,2,2)*sinthe2 + &
 				this % raCovVel(i,1,2)*sin_cos
@@ -3924,6 +3936,20 @@ contains
 			this % rmRotCovT(i,1) = ut2
 			this % rmRotCovT(i,2) = vt2
 			this % rmRotCovT(i,3) = wt2
+			! 2) Wind-water covariances
+			uq2 =  this % rmRotCovQ(i,1)*cos_phi + this % rmRotCovQ(i,3)*sin_phi
+			vq2 =  this % rmRotCovQ(i,2)
+			wq2 = -this % rmRotCovQ(i,1)*sin_phi + this % rmRotCovQ(i,3)*cos_phi
+			this % rmRotCovQ(i,1) = uq2
+			this % rmRotCovQ(i,2) = vq2
+			this % rmRotCovQ(i,3) = wq2
+			! 2) Wind-co2 covariances
+			uc2 =  this % rmRotCovC(i,1)*cos_phi + this % rmRotCovC(i,3)*sin_phi
+			vc2 =  this % rmRotCovC(i,2)
+			wc2 = -this % rmRotCovC(i,1)*sin_phi + this % rmRotCovC(i,3)*cos_phi
+			this % rmRotCovC(i,1) = uc2
+			this % rmRotCovC(i,2) = vc2
+			this % rmRotCovC(i,3) = wc2
 			! 3) Wind covariances
 			su2 =  this % raRotCovVel(i,1,1)*cosphi2 + this % raRotCovVel(i,3,3)*sinphi2 + &
 				this % raRotCovVel(i,1,3)*sin_cos
@@ -3977,6 +4003,20 @@ contains
 					this % rmRotCovT(i,1) = ut3
 					this % rmRotCovT(i,2) = vt3
 					this % rmRotCovT(i,3) = wt3
+					! 2) Wind-water covariances
+					uq3 =  uq2
+					vq3 =  vq2*cos_psi+wq2*sin_psi
+					wq3 = -vq2*sin_psi+wq2*cos_psi
+					this % rmRotCovQ(i,1) = uq3
+					this % rmRotCovQ(i,2) = vq3
+					this % rmRotCovQ(i,3) = wq3
+					! 2) Wind-co2 covariances
+					uc3 =  uc2
+					vc3 =  vc2*cos_psi+wc2*sin_psi
+					wc3 = -vc2*sin_psi+wc2*cos_psi
+					this % rmRotCovC(i,1) = uc3
+					this % rmRotCovC(i,2) = vc3
+					this % rmRotCovC(i,3) = wc3
 					! 3) Wind covariances
 					su3 =  su2
 					sv3 =  sv2*cospsi2+sw2*sinpsi2+vw2*sin_cos
