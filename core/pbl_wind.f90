@@ -3648,15 +3648,23 @@ contains
 		integer, dimension(:), allocatable		:: ivNumData
 		real(8), dimension(:,:), allocatable	:: rmVel
 		real(8), dimension(:), allocatable		:: rvT
+		real(8), dimension(:), allocatable		:: rvQ
+		real(8), dimension(:), allocatable		:: rvC
 		real(8), dimension(:,:,:), allocatable	:: raCovVel
 		real(8), dimension(:,:), allocatable	:: rmCovT
+		real(8), dimension(:,:), allocatable	:: rmCovQ
+		real(8), dimension(:,:), allocatable	:: rmCovC
 		real(8), dimension(:), allocatable		:: rvVarT
+		real(8), dimension(:), allocatable		:: rvVarQ
+		real(8), dimension(:), allocatable		:: rvVarC
 		real(8), dimension(:), allocatable		:: rvTheta
 		real(8), dimension(:), allocatable		:: rvPhi
 		real(8), dimension(:), allocatable		:: rvPsi
 		real(8), dimension(:,:), allocatable	:: rmRotVel
 		real(8), dimension(:,:,:), allocatable	:: raRotCovVel
 		real(8), dimension(:,:), allocatable	:: rmRotCovT
+		real(8), dimension(:,:), allocatable	:: rmRotCovQ
+		real(8), dimension(:,:), allocatable	:: rmRotCovC
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -3745,9 +3753,15 @@ contains
 				this % ivNumData(ivTimeIndex(i))    = ivNumData(i)
 				this % rmVel(ivTimeIndex(i),:)      = rmVel(i,:)
 				this % rvT(ivTimeIndex(i))          = rvT(i)
+				this % rvQ(ivTimeIndex(i))          = rvQ(i)
+				this % rvC(ivTimeIndex(i))          = rvC(i)
 				this % raCovVel(ivTimeIndex(i),:,:) = raCovVel(i,:,:)
 				this % rmCovT(ivTimeIndex(i),:)     = rmCovT(i,:)
+				this % rmCovQ(ivTimeIndex(i),:)     = rmCovQ(i,:)
+				this % rmCovC(ivTimeIndex(i),:)     = rmCovC(i,:)
 				this % rvVarT(ivTimeIndex(i))       = rvVarT(i)
+				this % rvVarQ(ivTimeIndex(i))       = rvVarQ(i)
+				this % rvVarC(ivTimeIndex(i))       = rvVarC(i)
 				if(alsoOutputs) then
 					this % rvTheta(ivTimeIndex(i))         = rvTheta(i)
 					this % rvPhi(ivTimeIndex(i))           = rvPhi(i)
@@ -3755,6 +3769,8 @@ contains
 					this % rmRotVel(ivTimeIndex(i),:)      = rmRotVel(i,:)
 					this % raRotCovVel(ivTimeIndex(i),:,:) = raRotCovVel(i,:,:)
 					this % rmRotCovT(ivTimeIndex(i),:)     = rmRotCovT(i,:)
+					this % rmRotCovQ(ivTimeIndex(i),:)     = rmRotCovQ(i,:)
+					this % rmRotCovC(ivTimeIndex(i),:)     = rmRotCovC(i,:)
 				end if
 			end if
 		end do
