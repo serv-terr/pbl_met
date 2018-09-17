@@ -142,12 +142,21 @@ program am_test
 			lIsCarbonDioxide = tSonic % isCarbonDioxide()
 			print *, 'Processing ', trim(sFileName), " - ", lIsWater, ',', lIsCarbonDioxide
 			
-			! Compute averages
+			! Compute averages, and prime the 'tEc' EddyCovData object with them.
 			iRetCode = tSonic % averages(1800, tEc)
 			if(iRetCode /= 0) then
 				print *, "Error averaging file - Return code = ", iRetCode
 				cycle
 			end if
+			
+			! Perform eddy covariance processing
+			iRetCode = tEc % process(2)
+			if(iRetCode /= 0) then
+				print *, "Error performing basic eddy-covariance calculations - Return code = ", iRetCode
+				cycle
+			end if
+			
+			! Perform H2O and CO2 eddy covariance calculations
 		
 			! Get next file name, if exists; the value of iMode parameter is changed automatically,
 			! so there is no need to set it directly
