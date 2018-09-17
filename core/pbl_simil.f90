@@ -169,13 +169,13 @@ contains
 
 		! Routine arguments
 		type(EddyCovData), intent(in)					:: tEc
-		real(8), intent(in)								:: rZ			! [m]
-		real(8), dimension(:), allocatable, intent(out)	:: rvFqMolar	! [mmol/(m2 s)]
-		real(8), dimension(:), allocatable, intent(out)	:: rvFqMass		! [mg/(m2 s)]
-		real(8), dimension(:), allocatable, intent(out)	:: rvFcMolar	! [mmol/(m2 s)]
-		real(8), dimension(:), allocatable, intent(out)	:: rvFcMass		! [mg/(m2 s)]
-		real(8), dimension(:), allocatable, intent(out)	:: rvH0			! [W/m2]
-		real(8), dimension(:), allocatable, intent(out)	:: rvHe			! [W/m2]
+		real(8), intent(in)								:: rZ			! Station altitude above MSL [m]
+		real(8), dimension(:), allocatable, intent(out)	:: rvFqMolar	! Water turbulent flux along the vertical [mmol/(m2 s)]
+		real(8), dimension(:), allocatable, intent(out)	:: rvFqMass		! Water turbulent flux along the vertical [mg/(m2 s)]
+		real(8), dimension(:), allocatable, intent(out)	:: rvFcMolar	! Carbon dioxide turbulent flux along the vertical [mmol/(m2 s)]
+		real(8), dimension(:), allocatable, intent(out)	:: rvFcMass		! Carbon dioxide turbulent flux along the vertical [mg/(m2 s)]
+		real(8), dimension(:), allocatable, intent(out)	:: rvH0			! Turbulent flux of sensible heat along the vertical [W/m2]
+		real(8), dimension(:), allocatable, intent(out)	:: rvHe			! Turbulent flux of latent heat along the vertical [W/m2]
 		integer											:: iRetCode
 		
 		! Locals
