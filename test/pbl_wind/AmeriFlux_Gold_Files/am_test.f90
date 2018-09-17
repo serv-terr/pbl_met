@@ -55,6 +55,11 @@ program am_test
 	real, dimension(3)						:: polar
 	real(8), dimension(:), allocatable		:: rvUstar
 	real(8), dimension(:), allocatable		:: rvH0
+	real(8), dimension(:), allocatable		:: rvHe
+	real(8), dimension(:), allocatable		:: rvFqMolar
+	real(8), dimension(:), allocatable		:: rvFqMass
+	real(8), dimension(:), allocatable		:: rvFcMolar
+	real(8), dimension(:), allocatable		:: rvFcMass
 	integer									:: iDayIdx
 	logical									:: lIsWater
 	logical									:: lIsCarbonDioxide
@@ -157,6 +162,7 @@ program am_test
 			end if
 			
 			! Perform H2O and CO2 eddy covariance calculations
+			iRetCode = WaterCarbonDioxide(tEc, 200.d0, rvFqMolar, rvFqMass, rvFcMolar, rvFcMass, rvH0, rvHe)
 		
 			! Get next file name, if exists; the value of iMode parameter is changed automatically,
 			! so there is no need to set it directly
