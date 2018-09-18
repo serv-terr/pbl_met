@@ -189,6 +189,13 @@ module pbl_wind
 		real(8), dimension(:,:), allocatable, private		:: rmRotCovC		! Time series of rotated covariances between velocities and carbon dioxide (m mmol/mol s)
 		! 2) Derived, pre eddy-covariance
 		! 3) Derived, common turbulence indicators
+		! 4) Derived, water and carbon dioxide related
+		real(8), dimension(:), allocatable, private			:: rvFqMolar		! Water turbulent flux along the vertical [mmol/(m2 s)]
+		real(8), dimension(:), allocatable, private			:: rvFqMass			! Water turbulent flux along the vertical [mg/(m2 s)]
+		real(8), dimension(:), allocatable, private			:: rvFcMolar		! Carbon dioxide turbulent flux along the vertical [mmol/(m2 s)]
+		real(8), dimension(:), allocatable, private			:: rvFcMass			! Carbon dioxide turbulent flux along the vertical [mg/(m2 s)]
+		real(8), dimension(:), allocatable, private			:: rvH0				! Turbulent flux of sensible heat along the vertical [W/m2]
+		real(8), dimension(:), allocatable, private			:: rvHe				! Turbulent flux of latent heat along the vertical [W/m2]
 	contains
 		procedure	:: clean			=> ec_Clean					! Make an EddyCovData object "clean", that is, with vectors unallocated and status logicals .false.
 		procedure	:: reserve	 		=> ec_Allocate				! Reserve workspace for vectors (all types)
