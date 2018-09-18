@@ -3832,12 +3832,12 @@ contains
 	! for compatibility with modern Fortran, and to make code clearer to understand.
 	! (Mauri Favaron)
 	!
-	function ec_Process(this, iNumRot, rZ) result(iRetCode)
+	function ec_Process(this, iNumRot, rZ_in) result(iRetCode)
 	
 		! Routine arguments
 		class(EddyCovData), intent(inout)	:: this			! A multi-hour object
 		integer, intent(in), optional		:: iNumRot		! Number of reference rotations to make (2 or 3; default: 2)
-		real(8), intent(in)					:: rZ			! Station altitude above MSL [m]
+		real(8), intent(in), optional		:: rZ_in		! Station altitude above MSL [m]
 		integer								:: iRetCode
 		
 		! Locals
@@ -3845,6 +3845,7 @@ contains
 		integer									:: iRotations
 		integer									:: i
 		integer									:: n
+		real(8)									:: rZ
 		real(8)									:: rVel
 		real(8)									:: rVel3
 		real(8)									:: cos_the
@@ -3892,6 +3893,13 @@ contains
 			iRotations = max(min(iNumRot,3),2)
 		else
 			iRotations = 2
+		end if
+		
+		! Set processing height
+		if(present(rZ_in)) then
+			rZ = rZ_in
+		else
+			rZ = 0.d0	! Default: perform water and carbon dioxide processing with reference to mean sea level
 		end if
 		
 		! Check something can be really made
@@ -4127,6 +4135,7 @@ contains
 			this % rvFcMass(i)  = MOL_CO2 * this % rvFcMolar(i)								! [mg/(m2 s)]
     
   		end do
+  		deallocate(rvTa)
 		
 		! Processing did complete: inform users, by setting the appropriate completion flag
 		this % isFilled = .true.
