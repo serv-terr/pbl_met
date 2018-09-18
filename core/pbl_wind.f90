@@ -2929,6 +2929,12 @@ contains
 			this % rmRotCovT(iNumData,3), &
 			this % rmRotCovQ(iNumData,3), &
 			this % rmRotCovC(iNumData,3), &
+			this % rvH0(iNumData), &
+			this % rvHe(iNumData), &
+			this % rvFqMolar(iNumData), &
+			this % rvFqMass(iNumData), &
+			this % rvFcMolar(iNumData), &
+			this % rvFcMass(iNumData), &
 			stat = iErrCode &
 		)
 		if(iErrCode /= 0) then
