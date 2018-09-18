@@ -3696,6 +3696,12 @@ contains
 		real(8), dimension(:,:), allocatable	:: rmRotCovT
 		real(8), dimension(:,:), allocatable	:: rmRotCovQ
 		real(8), dimension(:,:), allocatable	:: rmRotCovC
+		real(8), dimension(:), allocatable		:: rvH0
+		real(8), dimension(:), allocatable		:: rvHe
+		real(8), dimension(:), allocatable		:: rvFqMolar
+		real(8), dimension(:), allocatable		:: rvFqMass
+		real(8), dimension(:), allocatable		:: rvFcMolar
+		real(8), dimension(:), allocatable		:: rvFcMass
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -3802,6 +3808,12 @@ contains
 					this % rmRotCovT(ivTimeIndex(i),:)     = rmRotCovT(i,:)
 					this % rmRotCovQ(ivTimeIndex(i),:)     = rmRotCovQ(i,:)
 					this % rmRotCovC(ivTimeIndex(i),:)     = rmRotCovC(i,:)
+					this % rvH0(ivTimeIndex(i))            = rvH0(i)
+					this % rvHe(ivTimeIndex(i))            = rvHe(i)
+					this % rvFqMolar(ivTimeIndex(i))       = rvFqMolar(i)
+					this % rvFqMass(ivTimeIndex(i))        = rvFqMass(i)
+					this % rvFcMolar(ivTimeIndex(i))       = rvFcMolar(i)
+					this % rvFcMass(ivTimeIndex(i))        = rvFcMass(i)
 				end if
 			end if
 		end do
