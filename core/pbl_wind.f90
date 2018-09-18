@@ -3165,6 +3165,12 @@ contains
 		this % rmRotCovT   = NaN_8
 		this % rmRotCovQ   = NaN_8
 		this % rmRotCovC   = NaN_8
+		this % rvH0        = NaN_8
+		this % rvHe        = NaN_8
+		this % rvFqMolar   = NaN_8
+		this % rvFqMass    = NaN_8
+		this % rvFcMolar   = NaN_8
+		this % rvFcMass    = NaN_8
 		
 		! Confirm averaging time
 		this % averagingTime = iAveragingTime
