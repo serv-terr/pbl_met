@@ -11,6 +11,7 @@ module pbl_wind
 
 	use pbl_base
 	use pbl_time
+	use pbl_thermo
 	
 	implicit none
 	
@@ -3831,46 +3832,57 @@ contains
 	! for compatibility with modern Fortran, and to make code clearer to understand.
 	! (Mauri Favaron)
 	!
-	function ec_Process(this, iNumRot) result(iRetCode)
+	function ec_Process(this, iNumRot, rZ) result(iRetCode)
 	
 		! Routine arguments
 		class(EddyCovData), intent(inout)	:: this			! A multi-hour object
 		integer, intent(in), optional		:: iNumRot		! Number of reference rotations to make (2 or 3; default: 2)
+		real(8), intent(in)					:: rZ			! Station altitude above MSL [m]
 		integer								:: iRetCode
 		
 		! Locals
-		integer								:: iErrCode
-		integer								:: iRotations
-		integer								:: i
-		integer								:: n
-		real(8)								:: rVel
-		real(8)								:: rVel3
-		real(8)								:: cos_the
-		real(8)								:: sin_the
-		real(8)								:: cos_phi
-		real(8)								:: sin_phi
-		real(8)								:: cos_psi
-		real(8)								:: sin_psi
-		real(8)								:: sin_cos
-		real(8)								:: costhe2
-		real(8)								:: sinthe2
-		real(8)								:: cosphi2
-		real(8)								:: sinphi2
-		real(8)								:: cospsi2
-		real(8)								:: sinpsi2
-		real(8)								:: psi
-		real(8)								:: um2, vm2, wm2
-		real(8)								:: ut2, vt2, wt2
-		real(8)								:: uq2, vq2, wq2
-		real(8)								:: uc2, vc2, wc2
-		real(8)								:: su2, sv2, sw2
-		real(8)								:: uv2, uw2, vw2
-		real(8)								:: um3, vm3, wm3
-		real(8)								:: ut3, vt3, wt3
-		real(8)								:: uq3, vq3, wq3
-		real(8)								:: uc3, vc3, wc3
-		real(8)								:: su3, sv3, sw3
-		real(8)								:: uv3, uw3, vw3
+		integer									:: iErrCode
+		integer									:: iRotations
+		integer									:: i
+		integer									:: n
+		real(8)									:: rVel
+		real(8)									:: rVel3
+		real(8)									:: cos_the
+		real(8)									:: sin_the
+		real(8)									:: cos_phi
+		real(8)									:: sin_phi
+		real(8)									:: cos_psi
+		real(8)									:: sin_psi
+		real(8)									:: sin_cos
+		real(8)									:: costhe2
+		real(8)									:: sinthe2
+		real(8)									:: cosphi2
+		real(8)									:: sinphi2
+		real(8)									:: cospsi2
+		real(8)									:: sinpsi2
+		real(8)									:: psi
+		real(8)									:: um2, vm2, wm2
+		real(8)									:: ut2, vt2, wt2
+		real(8)									:: uq2, vq2, wq2
+		real(8)									:: uc2, vc2, wc2
+		real(8)									:: su2, sv2, sw2
+		real(8)									:: uv2, uw2, vw2
+		real(8)									:: um3, vm3, wm3
+		real(8)									:: ut3, vt3, wt3
+		real(8)									:: uq3, vq3, wq3
+		real(8)									:: uc3, vc3, wc3
+		real(8)									:: su3, sv3, sw3
+		real(8)									:: uv3, uw3, vw3
+		real(8), dimension(:), allocatable		:: rvTa
+		real(8)									:: tc
+		real(8)									:: qd
+		real(8)									:: qc
+		real(8)									:: cd
+		real(8)									:: cdv
+		real(8)									:: mix_factor
+		real(8)									:: wt_cor
+		real(8)									:: lambda
+		real									:: rPa
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -3891,7 +3903,7 @@ contains
 		! Initialize
 		n = size(this % rvTimeStamp)
 		
-		! Compute and execute the first two rotations
+		! Stage 1: Compute and execute rotations
 		do i = 1, n
 		
 			! Pre-assign rotation angles to zero, so that in case of no action a defined state is
@@ -4081,6 +4093,40 @@ contains
 			end if
 			
 		end do
+		
+		! Stage 2: Common calculations
+		
+		! Stage 3: Water and carbon dioxide
+		allocate(rvTa(n))
+		rvTa = this % rvT + 273.15d0
+		rPa = AirPressure(real(rZ, kind=4))
+		do i = 1, n
+		
+			! Air molar concentration
+			cd = 1000.0d0 * AirDensity(real(rvTa(i), kind=4), real(rPa, kind=4))/MOL_Air	! [g/m3] / [g/mmol] = [g/m3] * [mmol/g] = [mmol/m3]
+
+			! Water specific processing
+			qd  = this % rvQ(i) / cd														! Adimensional ratio
+			cdv = cd + this % rvQ(i)														! Molar concentration of moist air [mmol/m3]
+			tc  = cdv * this % rmRotCovT(i,3) / rvTa(i)										! [mmol/m3] [m K/s] / [K] = [mmol/(m2 s)]
+			this % rvFqMolar(i) = this % rmRotCovQ(i,3) + qd * (tc + this % rmRotCovT(i,3))	! [mmol/(m2 s)]
+			this % rvFqMass(i)  = MOL_H2O * this % rvFqMolar(i)								! [mg/(m2 s)]
+    
+			! Thermal effect correction (Schotanus)
+			mix_factor     = MOL_H2O / AirDensity(real(rvTa(i), kind=4), real(rPa, kind=4))/1000.d0
+			wt_cor         = this % rmRotCovT(i,3) - 0.51d0 * mix_factor * rvTa(i) * this % rmRotCovQ(i,3)
+			this % rvH0(i) = RhoCp(real(rvTa(i), kind=4), real(rPa, kind=4)) * wt_cor
+
+			! Latent heat
+			lambda         = 2500.8d0 - 2.36d0 * rvTa(i) + 0.0016d0 * rvTa(i)**2 - 0.00006d0 * rvTa(i)**3	! Latent condensation heat foe water [J/g] (temperature in °C)
+			this % rvHe(i) = lambda/1000.d0 * this % rvFqMass(i)
+    
+			! Carbon dioxide specific processing
+			qc = this % rvC(i) / cd															! Dimensionless ratio
+			this % rvFcMolar(i) = this % rmRotCovC(i,3) + qc * (tc + this % rmRotCovQ(i,3))	! [mmol/(m2 s)]
+			this % rvFcMass(i)  = MOL_CO2 * this % rvFcMolar(i)								! [mg/(m2 s)]
+    
+  		end do
 		
 		! Processing did complete: inform users, by setting the appropriate completion flag
 		this % isFilled = .true.
