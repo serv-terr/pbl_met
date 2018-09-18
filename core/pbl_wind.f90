@@ -2997,6 +2997,12 @@ contains
 				print "(a, f7.4, 2(1x, f7.4))", "Rotated cov(Temp): ", this % rmRotCovT(i,:)
 				print "(a, f7.4, 2(1x, f7.4))", "Rotated cov(H2O):  ", this % rmRotCovQ(i,:)
 				print "(a, f7.4, 2(1x, f7.4))", "Rotated cov(CO2):  ", this % rmRotCovC(i,:)
+				print "(a, f7.4, 2(1x, f7.4))", "H0: ", this % rvH0(i)
+				print "(a, f7.4, 2(1x, f7.4))", "He: ", this % rvHe(i)
+				print "(a, f7.4, 2(1x, f7.4))", "Fq (molar): ", this % rvFqMolar(i)
+				print "(a, f7.4, 2(1x, f7.4))", "Fq (mass):  ", this % rvFqMass(i)
+				print "(a, f7.4, 2(1x, f7.4))", "Fc (molar): ", this % rvFcMolar(i)
+				print "(a, f7.4, 2(1x, f7.4))", "Fc (mass):  ", this % rvFcMass(i)
 			end if
 		end do
 		
