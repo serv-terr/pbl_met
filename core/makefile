@@ -39,7 +39,7 @@ pbl_depth.o pbl_depth.mod : pbl_depth.f90 pbl_base.mod pbl_thermo.mod pbl_wind.m
 pbl_evtrn.o pbl_evtrn.mod : pbl_evtrn.f90 pbl_base.mod pbl_time.mod pbl_thermo.mod
 	$(F90) $(FFLAGS) pbl_evtrn.f90
 	
-pbl_wind.o pbl_wind.mod : pbl_wind.f90 pbl_base.mod
+pbl_wind.o pbl_wind.mod : pbl_wind.f90 pbl_base.mod pbl_thermo.mod
 	$(F90) $(FFLAGS) pbl_wind.f90
 	
 .PHONY: clean
