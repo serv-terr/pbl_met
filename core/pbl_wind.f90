@@ -213,7 +213,8 @@ module pbl_wind
 		procedure	:: getRotCovT		=> ec_GetRotCovT			! Get values from rotated velocity-temperature covariances
 		procedure	:: getTemp			=> ec_GetTemp				! Get values from temperature vector
 		procedure	:: getH2OFluxes		=> ec_GetH2oFluxes			! Get water fluxes vectors
-		procedure	:: getCO2Fluxes		=> ec_GetCo2Fluxes			! Get cerbon dioxide fluxes vectors
+		procedure	:: getCO2Fluxes		=> ec_GetCo2Fluxes			! Get carbon dioxide fluxes vectors
+		procedure	:: getHeatFluxes	=> ec_GetHeatFluxes			! Get heat fluxes vectors
 		procedure	:: createEmpty		=> ec_CreateEmpty			! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
 		procedure	:: isClean			=> ec_IsClean				! Check whether an EddyCovData object is clean
 		procedure	:: isEmpty			=> ec_IsEmpty				! Check whether an EddyCovData object is empty
@@ -3727,6 +3728,40 @@ contains
 		rvFcMass  = this % rvFcMass
 		
 	end function ec_GetCo2Fluxes
+
+	
+	function ec_GetHeatFluxes(this, rvH0, rvHe) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)					:: this
+		real(8), dimension(:), allocatable, intent(out)	:: rvH0		! Vertical turbulent sensible heat flux (W/m2)
+		real(8), dimension(:), allocatable, intent(out)	:: rvHe		! Vertical turbulent latent heat flux (W/m2)
+		integer											:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isFilled) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Reserve workspace
+		n = size(this % rvTimeStamp)
+		if(allocated(rvH0)) deallocate(rvH0)
+		if(allocated(rvHe)) deallocate(rvHe)
+		allocate(rvH0(n))
+		allocate(rvHe(n))
+		
+		! Get the value desired
+		rvH0 = this % rvH0
+		rvHe = this % rvHe
+		
+	end function ec_GetHeatFluxes
 
 	
 	function ec_AddHourly(this, rBaseTime, tEc) result(iRetCode)
