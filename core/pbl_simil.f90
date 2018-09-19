@@ -30,7 +30,6 @@ module pbl_simil
     ! 1.Turbulence
     public	:: FrictionVelocity
     public	:: SensibleHeatFlux
-    public	:: WaterCarbonDioxide
     public	:: WindCorrelation
     ! 2.Stability, and stability-related
     public	:: wStar
@@ -165,125 +164,6 @@ contains
 	end function SensibleHeatFlux
 	
 	
-	function WaterCarbonDioxide(tEc, rZ, rvFqMolar, rvFqMass, rvFcMolar, rvFcMass, rvH0, rvHe) result(iRetCode)
-
-		! Routine arguments
-		type(EddyCovData), intent(in)					:: tEc
-		real(8), intent(in)								:: rZ			! Station altitude above MSL [m]
-		real(8), dimension(:), allocatable, intent(out)	:: rvFqMolar	! Water turbulent flux along the vertical [mmol/(m2 s)]
-		real(8), dimension(:), allocatable, intent(out)	:: rvFqMass		! Water turbulent flux along the vertical [mg/(m2 s)]
-		real(8), dimension(:), allocatable, intent(out)	:: rvFcMolar	! Carbon dioxide turbulent flux along the vertical [mmol/(m2 s)]
-		real(8), dimension(:), allocatable, intent(out)	:: rvFcMass		! Carbon dioxide turbulent flux along the vertical [mg/(m2 s)]
-		real(8), dimension(:), allocatable, intent(out)	:: rvH0			! Turbulent flux of sensible heat along the vertical [W/m2]
-		real(8), dimension(:), allocatable, intent(out)	:: rvHe			! Turbulent flux of latent heat along the vertical [W/m2]
-		integer											:: iRetCode
-		
-		! Locals
-		integer									:: iErrCode
-		integer									:: iModeIn
-		integer									:: i
-		integer									:: n
-		real(8), dimension(:), allocatable		:: rvTa
-		real(8)									:: tc
-		real(8)									:: qd
-		real(8)									:: qc
-		real(8)									:: cd
-		real(8)									:: cdv
-		real(8)									:: mix_factor
-		real(8)									:: wt_cor
-		real(8)									:: lambda
-		real(8), dimension(:), allocatable		:: rvRotCovT
-		real(8), dimension(:), allocatable		:: rvQ
-		real(8), dimension(:,:), allocatable	:: rmCovQ
-		real(8), dimension(:), allocatable		:: rvVarQ
-		real(8), dimension(:,:), allocatable	:: rmRotCovQ
-		real(8), dimension(:), allocatable		:: rvC
-		real(8), dimension(:,:), allocatable	:: rmCovC
-		real(8), dimension(:), allocatable		:: rvVarC
-		real(8), dimension(:,:), allocatable	:: rmRotCovC
-		integer, dimension(:), allocatable		:: ivNumData
-		real									:: rPa
-		
-		! Assume success (will falsify on failure)
-		iRetCode = 0
-		
-		! Check something can be made
-		if(.not. tEc % isFull()) then
-			iRetCode = 1
-			return
-		end if
-		
-		! Retrieve EddyCovData values to work on
-		iErrCode = tEc % getTemp(rvTa)
-		if(iErrCode /= 0) then
-			iRetCode = 2
-			return
-		end if
-		rvTa = rvTa + 273.15
-		iErrCode = tEc % getRotCovT(3, rvRotCovT)
-		if(iErrCode /= 0) then
-			iRetCode = 3
-			return
-		end if
-		iErrCode = tEc % getInputGases(ivNumData, rvQ, rmCovQ, rvVarQ, rvC, rmCovC, rvVarC)
-		if(iErrCode /= 0) then
-			iRetCode = 4
-			return
-		end if
-		iErrCode = tEc % getOutputGases(rmRotCovQ, rmRotCovC)
-		if(iErrCode /= 0) then
-			iRetCode = 5
-			return
-		end if
-		
-		! Reserve workspace
-		n = tEc % getSize()
-		if(allocated(rvFqMolar)) deallocate(rvFqMolar)
-		if(allocated(rvFqMass))  deallocate(rvFqMass)
-		if(allocated(rvFcMolar)) deallocate(rvFcMolar)
-		if(allocated(rvFcMass))  deallocate(rvFcMass)
-		if(allocated(rvH0))     deallocate(rvH0)
-		if(allocated(rvHe))     deallocate(rvHe)
-		allocate(rvFqMolar(n))
-		allocate(rvFqMass(n))
-		allocate(rvFcMolar(n))
-		allocate(rvFcMass(n))
-		allocate(rvH0(n))
-		allocate(rvHe(n))
-		
-		! Main loop: period processing
-		rPa = AirPressure(real(rZ, kind=4))
-		do i = 1, n
-		
-			! Air molar concentration
-			cd = 1000.0d0*AirDensity(real(rvTa(i), kind=4), real(rPa, kind=4))/MOL_Air	! [g/m3] / [g/mmol] = [g/m3] * [mmol/g] = [mmol/m3]
-
-			! Water specific processing
-			qd  = rvQ(i) / cd														! Adimensional ratio
-			cdv = cd + rvQ(i)														! Molar concentration of moist air [mmol/m3]
-			tc  = cdv * rvRotCovT(i) / rvTa(i)										! [mmol/m3] [m K/s] / [K] = [mmol/(m2 s)]
-			rvFqMolar(i) = rmRotCovQ(i,3) + qd * (tc + rvRotCovT(i))				! [mmol/(m2 s)]
-			rvFqMass(i)  = MOL_H2O * rvFqMolar(i)									! [mg/(m2 s)]
-    
-			! Thermal effect correction (Schotanus)
-			mix_factor = MOL_H2O/AirDensity(real(rvTa(i), kind=4), real(rPa, kind=4))/1000.d0
-			wt_cor     = rvRotCovT(i) - 0.51d0 * mix_factor * rvTa(i) * rmRotCovQ(i,3)
-			rvH0(i)    = RhoCp(real(rvTa(i), kind=4), real(rPa, kind=4)) * wt_cor
-
-			! Latent heat
-			lambda     = 2500.8d0 - 2.36d0 * rvTa(i) + 0.0016d0 * rvTa(i)**2 - 0.00006d0 * rvTa(i)**3	! Latent condensation heat foe water [J/g] (temperature in °C)
-			rvHe(i)    = lambda/1000.d0 * rvFqMass(i)
-    
-			! Carbon dioxide specific processing
-			qc = rvC(i) / cd											! Dimensionless ratio
-			rvFcMolar(i) = rmRotCovC(i,3) + qc * (tc + rmRotCovQ(i,3))	! [mmol/(m2 s)]
-			rvFcMass(i)  = MOL_CO2 * rvFcMolar(i)						! [mg/(m2 s)]
-    
-  		end do
-
-	end function WaterCarbonDioxide
-    
-
 	function WindCorrelation(tEc, raWindCorr) result(iRetCode)
 	
 		! Routine arguments
