@@ -155,15 +155,12 @@ program am_test
 			end if
 			
 			! Perform eddy covariance processing
-			iRetCode = tEc % process(2)
+			iRetCode = tEc % process(iNumRot=2)
 			if(iRetCode /= 0) then
 				print *, "Error performing basic eddy-covariance calculations - Return code = ", iRetCode
 				cycle
 			end if
 			
-			! Perform H2O and CO2 eddy covariance calculations
-			iRetCode = WaterCarbonDioxide(tEc, 200.d0, rvFqMolar, rvFqMass, rvFcMolar, rvFcMass, rvH0, rvHe)
-		
 			! Get next file name, if exists; the value of iMode parameter is changed automatically,
 			! so there is no need to set it directly
 			iRetCode = tDir % getFile(iMode, sFileName)
