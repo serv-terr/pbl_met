@@ -30,6 +30,7 @@ program am_test
 	type(Usa1DataDir)						:: tDir
 	type(SonicData)							:: tSonic
 	type(EddyCovData)						:: tEc
+	type(EddyCovData), dimension(2)			:: tvDay
 	real(8)									:: rFrom
 	real(8)									:: rTo
 	real(8)									:: rHold
@@ -110,8 +111,9 @@ program am_test
 			rTo   = rHold
 		end if
 	
-		! Compute number of hours in set
+		! Compute number of hours in set, and use to reserve workspace
 		iNumHours = nint((rTo - rFrom)/3600.d0) + 1
+		iRetCode = tvDay(iDayIdx) % createEmpty(iNumHours, 1800)
 	
 		! Map data files
 		iRetCode = tDir % mapFiles(sDataPath, rFrom, iNumHours, .false., iLoggerType = LOGGER_SONICLIB_MFC2)
@@ -158,6 +160,13 @@ program am_test
 			iRetCode = tEc % process(iNumRot=2)
 			if(iRetCode /= 0) then
 				print *, "Error performing basic eddy-covariance calculations - Return code = ", iRetCode
+				cycle
+			end if
+			
+			! Save results
+			iRetCode = tvDay(iDayIdx) % add(rFrom, tEc)
+			if(iRetCode /= 0) then
+				print *, "Error performing data addition to multi-hour set - Return code = ", iRetCode
 				cycle
 			end if
 			
