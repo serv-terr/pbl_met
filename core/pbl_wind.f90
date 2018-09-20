@@ -3885,7 +3885,27 @@ contains
 		if(alsoOutputs) then
 			iErrCode = tEc % getOutputData(rvTheta, rvPhi, rvPsi, rmRotVel, raRotCovVel, rmRotCovT)
 			if(iErrCode /= 0) then
-				iRetCode = 8
+				iRetCode = 9
+				return
+			end if
+			iErrCode = tEc % getOutputGases(rmRotCovQ, rmRotCovC)
+			if(iErrCode /= 0) then
+				iRetCode = 10
+				return
+			end if
+			iErrCode = tEc % getH2oFluxes(rvFqMolar, rvFqMass)
+			if(iErrCode /= 0) then
+				iRetCode = 11
+				return
+			end if
+			iErrCode = tEc % getCo2Fluxes(rvFcMolar, rvFcMass)
+			if(iErrCode /= 0) then
+				iRetCode = 12
+				return
+			end if
+			iErrCode = tEc % getHeatFluxes(rvH0, rvHe)
+			if(iErrCode /= 0) then
+				iRetCode = 13
 				return
 			end if
 			if(.not. this % isFilled) then
