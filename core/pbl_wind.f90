@@ -3870,6 +3870,11 @@ contains
 			iRetCode = 7
 			return
 		end if
+		iErrCode = tEc % getInputGases(ivNumData, rvQ, rmCovQ, rvVarQ, rvC, rmCovC, rvVarC)
+		if(iErrCode /= 0) then
+			iRetCode = 8
+			return
+		end if
 		if(.not. this % isPrimed) then
 			this % isPrimed = .true.
 			this % isFilled = .false.
