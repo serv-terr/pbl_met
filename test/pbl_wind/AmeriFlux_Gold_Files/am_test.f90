@@ -174,9 +174,11 @@ program am_test
 			end if
 			
 			! Write results
+			iRetCode = tvDay(iDayIdx) % getNumData(ivNumData)
+			iRetCode = tvDay(iDayIdx) % getTimeStamp(rvTimeStamp)
+			iRetCode = tvDay(iDayIdx) % getWind(rmPolar, WCONV_FLOW_TO_PROVENANCE)
 			iRetCode = tvDay(iDayIdx) % getH2O(rvQ, rvFqMolar, rvFqMass)
 			iRetCode = tvDay(iDayIdx) % getCO2(rvC, rvFcMolar, rvFcMass)
-			iRetCode = tvDay(iDayIdx) % getWind(rmPolar, WCONV_FLOW_TO_PROVENANCE)
 			
 			! Get next file name, if exists; the value of iMode parameter is changed automatically,
 			! so there is no need to set it directly
