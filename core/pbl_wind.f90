@@ -215,6 +215,7 @@ module pbl_wind
 		procedure	:: getH2O			=> ec_GetH2o				! Get water input vectors
 		procedure	:: getH2OFluxes		=> ec_GetH2oFluxes			! Get water fluxes vectors
 		procedure	:: getCO2Fluxes		=> ec_GetCo2Fluxes			! Get carbon dioxide fluxes vectors
+		procedure	:: getCO2			=> ec_GetCo2				! Get carbon dioxide vectors
 		procedure	:: getHeatFluxes	=> ec_GetHeatFluxes			! Get heat fluxes vectors
 		procedure	:: createEmpty		=> ec_CreateEmpty			! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
 		procedure	:: isClean			=> ec_IsClean				! Check whether an EddyCovData object is clean
@@ -3733,6 +3734,43 @@ contains
 		rvFqMass  = this % rvFqMass
 		
 	end function ec_GetH2oFluxes
+
+	
+	function ec_GetCo2(this, rvFcMolar, rvFcMass) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)					:: this
+		real(8), dimension(:), allocatable, intent(out)	:: rvFcMolar
+		real(8), dimension(:), allocatable, intent(out)	:: rvFcMass
+		integer											:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isFilled) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Reserve workspace
+		n = size(this % rvTimeStamp)
+		if(allocated(rvC))       deallocate(rvC)
+		if(allocated(rvFcMolar)) deallocate(rvFcMolar)
+		if(allocated(rvFcMass))  deallocate(rvFcMass)
+		allocate(rvC(n))
+		allocate(rvFcMolar(n))
+		allocate(rvFcMass(n))
+		
+		! Get the value desired
+		rvC       = this % rvC
+		rvFcMolar = this % rvFcMolar
+		rvFcMass  = this % rvFcMass
+		
+	end function ec_GetCo2
 
 	
 	function ec_GetCo2Fluxes(this, rvFcMolar, rvFcMass) result(iRetCode)
