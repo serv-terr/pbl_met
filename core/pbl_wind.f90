@@ -211,7 +211,7 @@ module pbl_wind
 		procedure	:: getRotCovVel		=> ec_GetRotCovVel			! Get values from rotated velocity covariances (only those at row i, column j)
 		procedure	:: getRotCovWind	=> ec_GetRotCovWind			! Get values from rotated velocity covariances (all)
 		procedure	:: getRotCovT		=> ec_GetRotCovT			! Get values from rotated velocity-temperature covariances
-		procedure	:: getWind			=> ec_GetWind				! Get horizontal wind in (Vel,Dir,W) form
+		procedure	:: getWind			=> ec_GetWind				! Get wind in (Vel,Dir,W) form
 		procedure	:: getTemp			=> ec_GetTemp				! Get values from temperature vector
 		procedure	:: getH2O			=> ec_GetH2o				! Get water input vectors
 		procedure	:: getH2OFluxes		=> ec_GetH2oFluxes			! Get water fluxes vectors
@@ -3301,7 +3301,7 @@ contains
 		! Routine argument
 		class(EddyCovData), intent(in)						:: this			! A multi-hour object
 		real(8), dimension(:), allocatable, intent(out)		:: rvTimeStamp	! The desired copy of object's time stamp (or nothing in case of error)
-		integer, intent(out), optional						:: iDeltaTime	! The object's time stap
+		integer, intent(out), optional						:: iDeltaTime	! The object's averaging time step
 		integer												:: iRetCode
 		
 		! Locals
