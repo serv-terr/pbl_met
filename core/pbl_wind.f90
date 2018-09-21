@@ -212,6 +212,7 @@ module pbl_wind
 		procedure	:: getRotCovWind	=> ec_GetRotCovWind			! Get values from rotated velocity covariances (all)
 		procedure	:: getRotCovT		=> ec_GetRotCovT			! Get values from rotated velocity-temperature covariances
 		procedure	:: getTemp			=> ec_GetTemp				! Get values from temperature vector
+		procedure	:: getH2O			=> ec_GetH2o				! Get water input vectors
 		procedure	:: getH2OFluxes		=> ec_GetH2oFluxes			! Get water fluxes vectors
 		procedure	:: getCO2Fluxes		=> ec_GetCo2Fluxes			! Get carbon dioxide fluxes vectors
 		procedure	:: getHeatFluxes	=> ec_GetHeatFluxes			! Get heat fluxes vectors
@@ -3660,6 +3661,44 @@ contains
 		rvValue = this % rvT
 		
 	end function ec_GetTemp
+
+	
+	function ec_GetH2o(this, rvQ, rvFqMolar, rvFqMass) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)					:: this
+		real(8), dimension(:), allocatable, intent(out)	:: rvQ
+		real(8), dimension(:), allocatable, intent(out)	:: rvFqMolar
+		real(8), dimension(:), allocatable, intent(out)	:: rvFqMass
+		integer											:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isFilled) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Reserve workspace
+		n = size(this % rvTimeStamp)
+		if(allocated(rvQ))       deallocate(rvQ)
+		if(allocated(rvFqMolar)) deallocate(rvFqMolar)
+		if(allocated(rvFqMass))  deallocate(rvFqMass)
+		allocate(rvQ(n))
+		allocate(rvFqMolar(n))
+		allocate(rvFqMass(n))
+		
+		! Get the value desired
+		rvQ       = this % rvQ
+		rvFqMolar = this % rvFqMolar
+		rvFqMass  = this % rvFqMass
+		
+	end function ec_GetH2o
 
 	
 	function ec_GetH2oFluxes(this, rvFqMolar, rvFqMass) result(iRetCode)
