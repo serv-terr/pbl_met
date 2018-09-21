@@ -204,6 +204,7 @@ module pbl_wind
 		procedure	:: getSize			=> ec_getSize				! Get allocated size of an EddyCovData object
 		procedure	:: getAvgTime		=> ec_getAvgTime			! Get averaging time (as it is)
 		procedure	:: getNumValidInput	=> ec_getNumValidInput		! Count number of valid data in an EddyCovData object
+		procedure	:: getNumData		=> ec_getNumData			! Get a number of valid data used to form any mean value
 		procedure	:: getInputData		=> ec_getInputData			! Get a copy of input vectors
 		procedure	:: getInputGases	=> ec_getInputGases			! Get a copy of input gases vectors
 		procedure	:: getOutputData	=> ec_getOutputData			! Get a copy of output vectors
@@ -3337,6 +3338,38 @@ contains
 		
 	end function ec_GetTimeStamp
 	
+	
+	function ec_GetNumData(this, ivNumData) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)							:: this
+		integer, dimension(:), allocatable, intent(out)			:: ivNumData
+		integer													:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isPrimed) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Clean output data
+		if(allocated(ivNumData)) deallocate(ivNumData)
+		
+		! Get array size, and reserve workspace
+		n = size(this % rvTimeStamp)
+		allocate(ivNumData(n))
+		
+		! Retrieve data
+		ivNumData = this % ivNumData
+		
+	end function ec_GetNumData
+
 	
 	function ec_GetInputData(this, ivNumData, rmVel, rvT, raCovVel, rmCovT, rvVarT) result(iRetCode)
 	
