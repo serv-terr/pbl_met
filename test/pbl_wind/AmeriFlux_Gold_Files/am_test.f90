@@ -44,9 +44,12 @@ program am_test
 	real(8), dimension(:), allocatable		:: rvPhi
 	real(8), dimension(:), allocatable		:: rvPsi
 	real(8), dimension(:), allocatable		:: rvT
+	real(8), dimension(:), allocatable		:: rvQ
+	real(8), dimension(:), allocatable		:: rvC
 	real(8), dimension(:), allocatable		:: rvVarT
 	real(8), dimension(:,:), allocatable	:: rmNrotVel
 	real(8), dimension(:,:), allocatable	:: rmVel
+	real, dimension(:,:), allocatable		:: rmPolar
 	real(8), dimension(:,:,:), allocatable	:: raCovVel
 	real(8), dimension(:,:,:), allocatable	:: raCovWind
 	real(8), dimension(:,:,:), allocatable	:: raNrotCovVel
@@ -134,7 +137,7 @@ program am_test
 			print *, "Error accessing output file in write mode"
 			stop
 		end if
-		write(10,"('date, dir, vel, temp, theta, phi, w.nrot, uu, uv, uw, vv, vw, ww, ut, vt, wt, u.star, H0, Corr.UW')")
+		write(10,"('date, dir, vel, temp, theta, phi, u.star, H0, He, Q, Fq.Molar, Fq.Mass, C, Fc.Molar, Fc.Mass')")
 		do while(iMode /= DE_ERR)
 	
 			! Read data to hourly SonicData object
@@ -169,6 +172,11 @@ program am_test
 				print *, "Error performing data addition to multi-hour set - Return code = ", iRetCode
 				cycle
 			end if
+			
+			! Write results
+			iRetCode = tvDay(iDayIdx) % getH2O(rvQ, rvFqMolar, rvFqMass)
+			iRetCode = tvDay(iDayIdx) % getCO2(rvC, rvFcMolar, rvFcMass)
+			iRetCode = tvDay(iDayIdx) % getWind(rmPolar, WCONV_FLOW_TO_PROVENANCE)
 			
 			! Get next file name, if exists; the value of iMode parameter is changed automatically,
 			! so there is no need to set it directly
