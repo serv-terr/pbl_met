@@ -211,6 +211,7 @@ module pbl_wind
 		procedure	:: getRotCovVel		=> ec_GetRotCovVel			! Get values from rotated velocity covariances (only those at row i, column j)
 		procedure	:: getRotCovWind	=> ec_GetRotCovWind			! Get values from rotated velocity covariances (all)
 		procedure	:: getRotCovT		=> ec_GetRotCovT			! Get values from rotated velocity-temperature covariances
+		procedure	:: getWind			=> ec_GetWind				! Get horizontal wind in (Vel,Dir,W) form
 		procedure	:: getTemp			=> ec_GetTemp				! Get values from temperature vector
 		procedure	:: getH2O			=> ec_GetH2o				! Get water input vectors
 		procedure	:: getH2OFluxes		=> ec_GetH2oFluxes			! Get water fluxes vectors
@@ -3633,6 +3634,46 @@ contains
 		rvValue = this % rmRotCovT(:,j)
 		
 	end function ec_GetRotCovT
+
+	
+	function ec_GetWind(this, rmPolar, iInterpretation) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)						:: this
+		real(4), dimension(:,:), allocatable, intent(out)	:: rmPolar
+		integer, intent(in), optional						:: iInterpretation
+		integer												:: iRetCode
+		
+		! Locals
+		integer	:: n
+		integer	:: i
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isFilled) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Reserve workspace
+		n = size(this % rvTimeStamp)
+		if(allocated(rmPolar)) deallocate(rmPolar)
+		allocate(rmPolar(n,3))
+		
+		! Get the value desired
+		if(present(iInterpretation)) then
+			do i = 1, n
+				rmPolar(i,:) = CartesianToPolar3(real(this % rmVel(i,:), kind=4), iInterpretation)
+			end do
+		else
+			do i = 1, n
+				rmPolar(i,:) = CartesianToPolar3(real(this % rmVel(i,:), kind=4))
+			end do
+		end if
+		
+	end function ec_GetWind
 
 	
 	function ec_GetTemp(this, rvValue) result(iRetCode)
