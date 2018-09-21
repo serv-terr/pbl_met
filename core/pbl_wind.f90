@@ -3736,10 +3736,11 @@ contains
 	end function ec_GetH2oFluxes
 
 	
-	function ec_GetCo2(this, rvFcMolar, rvFcMass) result(iRetCode)
+	function ec_GetCo2(this, rvC, rvFcMolar, rvFcMass) result(iRetCode)
 	
 		! Routine arguments
 		class(EddyCovData), intent(in)					:: this
+		real(8), dimension(:), allocatable, intent(out)	:: rvC
 		real(8), dimension(:), allocatable, intent(out)	:: rvFcMolar
 		real(8), dimension(:), allocatable, intent(out)	:: rvFcMass
 		integer											:: iRetCode
