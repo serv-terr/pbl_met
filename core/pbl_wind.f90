@@ -208,6 +208,7 @@ module pbl_wind
 		procedure	:: getInputData		=> ec_getInputData			! Get a copy of input vectors
 		procedure	:: getInputGases	=> ec_getInputGases			! Get a copy of input gases vectors
 		procedure	:: getOutputData	=> ec_getOutputData			! Get a copy of output vectors
+		procedure	:: getRotAngles		=> ec_GetRotAngles			! Get rotation angles
 		procedure	:: getOutputGases	=> ec_getOutputGases		! Get a copy of output gas vectors
 		procedure	:: getRotCovVel		=> ec_GetRotCovVel			! Get values from rotated velocity covariances (only those at row i, column j)
 		procedure	:: getRotCovWind	=> ec_GetRotCovWind			! Get values from rotated velocity covariances (all)
@@ -3529,6 +3530,46 @@ contains
 		rmRotCovT    = this % rmRotCovT
 		
 	end function ec_GetOutputData
+
+	
+	function ec_GetRotAngles(this, rvTheta, rvPhi, rvPsi) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)							:: this
+		real(8), dimension(:), allocatable, intent(out)			:: rvTheta
+		real(8), dimension(:), allocatable, intent(out)			:: rvPhi
+		real(8), dimension(:), allocatable, intent(out)			:: rvPsi
+		integer													:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isPrimed) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Clean output data
+		if(allocated(rvTheta)) deallocate(rvTheta)
+		if(allocated(rvPhi)) deallocate(rvPhi)
+		if(allocated(rvPsi)) deallocate(rvPsi)
+		
+		! Get array size, and reserve workspace
+		n = size(this % rvTimeStamp)
+		allocate(rvTheta(n))
+		allocate(rvPhi(n))
+		allocate(rvPsi(n))
+		
+		! Retrieve data
+		rvTheta      = this % rvTheta
+		rvPhi        = this % rvPhi
+		rvPsi        = this % rvPsi
+		
+	end function ec_GetRotAngles
 
 	
 	function ec_GetOutputGases(this, rmRotCovQ, rmRotCovC) result(iRetCode)
