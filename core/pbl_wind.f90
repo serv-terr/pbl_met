@@ -190,6 +190,8 @@ module pbl_wind
 		real(8), dimension(:,:), allocatable, private		:: rmRotCovC		! Time series of rotated covariances between velocities and carbon dioxide (m mmol/mol s)
 		! 2) Derived, pre eddy-covariance
 		! 3) Derived, common turbulence indicators and energy fluxes
+		real(8), dimension(:), allocatable, private			:: rvUstar			! Friction velocity, using both momentum fluxes (always valid) [m/s]
+		real(8), dimension(:), allocatable, private			:: rvUstar_3		! Friction velocity, using one momentum flux only (may not be valid; computed only if third rotation angle is non-zero) [m/s]
 		real(8), dimension(:), allocatable, private			:: rvH0				! Turbulent flux of sensible heat along the vertical [W/m2]
 		real(8), dimension(:), allocatable, private			:: rvHe				! Turbulent flux of latent heat along the vertical [W/m2]
 		! 4) Derived, water and carbon dioxide related
