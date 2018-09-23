@@ -2894,6 +2894,8 @@ contains
 		if(allocated(this % rmRotCovT))   deallocate(this % rmRotCovT)
 		if(allocated(this % rmRotCovQ))   deallocate(this % rmRotCovQ)
 		if(allocated(this % rmRotCovC))   deallocate(this % rmRotCovC)
+		if(allocated(this % rvUstar))     deallocate(this % rvUstar)
+		if(allocated(this % rvUstar_3))   deallocate(this % rvUstar_3)
 		if(allocated(this % rvH0))        deallocate(this % rvH0)
 		if(allocated(this % rvHe))        deallocate(this % rvHe)
 		if(allocated(this % rvFqMolar))   deallocate(this % rvFqMolar)
