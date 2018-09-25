@@ -2942,6 +2942,8 @@ contains
 			this % rmRotCovT(iNumData,3), &
 			this % rmRotCovQ(iNumData,3), &
 			this % rmRotCovC(iNumData,3), &
+			this % rvUstar(iNumData), &
+			this % rvUstar_3(iNumData), &
 			this % rvH0(iNumData), &
 			this % rvHe(iNumData), &
 			this % rvFqMolar(iNumData), &
