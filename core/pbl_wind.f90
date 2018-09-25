@@ -3012,6 +3012,8 @@ contains
 				print "(a, f7.4, 2(1x, f7.4))", "Rotated cov(Temp): ", this % rmRotCovT(i,:)
 				print "(a, f7.4, 2(1x, f7.4))", "Rotated cov(H2O):  ", this % rmRotCovQ(i,:)
 				print "(a, f7.4, 2(1x, f7.4))", "Rotated cov(CO2):  ", this % rmRotCovC(i,:)
+				print "(a, f7.4, 2(1x, f7.4))", "U*(absolute): ", this % rvUstar(i)
+				print "(a, f7.4, 2(1x, f7.4))", "U*(finicky):  ", this % rvUstar_3(i)
 				print "(a, f7.4, 2(1x, f7.4))", "H0: ", this % rvH0(i)
 				print "(a, f7.4, 2(1x, f7.4))", "He: ", this % rvHe(i)
 				print "(a, f7.4, 2(1x, f7.4))", "Fq (molar): ", this % rvFqMolar(i)
