@@ -211,6 +211,7 @@ module pbl_wind
 		procedure	:: getInputGases	=> ec_getInputGases			! Get a copy of input gases vectors
 		procedure	:: getOutputData	=> ec_getOutputData			! Get a copy of output vectors
 		procedure	:: getRotAngles		=> ec_GetRotAngles			! Get rotation angles
+		procedure	:: getUstar			=> ec_GetUstar				! Get friction velocity (according to the two most common definitions)
 		procedure	:: getOutputGases	=> ec_getOutputGases		! Get a copy of output gas vectors
 		procedure	:: getRotCovVel		=> ec_GetRotCovVel			! Get values from rotated velocity covariances (only those at row i, column j)
 		procedure	:: getRotCovWind	=> ec_GetRotCovWind			! Get values from rotated velocity covariances (all)
@@ -3580,7 +3581,43 @@ contains
 		rvPsi        = this % rvPsi
 		
 	end function ec_GetRotAngles
-
+	
+	
+	function ec_GetUstar(this, rvUstar, rvUstar_3) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)							:: this
+		real(8), dimension(:), allocatable, intent(out)			:: rvUstar
+		real(8), dimension(:), allocatable, intent(out)			:: rvUstar_3
+		integer													:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isPrimed) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Clean output data
+		if(allocated(rvUstar)) deallocate(rvUstar)
+		if(allocated(rvUstar_3)) deallocate(rvUstar_3)
+		
+		! Get array size, and reserve workspace
+		n = size(this % rvTimeStamp)
+		allocate(rvUstar(n))
+		allocate(rvUstar_3(n))
+		
+		! Retrieve data
+		rvUstar      = this % rvUstar
+		rvUstar_3    = this % rvUstar_3
+		
+	end function ec_GetUstar
+	
 	
 	function ec_GetOutputGases(this, rmRotCovQ, rmRotCovC) result(iRetCode)
 	
