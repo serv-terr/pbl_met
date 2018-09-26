@@ -3182,6 +3182,8 @@ contains
 		this % rmRotCovT   = NaN_8
 		this % rmRotCovQ   = NaN_8
 		this % rmRotCovC   = NaN_8
+		this % rvUstar     = NaN_8
+		this % rvUstar_3   = NaN_8
 		this % rvH0        = NaN_8
 		this % rvHe        = NaN_8
 		this % rvFqMolar   = NaN_8
