@@ -4042,6 +4042,8 @@ contains
 		real(8), dimension(:,:), allocatable	:: rmRotCovT
 		real(8), dimension(:,:), allocatable	:: rmRotCovQ
 		real(8), dimension(:,:), allocatable	:: rmRotCovC
+		real(8), dimension(:), allocatable		:: rvUstar
+		real(8), dimension(:), allocatable		:: rvUstar_3
 		real(8), dimension(:), allocatable		:: rvH0
 		real(8), dimension(:), allocatable		:: rvHe
 		real(8), dimension(:), allocatable		:: rvFqMolar
@@ -4148,6 +4150,11 @@ contains
 				iRetCode = 13
 				return
 			end if
+			iErrCode = tEc % getUstar(rvUstar, rvUstar_3)
+			if(iErrCode /= 0) then
+				iRetCode = 14
+				return
+			end if
 			if(.not. this % isFilled) then
 				this % isPrimed = .true.
 				this % isFilled = .true.
@@ -4179,6 +4186,8 @@ contains
 					this % rmRotCovT(ivTimeIndex(i),:)     = rmRotCovT(i,:)
 					this % rmRotCovQ(ivTimeIndex(i),:)     = rmRotCovQ(i,:)
 					this % rmRotCovC(ivTimeIndex(i),:)     = rmRotCovC(i,:)
+					this % rvUstar(ivTimeIndex(i))         = rvUstar(i)
+					this % rvUstar_3(ivTimeIndex(i))       = rvUstar_3(i)
 					this % rvH0(ivTimeIndex(i))            = rvH0(i)
 					this % rvHe(ivTimeIndex(i))            = rvHe(i)
 					this % rvFqMolar(ivTimeIndex(i))       = rvFqMolar(i)
