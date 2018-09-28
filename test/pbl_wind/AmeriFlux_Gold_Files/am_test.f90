@@ -175,42 +175,45 @@ program am_test
 				cycle
 			end if
 			
-			! Write results to local routine workspace
-			iRetCode = tvDay(iDayIdx) % getTimeStamp(rvTimeStamp)
-			iRetCode = tvDay(iDayIdx) % getNumData(ivNumData)
-			iRetCode = tvDay(iDayIdx) % getWind(rmPolar, WCONV_FLOW_TO_PROVENANCE)
-			iRetCode = tvDay(iDayIdx) % getTemp(rvT)
-			iRetCode = tvDay(iDayIdx) % getRotAngles(rvTheta, rvPhi, rvPsi)
-			iRetCode = tvDay(iDayIdx) % getUstar(rvUstar, rvUstar_3)
-			iRetCode = tvDay(iDayIdx) % getHeatFluxes(rvH0, rvHe)
-			iRetCode = tvDay(iDayIdx) % getH2O(rvQ, rvFqMolar, rvFqMass)
-			iRetCode = tvDay(iDayIdx) % getCO2(rvC, rvFcMolar, rvFcMass)
-			
-			! Print results
-			do i = 1, size(rvTimeStamp)
-				iRetCode = tCurTime % fromEpoch(rvTimeStamp(i))
-				sCurTime = tCurTime % toISO()
-				write(10,"(a,',',f6.1,6(',',f8.4),2(',',f7.2,',',f8.4,',',f8.4))") &
-					sCurTime, &
-					rmPolar(i,2), rmPolar(i,1), &
-					rvT(i), &
-					rvPhi(i), &
-					rvUstar(i), &
-					rvH0(i), rvHe(i), &
-					rvQ(i), rvFqMolar(i), rvFqMass(i), &
-					rvC(i), rvFcMolar(i), rvFcMass(i)
-			end do
-			
-			! Get next file name, if exists; the value of iMode parameter is changed automatically,
-			! so there is no need to set it directly
+			! Get next file
 			iRetCode = tDir % getFile(iMode, sFileName)
-			if(iRetCode /= 0) then
-				print *, "Error accessing file list - Return code = ", iRetCode
-				cycle
-			end if
+			
+		end do
+			
+		! Write results to local routine workspace
+		iRetCode = tvDay(iDayIdx) % getTimeStamp(rvTimeStamp)
+		iRetCode = tvDay(iDayIdx) % getNumData(ivNumData)
+		iRetCode = tvDay(iDayIdx) % getWind(rmPolar, WCONV_FLOW_TO_PROVENANCE)
+		iRetCode = tvDay(iDayIdx) % getTemp(rvT)
+		iRetCode = tvDay(iDayIdx) % getRotAngles(rvTheta, rvPhi, rvPsi)
+		iRetCode = tvDay(iDayIdx) % getUstar(rvUstar, rvUstar_3)
+		iRetCode = tvDay(iDayIdx) % getHeatFluxes(rvH0, rvHe)
+		iRetCode = tvDay(iDayIdx) % getH2O(rvQ, rvFqMolar, rvFqMass)
+		iRetCode = tvDay(iDayIdx) % getCO2(rvC, rvFcMolar, rvFcMass)
 		
+		! Print results
+		do i = 1, size(rvTimeStamp)
+			iRetCode = tCurTime % fromEpoch(rvTimeStamp(i))
+			sCurTime = tCurTime % toISO()
+			write(10,"(a,',',f6.1,6(',',f8.4),2(',',f7.2,',',f8.4,',',f8.4))") &
+				sCurTime, &
+				rmPolar(i,2), rmPolar(i,1), &
+				rvT(i), &
+				rvPhi(i), &
+				rvUstar(i), &
+				rvH0(i), rvHe(i), &
+				rvQ(i), rvFqMolar(i), rvFqMass(i), &
+				rvC(i), rvFcMolar(i), rvFcMass(i)
 		end do
 		
+		! Get next file name, if exists; the value of iMode parameter is changed automatically,
+		! so there is no need to set it directly
+		iRetCode = tDir % getFile(iMode, sFileName)
+		if(iRetCode /= 0) then
+			print *, "Error accessing file list - Return code = ", iRetCode
+			cycle
+		end if
+	
 		! End with current output file
 		close(10)
 
