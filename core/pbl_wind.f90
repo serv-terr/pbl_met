@@ -4484,12 +4484,14 @@ contains
 		! Stage 2: Common calculations
 		
 		! Friction velocity
-		this % rvUstar(i) = (this % raRotCovVel(i,1,3)**2 + this % raRotCovVel(i,2,3)**2)**0.25d0		! Always defined, makes sense with 2 or 3 rotations  (UW^2+VW^2)^(1/4)
-		if(this % raRotCovVel(i,1,3) < 0.) then
-			this % rvUstar_3(i) = sqrt(-this % raRotCovVel(i,1,3))						! Only defined when the vertical gradient of turbulemce is negative; makes sense with 3 rotations
-		else
-			this % rvUstar_3(i) = NaN_8
-		end if
+		do i = 1, n
+			this % rvUstar(i) = (this % raRotCovVel(i,1,3)**2 + this % raRotCovVel(i,2,3)**2)**0.25d0		! Always defined, makes sense with 2 or 3 rotations  (UW^2+VW^2)^(1/4)
+			if(this % raRotCovVel(i,1,3) < 0.) then
+				this % rvUstar_3(i) = sqrt(-this % raRotCovVel(i,1,3))						! Only defined when the vertical gradient of turbulemce is negative; makes sense with 3 rotations
+			else
+				this % rvUstar_3(i) = NaN_8
+			end if
+		end do
 		
 		! Stage 3: Water and carbon dioxide
 		allocate(rvTa(n))
