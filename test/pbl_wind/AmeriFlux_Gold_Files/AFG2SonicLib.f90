@@ -60,12 +60,12 @@ program AFG2SonicLib
 			write(11,"('time.stamp, u, v, w, t, q, c')")
 		
 			! Loop over the two halves of an hour
+			iDataNum = 0
 			do iHalfHour = 0, 30, 30
 		
 				! Get input file, convert it to MFC V2 form and write in encoded form
 				write(sSourceFile, "('G',i3.3,i2.2,i2.2,'.RAW')") iDayNumber, iHour, iHalfHour
 				open(10, file=sSourceFile, status='old', action='read')
-				iDataNum = 0
 				do
 					read(10, *, iostat=iRetCode) w, u, v, t, h2o, co2
 					if(iRetCode /= 0) exit
