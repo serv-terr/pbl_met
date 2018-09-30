@@ -139,7 +139,7 @@ program am_test
 			print *, "Error accessing output file in write mode"
 			stop
 		end if
-		write(10,"('date, dir, vel, temp, theta, phi, u.star, H0, He, Q, Fq.Molar, Fq.Mass, C, Fc.Molar, Fc.Mass')")
+		write(10,"('date, dir, vel, temp, phi, u.star, H0, He, Q, Fq.Molar, Fq.Mass, C, Fc.Molar, Fc.Mass')")
 		do while(iMode /= DE_ERR)
 	
 			! Read data to hourly SonicData object
