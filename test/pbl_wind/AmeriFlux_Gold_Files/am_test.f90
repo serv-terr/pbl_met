@@ -167,6 +167,7 @@ program am_test
 				print *, "Error performing basic eddy-covariance calculations - Return code = ", iRetCode
 				cycle
 			end if
+			iRetCode = tEc % getWind(rmPolar, WCONV_FLOW_TO_PROVENANCE)
 			
 			! Save results
 			iRetCode = tvDay(iDayIdx) % add(rFrom, tEc)
@@ -195,7 +196,7 @@ program am_test
 		do i = 1, size(rvTimeStamp)
 			iRetCode = tCurTime % fromEpoch(rvTimeStamp(i))
 			sCurTime = tCurTime % toISO()
-			write(10,"(a,',',f6.1,6(',',f8.4),2(',',f7.2,',',f8.4,',',f8.4))") &
+			write(10,"(a,',',f8.3,6(',',f10.6),2(',',f9.4,',',f10.6,',',f10.6))") &
 				sCurTime, &
 				rmPolar(i,2), rmPolar(i,1), &
 				rvT(i), &
