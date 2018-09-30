@@ -2550,6 +2550,8 @@ contains
 		integer								:: iMaxBlock
 		integer								:: iNumBlocks
 		real(8)								:: rBaseTime
+		logical								:: lIsQ
+		logical								:: lIsC
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -2594,6 +2596,10 @@ contains
 						* iAveragingTime, kind=8)
 		tEc % rvTimeStamp = [(rBaseTime + (i-1)*real(iAveragingTime, kind=8), i = 1, iNumBlocks)]
 		
+		! Check whether water and carbon dioxide processing is to be made
+		lIsQ = allocated(tEc % rvQ)
+		lIsC = allocated(tEc % rvQ) .and. allocated(tEc % rvC)
+		
 		! Compute the desired statistics
 		! -1- Phase one: Accumulate
 		tEc % ivNumData = 0
@@ -2603,6 +2609,16 @@ contains
 		tEc % rmCovT    = 0.d0
 		tEc % rvVarT    = 0.d0
 		tEc % isPrimed  = .true.
+		if(lIsQ) then
+			tEc % rvQ       = 0.d0
+			tEc % rmCovQ    = 0.d0
+			tEc % rvVarQ    = 0.d0
+		end if
+		if(lIsC) then
+			tEc % rvC       = 0.d0
+			tEc % rmCovC    = 0.d0
+			tEc % rvVarC    = 0.d0
+		end if
 		do i = 1, size(ivTimeIndex)
 			if(ivTimeIndex(i) > 0) then
 				iIndex = ivTimeIndex(i)
@@ -2637,6 +2653,26 @@ contains
 						real(this % rvV(i), kind=8) * real(this % rvT(i), kind=8)
 					tEc % rmCovT(iIndex, 3)      = tEc % rmCovT(iIndex, 3)      + &
 						real(this % rvW(i), kind=8) * real(this % rvT(i), kind=8)
+					if(lIsQ) then
+						tEc % rvQ(iIndex)            = tEc % rvQ(iIndex)            + real(this % rvQ(i), kind=8)
+						tEc % rvVarQ(iIndex)         = tEc % rvVarQ(iIndex)         + real(this % rvQ(i), kind=8) ** 2
+						tEc % rmCovQ(iIndex, 1)      = tEc % rmCovQ(iIndex, 1)      + &
+							real(this % rvU(i), kind=8) * real(this % rvQ(i), kind=8)
+						tEc % rmCovQ(iIndex, 2)      = tEc % rmCovQ(iIndex, 2)      + &
+							real(this % rvV(i), kind=8) * real(this % rvQ(i), kind=8)
+						tEc % rmCovQ(iIndex, 3)      = tEc % rmCovQ(iIndex, 3)      + &
+							real(this % rvW(i), kind=8) * real(this % rvQ(i), kind=8)
+					end if
+					if(lIsC) then
+						tEc % rvC(iIndex)            = tEc % rvC(iIndex)            + real(this % rvC(i), kind=8)
+						tEc % rvVarC(iIndex)         = tEc % rvVarC(iIndex)         + real(this % rvC(i), kind=8) ** 2
+						tEc % rmCovC(iIndex, 1)      = tEc % rmCovC(iIndex, 1)      + &
+							real(this % rvU(i), kind=8) * real(this % rvC(i), kind=8)
+						tEc % rmCovC(iIndex, 2)      = tEc % rmCovC(iIndex, 2)      + &
+							real(this % rvV(i), kind=8) * real(this % rvC(i), kind=8)
+						tEc % rmCovC(iIndex, 3)      = tEc % rmCovC(iIndex, 3)      + &
+							real(this % rvW(i), kind=8) * real(this % rvC(i), kind=8)
+					end if
 				end if
 			end if
 		end do
@@ -2658,12 +2694,36 @@ contains
 				tEc % rmCovT(i,1)     = tEc % rmCovT(i,1) / tEc % ivNumData(i) - tEc % rmVel(i, 1) * tEc % rvT(i)
 				tEc % rmCovT(i,2)     = tEc % rmCovT(i,2) / tEc % ivNumData(i) - tEc % rmVel(i, 2) * tEc % rvT(i)
 				tEc % rmCovT(i,3)     = tEc % rmCovT(i,3) / tEc % ivNumData(i) - tEc % rmVel(i, 3) * tEc % rvT(i)
+				if(lIsQ) then
+					tEc % rvQ(i)          = tEc % rvQ(i) / tEc % ivNumData(i)
+					tEc % rvVarQ(i)       = tEc % rvVarQ(i) / tEc % ivNumData(i) - tEc % rvQ(i) ** 2
+					tEc % rmCovQ(i,1)     = tEc % rmCovQ(i,1) / tEc % ivNumData(i) - tEc % rmVel(i, 1) * tEc % rvQ(i)
+					tEc % rmCovQ(i,2)     = tEc % rmCovQ(i,2) / tEc % ivNumData(i) - tEc % rmVel(i, 2) * tEc % rvQ(i)
+					tEc % rmCovQ(i,3)     = tEc % rmCovQ(i,3) / tEc % ivNumData(i) - tEc % rmVel(i, 3) * tEc % rvQ(i)
+				end if
+				if(lIsC) then
+					tEc % rvC(i)          = tEc % rvC(i) / tEc % ivNumData(i)
+					tEc % rvVarC(i)       = tEc % rvVarC(i) / tEc % ivNumData(i) - tEc % rvC(i) ** 2
+					tEc % rmCovC(i,1)     = tEc % rmCovC(i,1) / tEc % ivNumData(i) - tEc % rmVel(i, 1) * tEc % rvC(i)
+					tEc % rmCovC(i,2)     = tEc % rmCovC(i,2) / tEc % ivNumData(i) - tEc % rmVel(i, 2) * tEc % rvC(i)
+					tEc % rmCovC(i,3)     = tEc % rmCovC(i,3) / tEc % ivNumData(i) - tEc % rmVel(i, 3) * tEc % rvC(i)
+				end if
 			else
 				tEc % rmVel(i,:)      = NaN_8
 				tEc % rvT(i)          = NaN_8
 				tEc % raCovVel(i,:,:) = NaN_8
 				tEc % rvVarT(i)       = NaN_8
 				tEc % rmCovT(i,:)     = NaN_8
+				if(lIsQ) then
+					tEc % rvQ(i)          = NaN_8
+					tEc % rvVarQ(i)       = NaN_8
+					tEc % rmCovQ(i,:)     = NaN_8
+				end if
+				if(lIsC) then
+					tEc % rvC(i)          = NaN_8
+					tEc % rvVarC(i)       = NaN_8
+					tEc % rmCovC(i,:)     = NaN_8
+				end if
 			end if
 		end do
 		
