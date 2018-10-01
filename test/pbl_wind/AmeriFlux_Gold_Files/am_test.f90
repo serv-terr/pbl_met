@@ -139,7 +139,15 @@ program am_test
 			print *, "Error accessing output file in write mode"
 			stop
 		end if
-		write(10,"('date, dir, vel, temp, theta, phi, u.star, H0, He, Q, Fq.Molar, Fq.Mass, C, Fc.Molar, Fc.Mass')")
+		write(10, &
+			"('date, dir, vel, temp, " // &
+			"uu, uv, uw, vv, vw, ww, " // &
+			"theta, phi, " // &
+			"rot.uu, rot.uv, rot.uw, rot.vv, rot.vw, rot.ww, " // &
+			"u.star, H0, " // &
+			"He, Q, Fq.Molar, Fq.Mass, " // &
+			"C, Fc.Molar, Fc.Mass')" &
+		)
 		do while(iMode /= DE_ERR)
 	
 			! Read data to hourly SonicData object
@@ -185,6 +193,8 @@ program am_test
 		iRetCode = tvDay(iDayIdx) % getTimeStamp(rvTimeStamp)
 		iRetCode = tvDay(iDayIdx) % getNumData(ivNumData)
 		iRetCode = tvDay(iDayIdx) % getWind(rmPolar, WCONV_FLOW_TO_PROVENANCE)
+		iRetCode = tvDay(iDayIdx) % getCovWind(raNrotCovVel)
+		iRetCode = tvDay(iDayIdx) % getRotCovWind(raCovVel)
 		iRetCode = tvDay(iDayIdx) % getTemp(rvT)
 		iRetCode = tvDay(iDayIdx) % getRotAngles(rvTheta, rvPhi, rvPsi)
 		iRetCode = tvDay(iDayIdx) % getUstar(rvUstar, rvUstar_3)
@@ -196,11 +206,17 @@ program am_test
 		do i = 1, size(rvTimeStamp)
 			iRetCode = tCurTime % fromEpoch(rvTimeStamp(i))
 			sCurTime = tCurTime % toISO()
-			write(10,"(a,',',f8.3,7(',',f12.8),2(',',f13.8,',',f12.8,',',f12.8))") &
+			write(10,"(a,26(',',e15.7))") &
 				sCurTime, &
 				rmPolar(i,2), rmPolar(i,1), &
 				rvT(i), &
+				raNrotCovVel(i,1,1), raNrotCovVel(i,1,2), raNrotCovVel(i,1,3), &
+				raNrotCovVel(i,2,2), raNrotCovVel(i,3,3), &
+				raNrotCovVel(i,3,3), &
 				rvTheta(i), rvPhi(i), &
+				raCovVel(i,1,1), raCovVel(i,1,2), raCovVel(i,1,3), &
+				raCovVel(i,2,2), raCovVel(i,3,3), &
+				raCovVel(i,3,3), &
 				rvUstar(i), &
 				rvH0(i), rvHe(i), &
 				rvQ(i), rvFqMolar(i), rvFqMass(i), &
