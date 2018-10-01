@@ -139,7 +139,7 @@ program am_test
 			print *, "Error accessing output file in write mode"
 			stop
 		end if
-		write(10,"('date, dir, vel, temp, phi, u.star, H0, He, Q, Fq.Molar, Fq.Mass, C, Fc.Molar, Fc.Mass')")
+		write(10,"('date, dir, vel, temp, theta, phi, u.star, H0, He, Q, Fq.Molar, Fq.Mass, C, Fc.Molar, Fc.Mass')")
 		do while(iMode /= DE_ERR)
 	
 			! Read data to hourly SonicData object
@@ -196,11 +196,11 @@ program am_test
 		do i = 1, size(rvTimeStamp)
 			iRetCode = tCurTime % fromEpoch(rvTimeStamp(i))
 			sCurTime = tCurTime % toISO()
-			write(10,"(a,',',f8.3,6(',',f10.6),2(',',f9.4,',',f10.6,',',f10.6))") &
+			write(10,"(a,',',f8.3,7(',',f12.8),2(',',f13.8,',',f12.8,',',f12.8))") &
 				sCurTime, &
 				rmPolar(i,2), rmPolar(i,1), &
 				rvT(i), &
-				rvPhi(i), &
+				rvTheta(i), rvPhi(i), &
 				rvUstar(i), &
 				rvH0(i), rvHe(i), &
 				rvQ(i), rvFqMolar(i), rvFqMass(i), &
