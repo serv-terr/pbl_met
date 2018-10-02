@@ -28,7 +28,7 @@ vel <- function() {
   e <- get.pbm()
   test <- d$vel
   new  <- e$vel
-  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.2,main="Dir (° from N)")
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.2,main="Vel (m/s)")
   abline(0,1)
   out <- data.frame(soniclib=test, pbl_met=new)
   return(out)
