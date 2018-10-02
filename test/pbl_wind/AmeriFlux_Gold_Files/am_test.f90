@@ -211,11 +211,11 @@ program am_test
 				rmPolar(i,2), rmPolar(i,1), &
 				rvT(i), &
 				raNrotCovVel(i,1,1), raNrotCovVel(i,1,2), raNrotCovVel(i,1,3), &
-				raNrotCovVel(i,2,2), raNrotCovVel(i,3,3), &
+				raNrotCovVel(i,2,2), raNrotCovVel(i,2,3), &
 				raNrotCovVel(i,3,3), &
 				rvTheta(i), rvPhi(i), &
 				raCovVel(i,1,1), raCovVel(i,1,2), raCovVel(i,1,3), &
-				raCovVel(i,2,2), raCovVel(i,3,3), &
+				raCovVel(i,2,2), raCovVel(i,2,3), &
 				raCovVel(i,3,3), &
 				rvUstar(i), &
 				rvH0(i), rvHe(i), &
