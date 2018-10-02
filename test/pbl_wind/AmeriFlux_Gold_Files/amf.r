@@ -48,8 +48,8 @@ ww <- function() {
 uv <- function() {
   d <- get.amf()
   e <- get.pbm()
-  test <- d$uu
-  new  <- e$vv
+  test <- d$uv
+  new  <- e$uv
   plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.2,main="UV (m2/s2)")
   abline(0,1)
   out <- data.frame(soniclib=test, pbl_met=new)
@@ -59,8 +59,8 @@ uv <- function() {
 uw <- function() {
   d <- get.amf()
   e <- get.pbm()
-  test <- d$uu
-  new  <- e$ww
+  test <- d$uw
+  new  <- e$uw
   plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.2,main="UW (m2/s2)")
   abline(0,1)
   out <- data.frame(soniclib=test, pbl_met=new)
@@ -70,8 +70,8 @@ uw <- function() {
 vw <- function() {
   d <- get.amf()
   e <- get.pbm()
-  test <- d$vv
-  new  <- e$ww
+  test <- d$vw
+  new  <- e$vw
   plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.2,main="VW (m2/s2)")
   abline(0,1)
   out <- data.frame(soniclib=test, pbl_met=new)
