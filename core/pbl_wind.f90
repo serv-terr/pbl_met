@@ -2583,7 +2583,7 @@ contains
 			return
 		end if
 		iMaxBlock = maxval(ivTimeIndex)
-		if(iMaxBlock <= 0) then
+		if(iMaxBlock <= 0 .or. iMaxBlock > iNumBlocks) then
 			iRetCode = 5
 			return
 		end if
