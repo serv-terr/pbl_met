@@ -12,6 +12,28 @@ get.pbm <- function() {
   return(d)
 }
 
+dir <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$Dir
+  new  <- e$dir
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.2,main="Dir (° from N)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+vel <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$vel
+  new  <- e$vel
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.2,main="Dir (° from N)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 uu <- function() {
   d <- get.amf()
   e <- get.pbm()
