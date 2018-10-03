@@ -208,6 +208,7 @@ module pbl_wind
 		procedure	:: getNumValidInput	=> ec_getNumValidInput		! Count number of valid data in an EddyCovData object
 		procedure	:: getNumData		=> ec_getNumData			! Get a number of valid data used to form any mean value
 		procedure	:: getInputData		=> ec_getInputData			! Get a copy of input vectors
+		procedure	:: getWindVector	=> ec_getWindVector			! Get a copy of wind vector
 		procedure	:: getCovWind		=> ec_GetCovWind			! Get values from non-rotated velocity covariances (all)
 		procedure	:: getInputGases	=> ec_getInputGases			! Get a copy of input gases vectors
 		procedure	:: getOutputData	=> ec_getOutputData			! Get a copy of output vectors
@@ -3494,6 +3495,38 @@ contains
 		rvVarT    = this % rvVarT
 		
 	end function ec_GetInputData
+
+	
+	function ec_GetWindVector(this, rmVel) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)							:: this
+		real(8), dimension(:,:), allocatable, intent(out)		:: rmVel
+		integer													:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isPrimed) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Clean output data
+		if(allocated(rmVel)) deallocate(rmVel)
+		
+		! Get array size, and reserve workspace
+		n = size(this % rvTimeStamp)
+		allocate(rmVel(n,3))
+		
+		! Retrieve data
+		rmVel     = this % rmVel
+		
+	end function ec_getWindVector
 
 	
 	function ec_GetCovWind(this, raCov) result(iRetCode)
