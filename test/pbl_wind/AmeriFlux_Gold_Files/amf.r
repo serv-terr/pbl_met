@@ -29,14 +29,34 @@ vel.chk <- function() {
   new  <- e$vel
   plot(test,new,xlab="sqrt(u^2+v^2)",ylab="pbl_met",cex=0.2,main="Vel (m/s)")
   abline(0,1)
-  out <- data.frame(soniclib=test, pbl_met=new)
+  out <- data.frame(component.vel=test, pbl_met=new)
+  return(out)
+}
+
+vel.chk.soniclib.2 <- function() {
+  e <- get.amf()
+  test <- sqrt(e$u.avg^2+e$v.avg^2)
+  new  <- e$resultant.vel
+  plot(test,new,xlab="sqrt(u^2+v^2)",ylab="SonicLib",cex=0.2,main="Vel (m/s)")
+  abline(0,1)
+  out <- data.frame(component.vel=test, pbl_met=new)
+  return(out)
+}
+
+vel.chk.soniclib <- function() {
+  e <- get.amf()
+  test <- sqrt(e$u.avg^2+e$v.avg^2)
+  new  <- e$vel
+  plot(test,new,xlab="sqrt(u^2+v^2)",ylab="SonicLib",cex=0.2,main="Vel (m/s)")
+  abline(0,1)
+  out <- data.frame(component.vel=test, soniclib=new)
   return(out)
 }
 
 vel <- function() {
   d <- get.amf()
   e <- get.pbm()
-  test <- d$vel
+  test <- d$resultant.vel
   new  <- e$vel
   plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.2,main="Vel (m/s)")
   abline(0,1)
