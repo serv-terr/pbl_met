@@ -23,12 +23,55 @@ dir <- function() {
   return(out)
 }
 
+vel.chk <- function() {
+  e <- get.pbm()
+  test <- sqrt(e$u^2+e$v^2)
+  new  <- e$vel
+  plot(test,new,xlab="sqrt(u^2+v^2)",ylab="pbl_met",cex=0.2,main="Vel (m/s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 vel <- function() {
   d <- get.amf()
   e <- get.pbm()
   test <- d$vel
   new  <- e$vel
   plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.2,main="Vel (m/s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+u <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$u.avg
+  new  <- e$u
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.2,main="U (m/s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+v <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$v.avg
+  new  <- e$v
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.2,main="V (m/s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+w <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$w.avg
+  new  <- e$w
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.2,main="W (m/s)")
   abline(0,1)
   out <- data.frame(soniclib=test, pbl_met=new)
   return(out)
