@@ -268,3 +268,30 @@ d<-t()
 ```
 
 All right - or so it visually seems to me.
+
+## Raw (un-rotated) 2nd moments
+
+### Some points
+
+Second moments constitute in a sense the core of eddy covariance, and demand very close attention. Their computing by means of the accumulator method, as used in pbl_met, is notoriously numerically unstable (this is why all moments are computed in double precision in pbl_met).
+
+In addition, an ambiguity arises: when computing the final values, should we divide by N or N-1? That is, would we love more population, or sample statistics? And, may we do something more than just "loving"?
+
+Questions.
+
+Nevertheless, their answer comes necessarily from comparisons.
+
+### Momentum variances
+
+```{r UU.plot, echo=FALSE}
+d<-uu()
+```
+
+```{r VV.plot, echo=FALSE}
+d<-vv()
+```
+
+```{r WW.plot, echo=FALSE}
+d<-ww()
+```
+
