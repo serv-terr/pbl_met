@@ -213,6 +213,7 @@ module pbl_wind
 		procedure	:: getInputGases	=> ec_getInputGases			! Get a copy of input gases vectors
 		procedure	:: getOutputData	=> ec_getOutputData			! Get a copy of output vectors
 		procedure	:: getCovT			=> ec_GetCovT				! Get values from non-rotated velocity-temperature covariances
+		procedure	:: getVarT			=> ec_GetVarT				! Get values from temperature variance
 		procedure	:: getRotAngles		=> ec_GetRotAngles			! Get rotation angles
 		procedure	:: getUstar			=> ec_GetUstar				! Get friction velocity (according to the two most common definitions)
 		procedure	:: getOutputGases	=> ec_getOutputGases		! Get a copy of output gas vectors
@@ -3694,6 +3695,35 @@ contains
 		rmValue = this % rmCovT
 		
 	end function ec_GetCovT
+
+	
+	function ec_GetVarT(this, rvValue) result(iRetCode)
+	
+		! Routine arguments
+		class(EddyCovData), intent(in)					:: this
+		real(8), dimension(:), allocatable, intent(out)	:: rvValue
+		integer											:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something can be made
+		if(.not. this % isFilled) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Reserve workspace
+		if(allocated(rvValue)) deallocate(rvValue)
+		allocate(rvValue(size(this % rvTimeStamp)))
+		
+		! Get the value desired
+		rvValue = this % rvVarT
+		
+	end function ec_GetVarT
 
 	
 	function ec_GetRotAngles(this, rvTheta, rvPhi, rvPsi) result(iRetCode)
