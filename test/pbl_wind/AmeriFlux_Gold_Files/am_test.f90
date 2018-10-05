@@ -140,8 +140,9 @@ program am_test
 			stop
 		end if
 		write(10, &
-			"('date, dir, vel, temp, " // &
+			"('date, u, v, w, dir, vel, temp, " // &
 			"uu, uv, uw, vv, vw, ww, " // &
+			"tt, ut, vt, wt, " // &
 			"theta, phi, " // &
 			"rot.uu, rot.uv, rot.uw, rot.vv, rot.vw, rot.ww, " // &
 			"u.star, H0, " // &
@@ -192,10 +193,13 @@ program am_test
 		! Write results to local routine workspace
 		iRetCode = tvDay(iDayIdx) % getTimeStamp(rvTimeStamp)
 		iRetCode = tvDay(iDayIdx) % getNumData(ivNumData)
+		iRetCode = tvDay(iDayIdx) % getWindVector(rmVel)
 		iRetCode = tvDay(iDayIdx) % getWind(rmPolar, WCONV_FLOW_TO_PROVENANCE)
 		iRetCode = tvDay(iDayIdx) % getCovWind(raNrotCovVel)
 		iRetCode = tvDay(iDayIdx) % getRotCovWind(raCovVel)
 		iRetCode = tvDay(iDayIdx) % getTemp(rvT)
+		iRetCode = tvDay(iDayIdx) % getVarT(rvVarT)
+		iRetCode = tvDay(iDayIdx) % getCovT(rmCovT)
 		iRetCode = tvDay(iDayIdx) % getRotAngles(rvTheta, rvPhi, rvPsi)
 		iRetCode = tvDay(iDayIdx) % getUstar(rvUstar, rvUstar_3)
 		iRetCode = tvDay(iDayIdx) % getHeatFluxes(rvH0, rvHe)
@@ -206,8 +210,9 @@ program am_test
 		do i = 1, size(rvTimeStamp)
 			iRetCode = tCurTime % fromEpoch(rvTimeStamp(i))
 			sCurTime = tCurTime % toISO()
-			write(10,"(a,26(',',e15.7))") &
+			write(10,"(a,33(',',e15.7))") &
 				sCurTime, &
+				rmVel(i,1), rmVel(i,2), rmVel(i,3), &
 				rmPolar(i,2), rmPolar(i,1), &
 				rvT(i), &
 				raNrotCovVel(i,1,1), raNrotCovVel(i,1,2), raNrotCovVel(i,1,3), &
@@ -217,6 +222,7 @@ program am_test
 				raCovVel(i,1,1), raCovVel(i,1,2), raCovVel(i,1,3), &
 				raCovVel(i,2,2), raCovVel(i,2,3), &
 				raCovVel(i,3,3), &
+				rvVarT(i), rmCovT(i,1), rmCovT(i,2), rmCovT(i,3), &
 				rvUstar(i), &
 				rvH0(i), rvHe(i), &
 				rvQ(i), rvFqMolar(i), rvFqMass(i), &
