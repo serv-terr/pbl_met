@@ -109,6 +109,17 @@ w <- function() {
   return(out)
 }
 
+t <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$t.avg
+  new  <- e$temp
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="Ta (°C)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 uu <- function() {
   d <- get.amf()
   e <- get.pbm()
@@ -246,3 +257,14 @@ d<-v()
 d<-w()
 ```
 
+As can be seen, nothing to say: unanimous identity.
+
+## Temperature
+
+Here's the comparison plot:
+
+```{r T.plot, echo=FALSE}
+d<-t()
+```
+
+All right - or so it visually seems to me.
