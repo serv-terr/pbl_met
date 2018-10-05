@@ -186,6 +186,39 @@ vw <- function() {
   return(out)
 }
 
+ut <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$ut
+  new  <- e$ut
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="UT (°C m/s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+vt <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$vt
+  new  <- e$vt
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="VT (°C m/s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+wt <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$wt
+  new  <- e$wt
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="WT (°C m/s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 phi <- function() {
   d <- get.amf()
   e <- get.pbm()
@@ -293,5 +326,43 @@ d<-vv()
 
 ```{r WW.plot, echo=FALSE}
 d<-ww()
+```
+
+All rights visually.
+
+
+### Momentum covariances
+
+```{r UV.plot, echo=FALSE}
+d<-uv()
+```
+
+```{r UW.plot, echo=FALSE}
+d<-uw()
+```
+
+```{r VW.plot, echo=FALSE}
+d<-vw()
+```
+
+All rights visually.
+
+
+### Temperature variance
+
+No plot is supplied, because SonicLib does not evaluate this parameter, and consequently no comparison can be made.
+
+### Momentum - Temperature covariances
+
+```{r UT.plot, echo=FALSE}
+d<-ut()
+```
+
+```{r VT.plot, echo=FALSE}
+d<-vt()
+```
+
+```{r WT.plot, echo=FALSE}
+d<-wt()
 ```
 
