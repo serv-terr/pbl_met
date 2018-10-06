@@ -224,7 +224,7 @@ phi <- function() {
   e <- get.pbm()
   test <- d$phi
   new  <- e$phi
-  plot(test,new,xlab="SonicLib",ylab="pbl_met,cex=0.5",main="phi (rad)")
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="phi (rad)")
   abline(0,1)
   out <- data.frame(soniclib=test, pbl_met=new)
   return(out)
@@ -364,5 +364,17 @@ d<-vt()
 
 ```{r WT.plot, echo=FALSE}
 d<-wt()
+```
+
+## Rotation angles
+
+First and second rotation angles are the numerical core of eddy-covariance, and "must" equal between SonicLib and pbl_met.
+
+```{r Iheta.plot, echo=FALSE}
+d<-theta()
+```
+
+```{r Phi.plot, echo=FALSE}
+d<-phi()
 ```
 
