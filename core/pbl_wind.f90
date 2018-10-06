@@ -4498,7 +4498,7 @@ contains
 			!       where 'theta' is the first rotation angle
 			
 			! Store first rotation angle
-			this % rvTheta(i) = 180./PI*atan2(this % rmVel(i,1), this % rmVel(i,2))
+			this % rvTheta(i) = 180./PI*atan2(this % rmVel(i,2), this % rmVel(i,1))
 			if(this % rvTheta(i) < 0.0) this % rvTheta(i) = this % rvTheta(i) + 360.0
 			
 			! Apply first rotation to vectors and matrices
