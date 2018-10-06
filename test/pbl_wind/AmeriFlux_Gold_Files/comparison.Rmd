@@ -120,6 +120,28 @@ t <- function() {
   return(out)
 }
 
+q <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$q.avg
+  new  <- e$Q
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="Water vapor (mmol/mol)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+c <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$c.avg
+  new  <- e$C
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="Carbon dioxide (mmol/mol)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 uu <- function() {
   d <- get.amf()
   e <- get.pbm()
@@ -364,6 +386,22 @@ d<-vt()
 
 ```{r WT.plot, echo=FALSE}
 d<-wt()
+```
+
+## Water vapor
+
+Here comes the mean concentration:
+
+```{r Q.plot, echo=FALSE}
+d<-q()
+```
+
+## Carbon dioxide
+
+Here comes the mean concentration:
+
+```{r C.plot, echo=FALSE}
+d<-c()
 ```
 
 ## Rotation angles
