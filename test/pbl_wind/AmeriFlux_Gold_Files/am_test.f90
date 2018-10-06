@@ -218,11 +218,11 @@ program am_test
 				raNrotCovVel(i,1,1), raNrotCovVel(i,1,2), raNrotCovVel(i,1,3), &
 				raNrotCovVel(i,2,2), raNrotCovVel(i,2,3), &
 				raNrotCovVel(i,3,3), &
+				rvVarT(i), rmCovT(i,1), rmCovT(i,2), rmCovT(i,3), &
 				rvTheta(i), rvPhi(i), &
 				raCovVel(i,1,1), raCovVel(i,1,2), raCovVel(i,1,3), &
 				raCovVel(i,2,2), raCovVel(i,2,3), &
 				raCovVel(i,3,3), &
-				rvVarT(i), rmCovT(i,1), rmCovT(i,2), rmCovT(i,3), &
 				rvUstar(i), &
 				rvH0(i), rvHe(i), &
 				rvQ(i), rvFqMolar(i), rvFqMass(i), &
