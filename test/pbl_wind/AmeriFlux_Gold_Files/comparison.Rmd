@@ -241,6 +241,39 @@ wt <- function() {
   return(out)
 }
 
+uc <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$uc
+  new  <- e$uc
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="UC (mmol m/mol s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+vc <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$vc
+  new  <- e$vc
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="VC (mmol m/mol s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+wc <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$wc
+  new  <- e$wc
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="WC (mmol m/mol s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 phi <- function() {
   d <- get.amf()
   e <- get.pbm()
@@ -402,6 +435,18 @@ Here comes the mean concentration:
 
 ```{r C.plot, echo=FALSE}
 d<-c()
+```
+
+```{r UC.plot, echo=FALSE}
+d<-uc()
+```
+
+```{r VC.plot, echo=FALSE}
+d<-vc()
+```
+
+```{r WC.plot, echo=FALSE}
+d<-wc()
 ```
 
 ## Rotation angles
