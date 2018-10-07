@@ -558,3 +558,9 @@ d<-theta()
 d<-phi()
 ```
 
+## Wind direction vs first rotation angle
+
+```{r Dir.theta.plot, echo=FALSE}
+d<-dir.theta()
+```
+
