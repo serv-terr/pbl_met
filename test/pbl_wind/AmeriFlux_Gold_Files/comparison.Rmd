@@ -35,6 +35,16 @@ dir <- function() {
   return(out)
 }
 
+dir.theta <- function() {
+  e <- get.pbm()
+  test <- e$dir
+  new  <- e$theta
+  plot(test,new,xlab="pbl_met.dir",ylab="pbl_met.theta",cex=0.5,main="Dir.Theta (° from N)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 vel.chk <- function() {
   e <- get.pbm()
   test <- sqrt(e$u^2+e$v^2)
@@ -381,6 +391,18 @@ The test data set is the two days of AmeriFlux Golden Files.
 Processing has been made on behalf os a fictional location, let's name it Arcadia (but in reality it's unexistent, despite having well defined coordinates), on two fake dates (compatible with the Ameriflux Golden File day-in-the-year). As indicated by Ameriflux Golden Files instruction, averaging time is set to 30 minutes.
 
 Note the purpose of the test documented in this report is to check "bare" eddy covariance, and not trend removal, nor spike detection and treatment. These may devise their own test reports in future - but you will not find them here.
+
+## Wind speed and direction
+
+Wind speed and direction are the two most basic derivate quantities from wind vector statistics.
+
+```{r Vel.plot, echo=FALSE}
+d<-vel()
+```
+
+```{r Dir.plot, echo=FALSE}
+d<-dir()
+```
 
 ## Wind components
 
