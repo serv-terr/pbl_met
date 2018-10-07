@@ -252,6 +252,17 @@ uc <- function() {
   return(out)
 }
 
+cc <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$cc
+  new  <- e$cc
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="CC (mmol^2/mol^2)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 vc <- function() {
   d <- get.amf()
   e <- get.pbm()
@@ -435,6 +446,10 @@ Here comes the mean concentration:
 
 ```{r C.plot, echo=FALSE}
 d<-c()
+```
+
+```{r CC.plot, echo=FALSE}
+d<-cc()
 ```
 
 ```{r UC.plot, echo=FALSE}
