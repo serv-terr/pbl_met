@@ -48,6 +48,8 @@ program am_test
 	real(8), dimension(:), allocatable		:: rvQ
 	real(8), dimension(:), allocatable		:: rvC
 	real(8), dimension(:), allocatable		:: rvVarT
+	real(8), dimension(:), allocatable		:: rvVarQ
+	real(8), dimension(:), allocatable		:: rvVarC
 	real(8), dimension(:,:), allocatable	:: rmNrotVel
 	real(8), dimension(:,:), allocatable	:: rmVel
 	real, dimension(:,:), allocatable		:: rmPolar
@@ -55,6 +57,8 @@ program am_test
 	real(8), dimension(:,:,:), allocatable	:: raCovWind
 	real(8), dimension(:,:,:), allocatable	:: raNrotCovVel
 	real(8), dimension(:,:), allocatable	:: rmCovT
+	real(8), dimension(:,:), allocatable	:: rmCovQ
+	real(8), dimension(:,:), allocatable	:: rmCovC
 	real(8), dimension(:,:), allocatable	:: rmNrotCovT
 	real, dimension(3)						:: cartesian
 	real, dimension(3)						:: polar
@@ -141,6 +145,8 @@ program am_test
 		end if
 		write(10, &
 			"('date, u, v, w, dir, vel, temp, " // &
+			"qq, uq, vq, wq, " // &
+			"cc, uc, vc, wc, " // &
 			"uu, uv, uw, vv, vw, ww, " // &
 			"tt, ut, vt, wt, " // &
 			"theta, phi, " // &
@@ -205,16 +211,21 @@ program am_test
 		iRetCode = tvDay(iDayIdx) % getHeatFluxes(rvH0, rvHe)
 		iRetCode = tvDay(iDayIdx) % getH2O(rvQ, rvFqMolar, rvFqMass)
 		iRetCode = tvDay(iDayIdx) % getCO2(rvC, rvFcMolar, rvFcMass)
+		iRetCode = tvDay(iDayIdx) % getInputGases(ivNumData, rvQ, rmCovQ, rvVarQ, rvC, rmCovC, rvVarC)
 		
 		! Print results
 		do i = 1, size(rvTimeStamp)
 			iRetCode = tCurTime % fromEpoch(rvTimeStamp(i))
 			sCurTime = tCurTime % toISO()
-			write(10,"(a,33(',',e15.7))") &
+			write(10,"(a,41(',',e15.7))") &
 				sCurTime, &
 				rmVel(i,1), rmVel(i,2), rmVel(i,3), &
 				rmPolar(i,2), rmPolar(i,1), &
 				rvT(i), &
+				rvVarQ(i), &
+				rmCovQ(i,1), rmCovQ(i,2), rmCovQ(i,3), &
+				rvVarC(i), &
+				rmCovC(i,1), rmCovC(i,2), rmCovC(i,3), &
 				raNrotCovVel(i,1,1), raNrotCovVel(i,1,2), raNrotCovVel(i,1,3), &
 				raNrotCovVel(i,2,2), raNrotCovVel(i,2,3), &
 				raNrotCovVel(i,3,3), &
