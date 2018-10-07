@@ -241,6 +241,50 @@ wt <- function() {
   return(out)
 }
 
+uq <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$uq
+  new  <- e$uq
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="UQ (mmol m/mol s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+qq <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$qq
+  new  <- e$qq
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="QQ (mmol^2/mol^2)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+vq <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$vq
+  new  <- e$vq
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="VQ (mmol m/mol s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+wq <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$wq
+  new  <- e$wq
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="WQ (mmol m/mol s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 uc <- function() {
   d <- get.amf()
   e <- get.pbm()
@@ -438,6 +482,22 @@ Here comes the mean concentration:
 
 ```{r Q.plot, echo=FALSE}
 d<-q()
+```
+
+```{r QQ.plot, echo=FALSE}
+d<-qq()
+```
+
+```{r UQ.plot, echo=FALSE}
+d<-uq()
+```
+
+```{r VQ.plot, echo=FALSE}
+d<-vq()
+```
+
+```{r WQ.plot, echo=FALSE}
+d<-wq()
 ```
 
 ## Carbon dioxide
