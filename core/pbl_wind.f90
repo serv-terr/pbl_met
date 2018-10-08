@@ -84,6 +84,7 @@ module pbl_wind
 	
 	! Data types
 	
+	! Type for ultrasonic anemometer raw data.
 	type SonicData
 		logical, private							:: isValid
 		real(8), dimension(:), allocatable, private	:: rvTimeStamp
@@ -109,6 +110,7 @@ module pbl_wind
 		procedure	:: averages			=> sd_Averages
 	end type SonicData
 	
+	! Type for storing trend (removal) parameters
 	type TrendData
 		integer, dimension(:), allocatable		:: ivNumData
 		real(8), dimension(:), allocatable		:: rvAlphaU
@@ -146,6 +148,7 @@ module pbl_wind
 		procedure	:: reserve			=> td_Allocate
 	end type TrendData
 	
+	! Type for storing spike (removal) parameters
 	type SpikeCounts
 		integer, dimension(:), allocatable		:: ivNumSpikesU
 		integer, dimension(:), allocatable		:: ivNumSpikesV
@@ -158,6 +161,7 @@ module pbl_wind
 		procedure	:: reserve			=> sc_Allocate
 	end type SpikeCounts
 	
+	! Results of basic eddy covariance processing
 	type EddyCovData
 		! Status section
 		logical, private									:: isPrimed			! .true. when "averages" are available
