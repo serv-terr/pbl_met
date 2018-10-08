@@ -57,6 +57,7 @@ program am_test
 	real(8), dimension(:,:,:), allocatable	:: raCovWind
 	real(8), dimension(:,:,:), allocatable	:: raNrotCovVel
 	real(8), dimension(:,:), allocatable	:: rmCovT
+	real(8), dimension(:,:), allocatable	:: rmRotCovT
 	real(8), dimension(:,:), allocatable	:: rmCovQ
 	real(8), dimension(:,:), allocatable	:: rmCovC
 	real(8), dimension(:,:), allocatable	:: rmNrotCovT
@@ -151,6 +152,7 @@ program am_test
 			"tt, ut, vt, wt, " // &
 			"theta, phi, " // &
 			"rot.uu, rot.uv, rot.uw, rot.vv, rot.vw, rot.ww, " // &
+			"rot.ut, rot.vt, rot.wt, " // &
 			"u.star, H0, " // &
 			"He, Q, Fq.Molar, Fq.Mass, " // &
 			"C, Fc.Molar, Fc.Mass')" &
@@ -212,12 +214,13 @@ program am_test
 		iRetCode = tvDay(iDayIdx) % getH2O(rvQ, rvFqMolar, rvFqMass)
 		iRetCode = tvDay(iDayIdx) % getCO2(rvC, rvFcMolar, rvFcMass)
 		iRetCode = tvDay(iDayIdx) % getInputGases(ivNumData, rvQ, rmCovQ, rvVarQ, rvC, rmCovC, rvVarC)
+		iRetCode = tvDay(iDayIdx) % getRotCovTemp(rmRotCovT)
 		
 		! Print results
 		do i = 1, size(rvTimeStamp)
 			iRetCode = tCurTime % fromEpoch(rvTimeStamp(i))
 			sCurTime = tCurTime % toISO()
-			write(10,"(a,41(',',e15.7))") &
+			write(10,"(a,44(',',e15.7))") &
 				sCurTime, &
 				rmVel(i,1), rmVel(i,2), rmVel(i,3), &
 				rmPolar(i,2), rmPolar(i,1), &
@@ -234,6 +237,7 @@ program am_test
 				raCovVel(i,1,1), raCovVel(i,1,2), raCovVel(i,1,3), &
 				raCovVel(i,2,2), raCovVel(i,2,3), &
 				raCovVel(i,3,3), &
+				rmRotCovT(i,1), rmRotCovT(i,2), rmRotCovT(i,3), &
 				rvUstar(i), &
 				rvH0(i), rvHe(i), &
 				rvQ(i), rvFqMolar(i), rvFqMass(i), &
