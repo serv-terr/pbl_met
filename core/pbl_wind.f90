@@ -4530,7 +4530,7 @@ contains
 			this % raRotCovVel(i,3,3) = this % raCovVel(i,3,3)
 			this % raRotCovVel(i,1,2) =  0.5*sin_cos*(this % raCovVel(i,2,2) - this % raCovVel(i,1,1)) + &
 				this % raCovVel(i,1,2)*(costhe2-sinthe2)
-			this % raRotCovVel(i,1,3) =  this % raCovVel(i,1,3)*cos_the + this % raCovVel(i,1,3)*sin_the
+			this % raRotCovVel(i,1,3) =  this % raCovVel(i,1,3)*cos_the + this % raCovVel(i,2,3)*sin_the
 			this % raRotCovVel(i,2,3) = -this % raCovVel(i,1,3)*sin_the + this % raCovVel(i,2,3)*cos_the
 			this % raRotCovVel(i,2,1) = this % raRotCovVel(i,1,2)
 			this % raRotCovVel(i,3,1) = this % raRotCovVel(i,1,3)
