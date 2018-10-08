@@ -438,6 +438,39 @@ vw.rot <- function() {
   return(out)
 }
 
+ut.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$ut.rot
+  new  <- e$rot.ut
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="UT (°C m/s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+vt.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$vt.rot
+  new  <- e$rot.vt
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="VT (°C m/s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+wt.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$wt.rot
+  new  <- e$rot.wt
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="WT (°C m/s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 ```
 
 
@@ -658,5 +691,19 @@ d<-uw.rot()
 
 ```{r VW.rt.plot, echo=FALSE}
 d<-vw.rot()
+```
+
+## Rotated temperature-momentum covariances
+
+```{r UT.rt.plot, echo=FALSE}
+d<-ut.rot()
+```
+
+```{r VT.rt.plot, echo=FALSE}
+d<-vt.rot()
+```
+
+```{r WT.rt.plot, echo=FALSE}
+d<-wt.rot()
 ```
 
