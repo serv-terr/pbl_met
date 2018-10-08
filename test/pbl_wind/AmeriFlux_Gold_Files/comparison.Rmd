@@ -371,6 +371,40 @@ u.star <- function() {
   out <- data.frame(soniclib=test, pbl_met=new)
   return(out)
 }
+
+uu.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$uu.rot
+  new  <- e$rot.uu
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="UU (m2/s2)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+vv.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$vv.rot
+  new  <- e$rot.vv
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="VV (m2/s2)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+ww.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$ww.rot
+  new  <- e$rot.ww
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="WW (m2/s2)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 ```
 
 
@@ -563,4 +597,19 @@ d<-phi()
 ```{r Dir.theta.plot, echo=FALSE}
 d<-dir.theta()
 ```
+
+## Rotated 2nd moments of momentum
+
+```{r UU.rt.plot, echo=FALSE}
+d<-uu.rot()
+```
+
+```{r VV.rt.plot, echo=FALSE}
+d<-vv.rot()
+```
+
+```{r WW.rt.plot, echo=FALSE}
+d<-ww.rot()
+```
+
 
