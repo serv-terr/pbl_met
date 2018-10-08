@@ -405,6 +405,39 @@ ww.rot <- function() {
   return(out)
 }
 
+uv.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$uv.rot
+  new  <- e$rot.uv
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="UV (m2/s2)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+uw.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$uw.rot
+  new  <- e$rot.uw
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="UW (m2/s2)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+vw.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$vw.rot
+  new  <- e$rot.vw
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="VW (m2/s2)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 ```
 
 
@@ -612,4 +645,18 @@ d<-vv.rot()
 d<-ww.rot()
 ```
 
+
+```{r UV.rt.plot, echo=FALSE}
+d<-uv.rot()
+```
+
+
+```{r UW.rt.plot, echo=FALSE}
+d<-uw.rot()
+```
+
+
+```{r VW.rt.plot, echo=FALSE}
+d<-vw.rot()
+```
 
