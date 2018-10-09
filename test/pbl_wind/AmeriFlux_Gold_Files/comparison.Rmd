@@ -471,6 +471,39 @@ wt.rot <- function() {
   return(out)
 }
 
+uq.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$uq.rot
+  new  <- e$rot.uq
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="UQ (mmol m/mol s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+vq.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$vq.rot
+  new  <- e$rot.vq
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="VQ (mmol m/mol s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+wq.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$wq.rot
+  new  <- e$rot.wq
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="WQ (mmol m/mol s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 ```
 
 
@@ -705,5 +738,14 @@ d<-vt.rot()
 
 ```{r WT.rt.plot, echo=FALSE}
 d<-wt.rot()
+```
+
+
+## Rotated water-momentum covariance along the vertical direction
+
+(Variances along the horizontal directions are not available in SonicLib)
+
+```{r WQ.rt.plot, echo=FALSE}
+d<-wq.rot()
 ```
 
