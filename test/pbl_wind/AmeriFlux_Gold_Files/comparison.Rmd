@@ -504,6 +504,39 @@ wq.rot <- function() {
   return(out)
 }
 
+uc.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$uc.rot
+  new  <- e$rot.uc
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="UC (mmol m/mol s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+vc.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$vc.rot
+  new  <- e$rot.vc
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="VC (mmol m/mol s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
+wc.rot <- function() {
+  d <- get.amf()
+  e <- get.pbm()
+  test <- d$wc.rot
+  new  <- e$rot.wc
+  plot(test,new,xlab="SonicLib",ylab="pbl_met",cex=0.5,main="WC (mmol m/mol s)")
+  abline(0,1)
+  out <- data.frame(soniclib=test, pbl_met=new)
+  return(out)
+}
+
 ```
 
 
@@ -747,5 +780,13 @@ d<-wt.rot()
 
 ```{r WQ.rt.plot, echo=FALSE}
 d<-wq.rot()
+```
+
+## Rotated CO2-momentum covariance along the vertical direction
+
+(Variances along the horizontal directions are not available in SonicLib)
+
+```{r WC.rt.plot, echo=FALSE}
+d<-wc.rot()
 ```
 
