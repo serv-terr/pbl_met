@@ -790,3 +790,9 @@ d<-wq.rot()
 d<-wc.rot()
 ```
 
+## Common turbulence indicators
+
+```{r Ustar.plot, echo=FALSE}
+d<-u.star()
+```
+
