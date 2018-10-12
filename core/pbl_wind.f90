@@ -86,7 +86,9 @@ module pbl_wind
 	
 	! Type for ultrasonic anemometer raw data.
 	type SonicData
+		! State variables
 		logical, private							:: isValid
+		! Input data
 		real(8), dimension(:), allocatable, private	:: rvTimeStamp
 		real, dimension(:), allocatable, private	:: rvU
 		real, dimension(:), allocatable, private	:: rvV
@@ -94,6 +96,11 @@ module pbl_wind
 		real, dimension(:), allocatable, private	:: rvT
 		real, dimension(:), allocatable, private	:: rvQ
 		real, dimension(:), allocatable, private	:: rvC
+		! Derived quantities
+		real(8), dimension(:), allocatable, private	:: rvVel
+		real(8), dimension(:), allocatable, private	:: rvVel3D
+		real, dimension(:), allocatable, private	:: rvUnitU
+		real, dimension(:), allocatable, private	:: rvUnitV
 	contains
 		procedure	:: buildFromVectors	=> sd_BuildFromVectors
 		procedure	:: getVectors       => sd_GetVectors
@@ -192,7 +199,7 @@ module pbl_wind
 		real(8), dimension(:,:), allocatable, private		:: rmRotCovT		! Time series of rotated covariances between velocities and temperature (m°C/s)
 		real(8), dimension(:,:), allocatable, private		:: rmRotCovQ		! Time series of rotated covariances between velocities and water (m mmol/mol s)
 		real(8), dimension(:,:), allocatable, private		:: rmRotCovC		! Time series of rotated covariances between velocities and carbon dioxide (m mmol/mol s)
-		! 2) Derived, pre eddy-covariance
+		! 2) Derived, precision anemometry
 		! 3) Derived, common turbulence indicators and energy fluxes
 		real(8), dimension(:), allocatable, private			:: rvUstar			! Friction velocity, using both momentum fluxes (always valid) [m/s]
 		real(8), dimension(:), allocatable, private			:: rvUstar_3		! Friction velocity, using one momentum flux only (may not be valid; computed only if third rotation angle is non-zero) [m/s]
