@@ -1052,6 +1052,10 @@ contains
 		if(allocated(this % rvV))         deallocate(this % rvV)
 		if(allocated(this % rvW))         deallocate(this % rvW)
 		if(allocated(this % rvT))         deallocate(this % rvT)
+		if(allocated(this % rvVel))       deallocate(this % rvVel)
+		if(allocated(this % rvVel3D))     deallocate(this % rvVel3D)
+		if(allocated(this % rvUnitU))     deallocate(this % rvUnitU)
+		if(allocated(this % rvUnitV))     deallocate(this % rvUnitV)
 		if(allocated(this % rvQ))         deallocate(this % rvQ)
 		if(allocated(this % rvC))         deallocate(this % rvC)
 		allocate(this % rvTimeStamp(n))
@@ -1068,6 +1072,10 @@ contains
 		this % rvV         = rvV
 		this % rvW         = rvW
 		this % rvT         = rvT
+		this % rvVel       = sqrt(rvU**2 + rvV**2)
+		this % rvVel3D     = sqrt(rvU**2 + rvV**2 + rvW**2)
+		this % rvUnitU     = rvU / this % rvVel
+		this % rvUnitV     = rvV / this % rvVel
 		if(present(rvQ)) this % rvQ = rvQ
 		if(present(rvQ)) this % rvC = rvC
 		this % isValid     = .true.
