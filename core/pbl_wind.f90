@@ -104,6 +104,7 @@ module pbl_wind
 	contains
 		procedure	:: buildFromVectors	=> sd_BuildFromVectors
 		procedure	:: getVectors       => sd_GetVectors
+		procedure	:: getSpeed         => sd_GetSpeed
 		procedure	:: readSonicLib		=> sd_ReadSonicLib
 		procedure	:: readWindRecorder	=> sd_ReadWindRecorder
 		procedure	:: readMeteoFlux	=> sd_ReadMeteoFluxCoreUncompressed
@@ -1143,6 +1144,44 @@ contains
 		if(present(rvC)) rvC = this % rvC
 		
 	end function sd_GetVectors
+	
+	
+	function sd_GetSpeed(this, rvVel, rvVel3D) result(iRetCode)
+	
+		! Routine arguments
+		class(SonicData), intent(in)							:: this
+		real(8), dimension(:), allocatable, intent(out)			:: rvVel	! Instant horizontal speed
+		real(8), dimension(:), allocatable, intent(out)			:: rvVel3D	! Instant total speed
+		integer													:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume succes (will falsify on failure)
+		iRetCode = 0
+		
+		! Get and check vector sizes
+		if(.not.allocated(this % rvTimeStamp)) then
+			iRetCode = 1
+			return
+		end if
+		n = size(this % rvTimeStamp)
+		if(n <= 0) then
+			iRetCode = 2
+			return
+		end if
+		
+		! Reserve workspace
+		if(allocated(rvVel))   deallocate(rvVel)
+		if(allocated(rvVel3D)) deallocate(rvVel3D)
+		allocate(rvVel(n))
+		allocate(rvVel3D(n))
+		
+		! Assign values
+		rvVel   = this % rvVel
+		rvVel3D = this % rvVel3D
+		
+	end function sd_GetSpeed
 	
 	
 	function sd_ReadSonicLib(this, iLUN, sFileName, iOS) result(iRetCode)
