@@ -373,6 +373,30 @@ contains
 	end function PolarToCartesian3
 	
 
+	! Convert 2D (horizontal) wind from component to wind-direction form
+	!
+	! Input:
+	!
+	!	cartesian :				Two-dimensionl vector, containing Vx component in component 1,
+	!							and Vy in component 2
+	!
+	!	interpretation :		Integer optional parameter indicating how wind direction is to
+	!							be interpreted. Possible values are:
+	!
+	!							WCONV_SAME					Input and output refer to the same
+	!														convention, whatever is
+	!
+	!							WCONV_PROVENANCE_TO_FLOW	Input in provenance, output in flow
+	!														convention
+	!
+	!							WCONV_FLOW_TO_PROVENANCE	Input in flow, output in provenance
+	!														convention
+	!
+	! Output:
+	!
+	!	polar :					Wind vector in polar components form, with wind speed in position 1
+	!							and wind direction in position 2.
+	!
 	function CartesianToPolar2(cartesian, interpretation) result(polar)
 	
 		! Routine arguments
