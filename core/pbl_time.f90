@@ -49,6 +49,7 @@ module pbl_time
 	public	:: timeGetYear					! Extract year from a time stamp vector (may be used to obtain an index)
 	public	:: timeGetMonth					! Extract month from a time stamp vector (may be used to obtain an index)
 	public	:: timeGetYearMonth				! Extract a year-month value from a time stamp vector (may be used to obtain an index)
+	public	:: timeSequence					! Generate a sequence of time stamps between two given initial and final time stamps
 	
 	! Constants
 	integer, parameter	:: DELTA_1_HOUR  = 3600
@@ -114,6 +115,12 @@ module pbl_time
 		module procedure	:: timeGetYearMonth1
 		module procedure	:: timeGetYearMonth2
 	end interface timeGetYearMonth
+	
+	
+	interface timeSequence
+		module procedure	:: timeSequence1
+		module procedure	:: timeSequence2
+	end interface timeSequence
 	
 	
 	interface operator(.sensible.)
@@ -1245,6 +1252,140 @@ contains
 		end do
 		
 	end function timeGetYearMonth2
+	
+	
+	function timeSequence1(rTimeFrom, rTimeTo, iTimeStep, lRightInclusive, rvTimeStamp) result(iRetCode)
+	
+		! Routine arguments
+		real(8), intent(in)								:: rTimeFrom
+		real(8), intent(in)								:: rTimeTo
+		integer, intent(in)								:: iTimeStep
+		logical, intent(in), optional					:: lRightInclusive
+		real(8), intent(out), dimension(:), allocatable	:: rvTimeStamp
+		integer											:: iRetCode
+		
+		! Locals
+		integer		:: n
+		real(8)		:: rCurTime
+		integer		:: j
+		real(8)		:: rTimeUpperLimit
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Set upper limit for time
+		if(present(lRightInclusive)) then
+			if(lRightInclusive) then
+				rTimeUpperLimit = rTimeTo
+			else
+				rTimeUpperLimit = rTimeTo - 0.001d0
+			end if
+		else
+			rTimeUpperLimit = rTimeTo - 0.001d0
+		end if
+		
+		! Check parameters
+		if(rTimeFrom > rTimeTo .and. lRightInclusive) then
+			iRetCode = 1
+			return
+		elseif(rTimeFrom >= rTimeTo .and. .not.lRightInclusive) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Compute size of time stamp vector
+		n = 0
+		rCurTime = rTimeFrom
+		do while(rCurTime <= rTimeUpperLimit)
+			n = n + 1
+			rCurTime = rCurTime + iTimeStep
+		end do
+		if(n <= 0) then
+			! This should really never happen, given tests made on time limits. But, it
+			! costs nothing adding it, as a defensive programming technique.
+			iRetCode = 2
+		end if
+		! The vector of date-times is guaranteed to be non-empty from now on.
+		
+		! Reserve workspace
+		if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
+		allocate(rvTimeStamp(n))
+		
+		! Generate time stamps sequence
+		j = 0
+		rCurTime = rTimeFrom
+		do while(rCurTime <= rTimeUpperLimit)
+			j = j + 1
+			rvTimeStamp(j) = rCurTime
+			rCurTime = rCurTime + iTimeStep
+		end do
+		
+	end function timeSequence1
+	
+	
+	function timeSequence2(iTimeFrom, iTimeTo, iTimeStep, lRightInclusive, ivTimeStamp) result(iRetCode)
+	
+		! Routine arguments
+		integer, intent(in)								:: iTimeFrom
+		integer, intent(in)								:: iTimeTo
+		integer, intent(in)								:: iTimeStep
+		logical, intent(in), optional					:: lRightInclusive
+		integer, intent(out), dimension(:), allocatable	:: ivTimeStamp
+		integer											:: iRetCode
+		
+		! Locals
+		integer		:: n
+		integer		:: i
+		integer		:: j
+		integer		:: iTimeUpperLimit
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Set upper limit for time
+		if(present(lRightInclusive)) then
+			if(lRightInclusive) then
+				iTimeUpperLimit = iTimeTo
+			else
+				iTimeUpperLimit = iTimeTo - 1
+			end if
+		else
+			iTimeUpperLimit = iTimeTo - 1
+		end if
+		
+		! Check parameters
+		if(iTimeFrom > iTimeTo .and. lRightInclusive) then
+			iRetCode = 1
+			return
+		elseif(iTimeFrom >= iTimeTo .and. .not.lRightInclusive) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Compute size of time stamp vector
+		n = 0
+		do i = iTimeFrom, iTimeUpperLimit, iTimeStep
+			n = n + 1
+		end do
+		if(n <= 0) then
+			! This should really never happen, given tests made on time limits. But, it
+			! costs nothing adding it, as a defensive programming technique.
+			iRetCode = 2
+		end if
+		! The vector of date-times is guaranteed to be non-empty from now on.
+		
+		! Reserve workspace
+		if(allocated(ivTimeStamp)) deallocate(ivTimeStamp)
+		allocate(ivTimeStamp(n))
+		
+		! Generate time stamps sequence
+		j = 0
+		do i = iTimeFrom, iTimeUpperLimit, iTimeStep
+			j = j + 1
+			ivTimeStamp(j) = i
+		end do
+		
+	end function timeSequence2
 	
 	
 	function isSensible(tDateTime) result(lIsSensible)
