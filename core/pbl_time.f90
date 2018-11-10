@@ -1268,27 +1268,23 @@ contains
 		integer		:: n
 		real(8)		:: rCurTime
 		integer		:: j
-		real(8)		:: rTimeUpperLimit
+		logical		:: lInclude
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
 		! Set upper limit for time
 		if(present(lRightInclusive)) then
-			if(lRightInclusive) then
-				rTimeUpperLimit = rTimeTo
-			else
-				rTimeUpperLimit = rTimeTo - 0.001d0
-			end if
+			lInclude = lRightInclusive
 		else
-			rTimeUpperLimit = rTimeTo - 0.001d0
+			lInclude = .false.
 		end if
 		
 		! Check parameters
-		if(rTimeFrom > rTimeTo .and. lRightInclusive) then
+		if(rTimeFrom > rTimeTo .and. lInclude) then
 			iRetCode = 1
 			return
-		elseif(rTimeFrom >= rTimeTo .and. .not.lRightInclusive) then
+		elseif(rTimeFrom >= rTimeTo .and. .not.lInclude) then
 			iRetCode = 1
 			return
 		end if
@@ -1296,10 +1292,17 @@ contains
 		! Compute size of time stamp vector
 		n = 0
 		rCurTime = rTimeFrom
-		do while(rCurTime <= rTimeUpperLimit)
-			n = n + 1
-			rCurTime = rCurTime + iTimeStep
-		end do
+		if(lInclude) then
+			do while(rCurTime <= rTimeTo)
+				n = n + 1
+				rCurTime = rCurTime + iTimeStep
+			end do
+		else
+			do while(rCurTime < rTimeTo)
+				n = n + 1
+				rCurTime = rCurTime + iTimeStep
+			end do
+		end if
 		if(n <= 0) then
 			! This should really never happen, given tests made on time limits. But, it
 			! costs nothing adding it, as a defensive programming technique.
@@ -1314,11 +1317,19 @@ contains
 		! Generate time stamps sequence
 		j = 0
 		rCurTime = rTimeFrom
-		do while(rCurTime <= rTimeUpperLimit)
-			j = j + 1
-			rvTimeStamp(j) = rCurTime
-			rCurTime = rCurTime + iTimeStep
-		end do
+		if(lInclude) then
+			do while(rCurTime <= rTimeTo)
+				j = j + 1
+				rvTimeStamp(j) = rCurTime
+				rCurTime = rCurTime + iTimeStep
+			end do
+		else
+			do while(rCurTime < rTimeTo)
+				j = j + 1
+				rvTimeStamp(j) = rCurTime
+				rCurTime = rCurTime + iTimeStep
+			end do
+		end if
 		
 	end function timeSequence1
 	
@@ -1337,36 +1348,42 @@ contains
 		integer		:: n
 		integer		:: i
 		integer		:: j
-		integer		:: iTimeUpperLimit
+		logical		:: lInclude
+		integer		:: iCurTime
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
 		! Set upper limit for time
 		if(present(lRightInclusive)) then
-			if(lRightInclusive) then
-				iTimeUpperLimit = iTimeTo
-			else
-				iTimeUpperLimit = iTimeTo - 1
-			end if
+			lInclude = lRightInclusive
 		else
-			iTimeUpperLimit = iTimeTo - 1
+			lInclude = .false.
 		end if
 		
 		! Check parameters
-		if(iTimeFrom > iTimeTo .and. lRightInclusive) then
+		if(iTimeFrom > iTimeTo .and. lInclude) then
 			iRetCode = 1
 			return
-		elseif(iTimeFrom >= iTimeTo .and. .not.lRightInclusive) then
+		elseif(iTimeFrom >= iTimeTo .and. .not.lInclude) then
 			iRetCode = 1
 			return
 		end if
 		
 		! Compute size of time stamp vector
 		n = 0
-		do i = iTimeFrom, iTimeUpperLimit, iTimeStep
-			n = n + 1
-		end do
+		iCurTime = iTimeFrom
+		if(lInclude) then
+			do while(iCurTime <= iTimeTo)
+				n = n + 1
+				iCurTime = iCurTime + iTimeStep
+			end do
+		else
+			do while(iCurTime < iTimeTo)
+				n = n + 1
+				iCurTime = iCurTime + iTimeStep
+			end do
+		end if
 		if(n <= 0) then
 			! This should really never happen, given tests made on time limits. But, it
 			! costs nothing adding it, as a defensive programming technique.
@@ -1380,10 +1397,20 @@ contains
 		
 		! Generate time stamps sequence
 		j = 0
-		do i = iTimeFrom, iTimeUpperLimit, iTimeStep
-			j = j + 1
-			ivTimeStamp(j) = i
-		end do
+		iCurTime = iTimeFrom
+		if(lInclude) then
+			do while(iCurTime <= iTimeTo)
+				j = j + 1
+				ivTimeStamp(j) = iCurTime
+				iCurTime = iCurTime + iTimeStep
+			end do
+		else
+			do while(iCurTime < iTimeTo)
+				j = j + 1
+				ivTimeStamp(j) = iCurTime
+				iCurTime = iCurTime + iTimeStep
+			end do
+		end if
 		
 	end function timeSequence2
 	
