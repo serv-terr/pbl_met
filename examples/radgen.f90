@@ -132,6 +132,13 @@ program RadGen
 		stop
 	end if
 	
+	! Adjust time stamp if not anticipated
+	if(iTimeStampOption == 1) then
+		rvTimeStamp = rvTimeStamp + iTimeStep / 2.0d0
+	elseif(iTimeStampOption == 2) then
+		rvTimeStamp = rvTimeStamp + iTimeStep
+	end if
+	
 	! Write results
 	open(10, file=sOutFile, status='unknown', action='write')
 	write(10, "('Time.Stamp')")
