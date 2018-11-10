@@ -21,6 +21,7 @@ program RadGen
 	integer								:: iYear
 	integer								:: iMonth
 	integer								:: iDay
+	integer								:: i
 	type(DateTime)						:: tDateTime
 	integer								:: iTimeDelta
 	real(8), dimension(:), allocatable	:: rvTimeStamp
@@ -78,8 +79,8 @@ program RadGen
 		print *, "radgen:: error: Invalid value specified for <time_zone> (should be -12 to 23)"
 		stop
 	end if
-	if(iTimeStep <= 0) then
-		print *, "radgen:: error: Value specified for <time_step> is not positive"
+	if(iTimeZone <= 0) then
+		print *, "radgen:: error: Value specified for <time_zone> is not positive"
 		stop
 	end if
 	call get_command_argument(4, sBuffer)
@@ -97,7 +98,7 @@ program RadGen
 		stop
 	end if
 	tDateTime = DateTime(iYear, iMonth, iDay, 0, 0, 0.d0)
-	rDateTo = tDateTime % toEpoch()
+	rDateTo = tDateTime % toEpoch() + 24*3600.d0
 	if(rDateFrom >= rDateTo) then
 		print *, "radgen:: error: <date_from> is larger of, or equals, <date_to>"
 		stop
@@ -105,7 +106,7 @@ program RadGen
 	call get_command_argument(6, sBuffer)
 	read(sBuffer, *, iostat=iRetCode) iTimeStep
 	if(iRetCode /= 0) then
-		print *, "radgen:: error: Invalid value specified for <time_step> (should be like 2018-12-31)"
+		print *, "radgen:: error: Invalid value specified for <time_step>"
 		stop
 	end if
 	if(iTimeStep <= 0) then
@@ -118,17 +119,27 @@ program RadGen
 		print *, "radgen:: error: Invalid value specified for <time_stamp_option>"
 		stop
 	end if
-	if(iTimeStampOption <= 0) then
+	if(iTimeStampOption < 0 .or. iTimeStampOption > 2) then
 		print *, "radgen:: error: Value specified for <time_stamp_option> (should be 0 to 2)"
 		stop
 	end if
 	call get_command_argument(8, sOutFile)
 	
 	! Generate the sequence of time stamps to which global radiation will be estimated.
-	iRetCode = timeSequence(rDateFrom, rDateTo, iTimeStep, .true., rvTimeStamp)
+	iRetCode = timeSequence(rDateFrom, rDateTo, iTimeStep, .false., rvTimeStamp)
 	if(iRetCode /= 0) then
-		print *, "radgen:: error: Empty or otherwise wrong times sequence"
+		print *, "radgen:: error: Empty or otherwise wrong times sequence - iRetCode = ", iRetCode
 		stop
 	end if
+	
+	! Write results
+	open(10, file=sOutFile, status='unknown', action='write')
+	write(10, "('Time.Stamp')")
+	do i = 1, size(rvTimeStamp)
+		iRetCode = tDateTime % fromEpoch(rvTimeStamp(i))
+		write(10, "(a)") &
+			tDateTime % toISO()
+	end do
+	close(10)
 	
 end program RadGen
