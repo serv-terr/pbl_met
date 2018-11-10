@@ -34,6 +34,10 @@ program RadGen
 	real(8), dimension(:), allocatable	:: rvTimeStamp
 	real, dimension(:), allocatable		:: rvRgMin
 	real, dimension(:), allocatable		:: rvRgMax
+	real, dimension(:), allocatable		:: rvRgMean0
+	real, dimension(:), allocatable		:: rvRgStdDev0
+	real, dimension(:), allocatable		:: rvRgMean1
+	real, dimension(:), allocatable		:: rvRgStdDev1
 	real, dimension(11,11,15)			:: raRg0
 	real, dimension(11,11,15)			:: raRg1
 	real								:: rMinRg0
@@ -152,6 +156,10 @@ program RadGen
 	! Reserve space for radiation (result) vectors
 	allocate(rvRgMin(size(rvTimeStamp)))
 	allocate(rvRgMax(size(rvTimeStamp)))
+	allocate(rvRgMean0(size(rvTimeStamp)))
+	allocate(rvRgStdDev0(size(rvTimeStamp)))
+	allocate(rvRgMean1(size(rvTimeStamp)))
+	allocate(rvRgStdDev1(size(rvTimeStamp)))
 	
 	! Predict clear-sky radiation using ASCE "accurate" method
 	do i = 1, size(rvTimeStamp)
@@ -176,7 +184,7 @@ program RadGen
 						float(k), &
 						float(j), &
 						float(l), &
-						0.0 &
+						0.5 &
 					)
 					raRg1(ij,ik,il) = ClearSkyRg_Accurate( &
 						sDateTime, &
@@ -200,6 +208,10 @@ program RadGen
 		rMaxRg  = max(rMaxRg0, rMaxRg1)
 		rvRgMin(i) = rMinRg
 		rvRgMax(i) = rMaxRg
+		rvRgMean0(i) = sum(raRg0) / (11*11*15)
+		rvRgMean1(i) = sum(raRg1) / (11*11*15)
+		rvRgStdDev0(i) = sqrt(sum((raRg0-rvRgMean0(i))**2) / (11*11*15))
+		rvRgStdDev1(i) = sqrt(sum((raRg1-rvRgMean1(i))**2) / (11*11*15))
 	end do
 	
 	! Adjust time stamp if not anticipated
@@ -211,16 +223,24 @@ program RadGen
 	
 	! Write results
 	open(10, file=sOutFile, status='unknown', action='write')
-	write(10, "('Time.Stamp,Rg.Min,Rg.Max')")
+	write(10, "('Time.Stamp,Rg.Min,Rg.Max,Rg.Mean.0,RgStdDev.0,Rg.Mean.1,RgStdDev.1')")
 	do i = 1, size(rvTimeStamp)
 		iRetCode = tDateTime % fromEpoch(rvTimeStamp(i))
-		write(10, "(a,2(',',f6.1))") &
+		write(10, "(a,6(',',f6.1))") &
 			tDateTime % toISO(), &
 			rvRgMin(i), &
-			rvRgMax(i)
+			rvRgMax(i), &
+			rvRgMean0(i), &
+			rvRgStdDev0(i), &
+			rvRgMean1(i), &
+			rvRgStdDev1(i)
 	end do
 	close(10)
 	
+	deallocate(rvRgStdDev1)
+	deallocate(rvRgMean1)
+	deallocate(rvRgStdDev0)
+	deallocate(rvRgMean0)
 	deallocate(rvRgMax)
 	deallocate(rvRgMin)
 	deallocate(rvTimeStamp)
