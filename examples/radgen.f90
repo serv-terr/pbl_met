@@ -10,6 +10,7 @@ program RadGen
 	! Locals
 	integer								:: iRetCode
 	character(len=256)					:: sOutFile
+	character(len=23)					:: sDateTime
 	real								:: rLat
 	real								:: rLon
 	integer								:: iTimeZone
@@ -22,9 +23,25 @@ program RadGen
 	integer								:: iMonth
 	integer								:: iDay
 	integer								:: i
+	integer								:: j
+	integer								:: k
+	integer								:: l
+	integer								:: ij
+	integer								:: ik
+	integer								:: il
 	type(DateTime)						:: tDateTime
 	integer								:: iTimeDelta
 	real(8), dimension(:), allocatable	:: rvTimeStamp
+	real, dimension(:), allocatable		:: rvRgMin
+	real, dimension(:), allocatable		:: rvRgMax
+	real, dimension(11,11,15)			:: raRg0
+	real, dimension(11,11,15)			:: raRg1
+	real								:: rMinRg0
+	real								:: rMaxRg0
+	real								:: rMinRg1
+	real								:: rMaxRg1
+	real								:: rMinRg
+	real								:: rMaxRg
 	
 	! Get parameters
 	if(command_argument_count() /= 8) then
@@ -132,6 +149,59 @@ program RadGen
 		stop
 	end if
 	
+	! Reserve space for radiation (result) vectors
+	allocate(rvRgMin(size(rvTimeStamp)))
+	allocate(rvRgMax(size(rvTimeStamp)))
+	
+	! Predict clear-sky radiation using ASCE "accurate" method
+	do i = 1, size(rvTimeStamp)
+		iRetCode = tDateTime % fromEpoch(rvTimeStamp(i))
+		sDateTime = tDateTime % toISO()
+		print *, "Processing time step ", sDateTime
+		ij = 0
+		do j = -40, 60, 10
+			ij = ij + 1
+			ik = 0
+			do k = 980, 1030, 5
+				ik = ik + 1
+				il = 0
+				do l = 30, 100, 5
+					il = il + 1
+					raRg0(ij,ik,il) = ClearSkyRg_Accurate( &
+						sDateTime, &
+						float(iTimeStep), &
+						rLat, &
+						rLon, &
+						float(iTimeZone), &
+						float(k), &
+						float(j), &
+						float(l), &
+						0.0 &
+					)
+					raRg1(ij,ik,il) = ClearSkyRg_Accurate( &
+						sDateTime, &
+						float(iTimeStep), &
+						rLat, &
+						rLon, &
+						float(iTimeZone), &
+						float(k), &
+						float(j), &
+						float(l), &
+						1.0 &
+					)
+				end do
+			end do
+		end do
+		rMinRg0 = minval(raRg0)
+		rMaxRg0 = maxval(raRg0)
+		rMinRg1 = minval(raRg1)
+		rMaxRg1 = maxval(raRg1)
+		rMinRg  = min(rMinRg0, rMinRg1)
+		rMaxRg  = max(rMaxRg0, rMaxRg1)
+		rvRgMin(i) = rMinRg
+		rvRgMax(i) = rMaxRg
+	end do
+	
 	! Adjust time stamp if not anticipated
 	if(iTimeStampOption == 1) then
 		rvTimeStamp = rvTimeStamp + iTimeStep / 2.0d0
@@ -141,12 +211,18 @@ program RadGen
 	
 	! Write results
 	open(10, file=sOutFile, status='unknown', action='write')
-	write(10, "('Time.Stamp')")
+	write(10, "('Time.Stamp,Rg.Min,Rg.Max')")
 	do i = 1, size(rvTimeStamp)
 		iRetCode = tDateTime % fromEpoch(rvTimeStamp(i))
-		write(10, "(a)") &
-			tDateTime % toISO()
+		write(10, "(a,2(',',f6.1))") &
+			tDateTime % toISO(), &
+			rvRgMin(i), &
+			rvRgMax(i)
 	end do
 	close(10)
+	
+	deallocate(rvRgMax)
+	deallocate(rvRgMin)
+	deallocate(rvTimeStamp)
 	
 end program RadGen
