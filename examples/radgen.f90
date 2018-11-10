@@ -8,21 +8,22 @@ program RadGen
 	implicit none
 	
 	! Locals
-	integer				:: iRetCode
-	character(len=256)	:: sOutFile
-	real				:: rLat
-	real				:: rLon
-	integer				:: iTimeZone
-	real(8)				:: rDateFrom
-	real(8)				:: rDateTo
-	integer				:: iTimeStep
-	integer				:: iTimeStampOption
-	character(len=256)	:: sBuffer
-	integer				:: iYear
-	integer				:: iMonth
-	integer				:: iDay
-	type(DateTime)		:: tDateTime
-	integer				:: iTimeDelta
+	integer								:: iRetCode
+	character(len=256)					:: sOutFile
+	real								:: rLat
+	real								:: rLon
+	integer								:: iTimeZone
+	real(8)								:: rDateFrom
+	real(8)								:: rDateTo
+	integer								:: iTimeStep
+	integer								:: iTimeStampOption
+	character(len=256)					:: sBuffer
+	integer								:: iYear
+	integer								:: iMonth
+	integer								:: iDay
+	type(DateTime)						:: tDateTime
+	integer								:: iTimeDelta
+	real(8), dimension(:), allocatable	:: rvTimeStamp
 	
 	! Get parameters
 	if(command_argument_count() /= 8) then
@@ -122,5 +123,12 @@ program RadGen
 		stop
 	end if
 	call get_command_argument(8, sOutFile)
+	
+	! Generate the sequence of time stamps to which global radiation will be estimated.
+	iRetCode = timeSequence(rDateFrom, rDateTo, iTimeStep, .true., rvTimeStamp)
+	if(iRetCode /= 0) then
+		print *, "radgen:: error: Empty or otherwise wrong times sequence"
+		stop
+	end if
 	
 end program RadGen
