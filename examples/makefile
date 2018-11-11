@@ -7,6 +7,9 @@ radgen : radgen.f90
 test :
 	./radgen 45.00 10.00 1 2018-01-01 2018-12-31 3600 0 rgSim.csv
 
+test.simple :
+	./radgen 45.00 10.00 1 2018-01-01 2018-12-31 3600 0 20. 75. 1013. rgSimple.csv
+
 test1 :
 	./radgen 45.00 10.00 1 2018-01-01 2018-12-31 3600 1 rgSim1.csv
 
