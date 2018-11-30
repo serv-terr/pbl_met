@@ -16,11 +16,11 @@
 program Alamo
 	
 	use pbl_met
+	use Configuration
 	
 	implicit none
 	
 	character(len=256)	:: sCfgFile
-	type(IniFile)		:: cfg
 	integer				:: iRetCode
 	
 	type Particle
@@ -45,35 +45,7 @@ program Alamo
 	end type Environment
 	type(Environment)	:: air
 	
-	type Configuration
-		! Grid data
-		real(8)				:: x0
-		real(8)				:: y0
-		integer				:: nx
-		integer 			:: ny
-		real(8)				:: dx
-		real(8)				:: dy
-		real(8)				:: Zmax	
-		real(8)				:: dz
-		! Timing
-		real(8)				:: Tmed		! Averaging time (s)
-		integer				:: Nstep	! Number of substeps in an averaging period
-		! Particles emitted per substep
-		integer				:: Np
-		! Static and dynamic emissions
-		character(len=256)	:: Filemis	
-		character(len=256)	:: Fileprofemi	
-		! Meteo data file
-		character(len=256)	:: Filemeteo
-		! Site parameters of meteorological file
-		real(8)				:: zlev
-		real(8)				:: z0
-		real(8)				:: zr
-		! Output
-		character(len=256)	:: Fileout
-		real(8)				:: fat
-	end type Configuration
-	type(Configuration)	:: config
+	type(Config)		:: cfg
 	
 	! Get parameters
 	if(command_argument_count() /= 1) then
@@ -90,11 +62,10 @@ program Alamo
 	end if
 	call get_command_argument(1, sCfgFile)
 	
-	! Read configuration file
-	iRetCode = cfg % read(10, sCfgFile)
+	! Read configuration
+	iRetCode = cfg % read(19, sCfgFile)
 	if(iRetCode /= 0) then
-		print *, "alamo:: error: Missing or invalid configuration file"
-		stop
+		print *, ''
 	end if
 	
 end program Alamo
