@@ -1,8 +1,8 @@
 dewpoint : DewPoint.f90
 	gfortran -J ../core -o dewpoint DewPoint.f90 ../core/pbl_met.a
 
-alamo : alamo.o alamo_config.o alamo_emis.o
-	gfortran -J ../core -o alamo alamo.o alamo_config.o alamo_emis.o ../core/pbl_met.a
+alamo : alamo.o alamo_config.o alamo_emis.o alamo_meteo.o
+	gfortran -J ../core -o alamo alamo.o alamo_config.o alamo_emis.o alamo_meteo.o ../core/pbl_met.a
 
 alamo.o : Alamo.f90 configuration.mod
 	gfortran -J ../core -c Alamo.f90
@@ -12,6 +12,9 @@ alamo_config.o configuration.mod : Alamo_Config.f90 emission.mod
 
 alamo_emis.o emission.mod : Alamo_Emis.f90
 	gfortran -J ../core -c Alamo_Emis.f90
+
+alamo_meteo.o meteo.mod : Alamo_Meteo.f90
+	gfortran -J ../core -c Alamo_Meteo.f90
 
 radgen : radgen.f90
 	gfortran -J ../core -o radgen radgen.f90 ../core/pbl_met.a
