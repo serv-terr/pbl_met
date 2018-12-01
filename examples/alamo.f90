@@ -63,7 +63,7 @@ program Alamo
 	call get_command_argument(1, sCfgFile)
 	
 	! Read configuration
-	iRetCode = cfg % read(19, sCfgFile)
+	iRetCode = cfg % read(10, 11, sCfgFile)
 	if(iRetCode /= 0) then
 		print *, ''
 	end if
