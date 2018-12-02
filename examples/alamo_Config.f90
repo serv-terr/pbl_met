@@ -16,7 +16,7 @@ module Configuration
 		integer				:: nz
 		real(8)				:: dz
 		! Timing
-		real(8)				:: Tmed		! Averaging time (s)
+		integer				:: Tmed		! Averaging time (s)
 		integer				:: Nstep	! Number of substeps in an averaging period
 		! Particles emitted per substep
 		integer				:: Np
@@ -101,7 +101,7 @@ contains
 			return
 		end if
 		! -1- Timing
-		iErrCode = cfg % getReal8("Timing", "avgtime", this % Tmed, 3600.d0)
+		iErrCode = cfg % getInteger("Timing", "avgtime", this % Tmed, 3600)
 		if(iErrCode /= 0) then
 			iRetCode = 2
 			if(this % debug > 0) print *, "alamo:: error: Invalid 'avgtime' in [Timing]"
@@ -221,7 +221,7 @@ contains
 		
 		! Validate configuration data
 		! -1- Timing
-		if(this % Tmed <= 0.d0 .or. this % Tmed > 3600.d0) then
+		if(this % Tmed <= 0 .or. this % Tmed > 3600 .or. mod(3600, this % Tmed) /= 0) then
 			iRetCode = 3
 			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'avgtime' in [Timing]"
 			return
