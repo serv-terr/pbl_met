@@ -226,7 +226,7 @@ contains
 			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'avgtime' in [Timing]"
 			return
 		end if
-		if(this % Nstep < 1) then
+		if(this % Nstep < 1 .or. mod(this % Tmed, this % Nstep) /= 0) then
 			iRetCode = 3
 			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'nstep' in [Timing]"
 			return
