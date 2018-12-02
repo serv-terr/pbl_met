@@ -90,6 +90,21 @@ module pbl_base
 		procedure, public	:: getInteger => iniGetInteger
 	end type IniFile
 	
+	
+	type Spline
+		! Spline coefficients
+		real(8), private, dimension(:), allocatable	:: x
+		real(8), private, dimension(:), allocatable	:: y
+		real(8), private, dimension(:), allocatable	:: b
+		real(8), private, dimension(:), allocatable	:: c
+		real(8), private, dimension(:), allocatable	:: d
+		logical										:: lEquallySpaced
+		logical										:: lIsOK
+	contains
+		procedure, public	:: init     => splInit
+		procedure, public	:: evaluate => splEval
+	end type Spline
+	
 contains
 
 	! Check a value is valid, that is, not a NaN.
@@ -681,6 +696,190 @@ contains
 		! function exit will be restituted regularly
 		
 	end function iniGetInteger
+	
+	
+	function splInit(this, rvX, rvY) result(iRetCode)
+	
+		! Routine arguments
+		class(Spline), intent(out)			:: this
+		real(8), dimension(:), intent(in)	:: rvX
+		real(8), dimension(:), intent(in)	:: rvY
+		integer								:: iRetCode
+		
+		! Locals
+		integer		:: n
+		integer		:: i, j, gap
+		real(8)		:: h
+		logical		:: lNoGaps
+		real(8)		:: rDelta
+		real(8)		:: rIndex
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check parameters
+		n = size(rvX)
+		if(n < 2) then
+			iRetCode = 1
+			return
+		end if
+		if(size(rvY) /= n) then
+			iRetCode = 2
+			return
+		end if
+		lNoGaps = .true.
+		do i = 1, n
+			if(.invalid.rvX(i) .or. .invalid.rvY(i)) then
+				lNoGaps = .false.
+				exit
+			end if
+		end do
+		if(.not.lNoGaps) then
+			iRetCode = 3
+			return
+		end if
+		do i = 2, n
+			if(rvX(i) <= rvX(i-1)) then
+				iRetCode = 4
+				return
+			end if
+		end do
+		
+		! Check the rvX values are equally spaced (a particularly important special case)
+		rDelta = rvX(2) - rvX(1)
+		this % lEquallySpaced = .false.
+		do i = 2, n
+			rIndex = (rvX(i)-rvX(1)) / rDelta
+			if(rIndex - floor(rIndex) >= 1.d-3) then
+				this % lEquallySpaced = .false.
+				exit
+			end if
+		end do
+		
+		! Reserve workspace
+		if(allocated(this % x)) deallocate(this % x)
+		if(allocated(this % y)) deallocate(this % y)
+		if(allocated(this % b)) deallocate(this % b)
+		if(allocated(this % c)) deallocate(this % c)
+		if(allocated(this % d)) deallocate(this % d)
+		
+		! Save data points
+		this % x = rvX
+		this % y = rvY
+		
+		! Check the number of points allows the existence of a third-degree spline
+		if(n < 3) then
+			! Not enough points: perform plain linear interpolation
+			this % b(1) = (rvY(2)-rvY(1))/(rvX(2)-rvX(1))
+			this % c(1) = 0.
+			this % d(1) = 0.
+			this % b(2) = this % b(1)
+			this % c(2) = 0.
+			this % d(2) = 0.
+			return
+		end if
+
+		! Prepare
+		gap = n-1
+		this % d(1) = this % x(2) - this % x(1)
+		this % c(2) = (this % y(2) - this % y(1))/this % d(1)
+		do i = 2, gap
+			this % d(i) = this % x(i+1) - this % x(i)
+			this % b(i) = 2.0*(this % d(i-1) + this % d(i))
+			this % c(i+1) = (this % y(i+1) - this % y(i))/this % d(i)
+			this % c(i) = this % c(i+1) - this % c(i)
+		end do
+
+		! Enforce boundary conditions
+		this % b(1) = -this % d(1)
+		this % b(n) = -this % d(n-1)
+		this % c(1) = 0.0
+		this % c(n) = 0.0
+		if(n /= 3) then
+			this % c(1) = this % c(3) / (this % x(4) - this % x(2)) - this % c(2) / (this % x(3) - this % x(1))
+			this % c(n) = this % c(n-1) / (this % x(n) - this % x(n-2)) - this % c(n-2) / (this % x(n-1) - this % x(n-3))
+			this % c(1) = this % c(1) * this % d(1)**2 / (this % x(4) - this % x(1))
+			this % c(n) = -this % c(n) * this % d(n-1)**2 / (this % x(n) - this % x(n-3))
+		end if
+		
+		! Solution step 1: forward substitution
+		do i = 2, n
+			h = this % d(i-1) / this % b(i-1)
+			this % b(i) = this % b(i) - h * this % d(i-1)
+			this % c(i) = this % c(i) - h * this % c(i-1)
+		end do
+
+		! Solution step 2: back substitution
+		this % c(n) = this % c(n) / this % b(n)
+		do j = 1, gap
+			i = n-j
+			this % c(i) = (this % c(i) - this % d(i) * this % c(i+1)) / this % b(i)
+		end do
+
+		! Final coefficients calculation
+		this % b(n) = (this % y(n) - this % y(gap)) / this % d(gap) + this % d(gap)*(this % c(gap) + 2.d0 * this % c(n))
+		do i = 1, gap
+			this % b(i) = (this % y(i+1) - this % y(i)) / this % d(i) - this % d(i) * (this % c(i+1) + 2.d0 * this % c(i))
+			this % d(i) = (this % c(i+1) - this % c(i)) / this % d(i)
+			this % c(i) = 3.d0 * this % c(i)
+		end do
+		this % c(n) = 3.d0 * this % c(n)
+		this % d(n) = this % d(n-1)
+		
+		! Inform users evaluations may occur
+		this % lIsOK = .true.
+
+	end function splInit
+
+
+	function splEval(this, rX) result(rValue)
+	
+		! Routine arguments
+		class(Spline), intent(in)	:: this
+		real(8), intent(in)			:: rX
+		real(8)						:: rValue
+		
+		! Locals
+		integer	:: n
+		integer	:: i
+		integer	:: j
+		integer	:: k
+		real(8)	:: dx
+
+		! Use boundary values outside the 'x' interval
+		n = size(this % x)
+		if(rX < this % x(1)) then
+			rValue = this % y(1)
+			return
+		elseif(rX > this % x(n)) then
+			rValue = this % y(n)
+			return
+		end if
+
+		! Find index i such that x(i) <= rX <= x(i+1)
+		if(this % lEquallySpaced) then
+			! Find index directly
+			i = floor((rX - this % x(1)) / (this % x(2) - this % x(1))) + 1
+		else
+			! Find index by binary search
+			i = 1
+			j = n+1
+			do while(j > i+1)
+				k = (i+j)/2
+				if(rX < this % x(k)) then
+					j=k
+				else
+					i=k
+				end if
+			end do
+		end if
+		
+		! Evaluate spline
+		dx = rX - this % x(i)
+		rValue = this % y(i) + dx * (this % b(i) + dx * (this % c(i) + dx * this % d(i)))
+		
+	end function splEval
+
 	
 	! **********************
 	! * Internal functions *
