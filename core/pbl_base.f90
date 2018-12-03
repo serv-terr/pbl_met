@@ -104,6 +104,7 @@ module pbl_base
 	contains
 		procedure, public	:: init     => splInit
 		procedure, public	:: evaluate => splEval
+		procedure, public	:: vectEval => splEvalVect
 	end type Spline
 	
 contains
@@ -880,6 +881,74 @@ contains
 		rValue = this % y(i) + dx * (this % b(i) + dx * (this % c(i) + dx * this % d(i)))
 		
 	end function splEval
+
+
+	function splEvalVect(this, rvX, rvY) result(iRetCode)
+	
+		! Routine arguments
+		class(Spline), intent(in)				:: this
+		real(8), dimension(:), intent(in)		:: rvX
+		real(8), dimension(:), intent(out)		:: rvY
+		integer									:: iRetCode
+		
+		! Locals
+		integer	:: m
+		integer	:: n
+		integer	:: i
+		integer	:: j
+		integer	:: k
+		integer	:: l
+		real(8)	:: dx
+
+		! Assume seccess (will falsify on failure)
+		iRetCode = 0
+		
+		! Check values
+		m = size(rvX)
+		if(size(rvY) /= m) then
+			iRetCode = 1
+			return
+		end if
+		
+		n = size(this % x)
+		
+		! Main loop: iterate over 'rvX' values
+		do l = 1, m
+		
+			! Use boundary values outside the 'x' interval
+			if(rvX(l) < this % x(1)) then
+				rValue = this % y(1)
+				return
+			elseif(rvX(l) > this % x(n)) then
+				rValue = this % y(n)
+				return
+			end if
+
+			! Find index i such that x(i) <= rX <= x(i+1)
+			if(this % lEquallySpaced) then
+				! Find index directly
+				i = floor((rvX(l) - this % x(1)) / (this % x(2) - this % x(1))) + 1
+			else
+				! Find index by binary search
+				i = 1
+				j = n+1
+				do while(j > i+1)
+					k = (i+j)/2
+					if(rvX(l) < this % x(k)) then
+						j=k
+					else
+						i=k
+					end if
+				end do
+			end if
+			
+			! Evaluate spline
+			dx = rvX(l) - this % x(i)
+			rvY(l) = this % y(i) + dx * (this % b(i) + dx * (this % c(i) + dx * this % d(i)))
+			
+		end do
+		
+	end function splEvalVect
 
 	
 	! **********************
