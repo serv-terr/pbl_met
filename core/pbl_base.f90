@@ -40,6 +40,7 @@ module pbl_base
 	public	:: gammaP	! Lower incomplete gamma function P(a,x)
 	! 2. Data types
 	public	:: IniFile
+	public	:: Spline
 	
 	! Constants
     real, parameter		:: NaN				       = Z'7FC00000'			! Special case of non-signalling NaN (single precision)
