@@ -246,6 +246,7 @@ contains
 			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'npart' in [Timing]"
 			return
 		end if
+		if(this % debug > 1) print *, "alamo:: info: [Timing] section check done"
 		! -1- Output
 		if(this % Fileout == "") then
 			iRetCode = 3
@@ -285,6 +286,7 @@ contains
 		this % x1   = this % x0 + this % dx * (this % nx - 1)
 		this % y1   = this % y0 + this % dy * (this % ny - 1)
 		this % zmax = this % dz * (this % nz - 1)
+		if(this % debug > 1) print *, "alamo:: info: [Output] section check done"
 		! -1- Static emissions
 		if(this % Filemis /= ' ') then
 			open(iLUN1, file=this % Filemis, status='old', action='read', iostat=iErrCode)
@@ -319,13 +321,16 @@ contains
 				end if
 			end do
 			close(iLUN1)
+			if(this % debug > 1) print *, "alamo:: info: [Emission] section check done for static sources"
 		end if
 		! -1- Meteorological data
 		iErrCode = this % tMeteo % read(iLUN1, this % Filemeteo, this % Tmed, this % Nstep, this % FilemeteoOut)
 		if(iErrCode /= 0) then
 			iRetCode = 3
+			if(this % debug > 0) print *, "alamo:: error: Meteo data not read, with return code ", iErrCode
 			return
 		end if
+		if(this % debug > 1) print *, "alamo:: info: [Meteo] section check done"
 	
 	end function cfgRead
 	
