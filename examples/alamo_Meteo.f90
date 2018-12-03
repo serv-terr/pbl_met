@@ -142,7 +142,7 @@ contains
 			
 			! Check the time index is really as expected
 			do iData = 2, iNumData
-				if(abs(this % rvEpoch(iData) - this % rvEpoch(iData-1)) > 1.d-4) then
+				if(this % rvEpoch(iData) - this % rvEpoch(iData-1) - 1.d0 > 1.d-4) then
 					iRetCode = 3
 					deallocate(rvTimeIndices)
 					return
