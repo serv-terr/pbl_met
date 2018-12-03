@@ -31,7 +31,7 @@ module Meteo
 	
 contains
 
-	function metRead(this, iLUN, sFileName, iAveragingTime, iSubSteps) result(iRetCode)
+	function metRead(this, iLUN, sFileName, iAveragingTime, iSubSteps, sFineMeteoFile) result(iRetCode)
 	
 		! Routine arguments
 		class(MetData), intent(out)		:: this
@@ -39,6 +39,7 @@ contains
 		character(len=*), intent(in)	:: sFileName
 		integer, intent(in)				:: iAveragingTime
 		integer, intent(in)				:: iSubSteps
+		character(len=*), intent(in)	:: sFineMeteoFile
 		integer							:: iRetCode
 		
 		! Locals
@@ -55,6 +56,8 @@ contains
 		real(8)				:: rNewDelta
 		integer				:: iNumNewAvgs
 		integer				:: iNumNewData
+		character(len=23)	:: sDateTime
+		real, dimension(2)					:: polar
 		real(8), dimension(:), allocatable	:: rvTimeIndices
 		type(Spline)						:: tSpline
 		
@@ -238,6 +241,86 @@ contains
 			iRetCode = 10
 			return
 		end if
+		iErrCode = tSpline % vectEval(this % rvExtEpoch, this % rvExtTemp)
+		if(iErrCode /= 0) then
+			iRetCode = 11
+			return
+		end if
+		iErrCode = tSpline % init(this % rvEpoch, this % rvU)
+		if(iErrCode /= 0) then
+			iRetCode = 10
+			return
+		end if
+		iErrCode = tSpline % vectEval(this % rvExtEpoch, this % rvExtU)
+		if(iErrCode /= 0) then
+			iRetCode = 11
+			return
+		end if
+		iErrCode = tSpline % init(this % rvEpoch, this % rvV)
+		if(iErrCode /= 0) then
+			iRetCode = 10
+			return
+		end if
+		iErrCode = tSpline % vectEval(this % rvExtEpoch, this % rvExtV)
+		if(iErrCode /= 0) then
+			iRetCode = 11
+			return
+		end if
+		iErrCode = tSpline % init(this % rvEpoch, this % rvUstar)
+		if(iErrCode /= 0) then
+			iRetCode = 10
+			return
+		end if
+		iErrCode = tSpline % vectEval(this % rvExtEpoch, this % rvExtUstar)
+		if(iErrCode /= 0) then
+			iRetCode = 11
+			return
+		end if
+		iErrCode = tSpline % init(this % rvEpoch, this % rvH0)
+		if(iErrCode /= 0) then
+			iRetCode = 10
+			return
+		end if
+		iErrCode = tSpline % vectEval(this % rvExtEpoch, this % rvExtH0)
+		if(iErrCode /= 0) then
+			iRetCode = 11
+			return
+		end if
+		iErrCode = tSpline % init(this % rvEpoch, this % rvZi)
+		if(iErrCode /= 0) then
+			iRetCode = 10
+			return
+		end if
+		iErrCode = tSpline % vectEval(this % rvExtEpoch, this % rvExtZi)
+		if(iErrCode /= 0) then
+			iRetCode = 11
+			return
+		end if
+		
+		! Compute polar wind given vector
+		polar = CartesianToPolar2( real([this % rvU(i), this % rvV(i)], kind=4) )
+		this % rvVel(i) = polar(1)
+		this % rvDir(i) = polar(2)
+		
+		! Print meteo data, if requested
+		open(iLUN, file=sFineMeteoFile, status='unknown', action='write', iostat=iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 12
+			return
+		end if
+		do i = 1, size(this % rvExtEpoch)
+			iErrCode = tDateTime % fromEpoch(this % rvExtEpoch(i))
+			sDateTime = tDateTime % toISO()
+			write(iLUN, "(a, 6(',', f8.3))") &
+				sDateTime, &
+				this % rvExtTemp(i), &
+				this % rvExtVel(i), &
+				this % rvExtDir(i), &
+				this % rvExtUstar(i), &
+				this % rvExtH0(i), &
+				this % rvExtZi(i)
+		end do
+		close(iLUN)
 		
 		! Construct profiles
 		
