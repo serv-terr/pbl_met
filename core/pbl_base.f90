@@ -764,6 +764,11 @@ contains
 		if(allocated(this % b)) deallocate(this % b)
 		if(allocated(this % c)) deallocate(this % c)
 		if(allocated(this % d)) deallocate(this % d)
+		allocate(this % x(n))
+		allocate(this % y(n))
+		allocate(this % b(n))
+		allocate(this % c(n))
+		allocate(this % d(n))
 		
 		! Save data points
 		this % x = rvX
