@@ -917,10 +917,10 @@ contains
 		
 			! Use boundary values outside the 'x' interval
 			if(rvX(l) < this % x(1)) then
-				rValue = this % y(1)
+				rvY(l) = this % y(1)
 				return
 			elseif(rvX(l) > this % x(n)) then
-				rValue = this % y(n)
+				rvY(l) = this % y(n)
 				return
 			end if
 
