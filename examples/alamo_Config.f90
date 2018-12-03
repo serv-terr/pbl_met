@@ -2,6 +2,7 @@ module Configuration
 	
 	use pbl_met
 	use Emission
+	use Meteo
 	
 	implicit none
 	
@@ -43,6 +44,8 @@ module Configuration
 		real(8)				:: zmax
 		! Emissions space
 		type(PointSource), dimension(:), allocatable	:: tvPointStatic
+		! Meteo data
+		type(MetData)									:: tMeteo
 	contains
 		procedure			:: read => cfgRead
 	end type Config
@@ -311,7 +314,11 @@ contains
 			close(iLUN1)
 		end if
 		! -1- Meteorological data
-		
+		iErrCode = this % tMeteo % read(iLUN1, this % Filemeteo, this % Tmed, this % Nstep)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
 	
 	end function cfgRead
 	
