@@ -55,7 +55,7 @@ program Alamo
 		print *
 		print *, "  ./alamo <Config_File>"
 		print *
-		print *, "Copyright 2018 by Roberto Sozzi"
+		print *, "Copyright 2018 by Servizi Territorio srl"
 		print *, "This is open-source software"
 		print *
 		stop
