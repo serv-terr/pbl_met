@@ -24,8 +24,9 @@ module Configuration
 		! Static and dynamic emissions
 		character(len=256)	:: Filemis	
 		character(len=256)	:: Fileprofemi	
-		! Meteo data file
+		! Meteo data files
 		character(len=256)	:: Filemeteo
+		character(len=256)	:: FilemeteoOut	! May be an empty string
 		! Site parameters of meteorological file
 		real(8)				:: zlev
 		real(8)				:: z0
@@ -137,6 +138,12 @@ contains
 		end if
 		! -1- Meteo
 		iErrCode = cfg % getString("Meteo", "inpfile", this % Filemeteo, "")
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			if(this % debug > 0) print *, "alamo:: error: Invalid 'inpfile' in [Meteo]"
+			return
+		end if
+		iErrCode = cfg % getString("Meteo", "outfile", this % FilemeteoOut, "")
 		if(iErrCode /= 0) then
 			iRetCode = 2
 			if(this % debug > 0) print *, "alamo:: error: Invalid 'inpfile' in [Meteo]"
@@ -314,7 +321,7 @@ contains
 			close(iLUN1)
 		end if
 		! -1- Meteorological data
-		iErrCode = this % tMeteo % read(iLUN1, this % Filemeteo, this % Tmed, this % Nstep)
+		iErrCode = this % tMeteo % read(iLUN1, this % Filemeteo, this % Tmed, this % Nstep, this % FilemeteoOut)
 		if(iErrCode /= 0) then
 			iRetCode = 3
 			return
