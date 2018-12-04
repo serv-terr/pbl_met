@@ -324,6 +324,21 @@ contains
 			if(this % debug > 1) print *, "alamo:: info: [Emission] section check done for static sources"
 		end if
 		! -1- Meteorological data
+		if(this % zlev < 0.d0) then
+			iRetCode = 3
+			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'height' in [Meteo]"
+			return
+		end if
+		if(this % z0 < 0.d0) then
+			iRetCode = 3
+			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'z0' in [Meteo]"
+			return
+		end if
+		if(this % zr <= 0.d0) then
+			iRetCode = 3
+			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'zr' in [Meteo]"
+			return
+		end if
 		iErrCode = this % tMeteo % read(iLUN1, this % Filemeteo, this % Tmed, this % Nstep, this % FilemeteoOut)
 		if(iErrCode /= 0) then
 			iRetCode = 3
