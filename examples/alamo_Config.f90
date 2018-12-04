@@ -43,6 +43,7 @@ module Configuration
 		real(8)				:: x1
 		real(8)				:: y1
 		real(8)				:: zmax
+		integer				:: maxpart
 		! Emissions space
 		type(PointSource), dimension(:), allocatable	:: tvPointStatic
 		! Meteo data
@@ -299,6 +300,7 @@ contains
 		this % zmax = this % dz * (this % nz - 1)
 		if(this % debug > 1) print *, "alamo:: info: [Output] section check done"
 		! -1- Static emissions
+		if(allocated(this % tvPointStatic)) deallocate(this % tvPointStatic)
 		if(this % Filemis /= ' ') then
 			open(iLUN1, file=this % Filemis, status='old', action='read', iostat=iErrCode)
 			if(iErrCode /= 0) then
@@ -319,7 +321,6 @@ contains
 				return
 			end if
 			rewind(iLUN1)
-			if(allocated(this % tvPointStatic)) deallocate(this % tvPointStatic)
 			allocate(this % tvPointStatic(iNumData))
 			do iData = 1, iNumData
 				iErrCode = this % tvPointStatic(iData) % read(iLUN1)
@@ -333,6 +334,8 @@ contains
 			end do
 			close(iLUN1)
 			if(this % debug > 1) print *, "alamo:: info: [Emission] section check done for static sources"
+		else
+			allocate(this % tvPointStatic(0))
 		end if
 		! -1- Meteorological data
 		if(this % zlev < 0.d0) then
@@ -365,7 +368,9 @@ contains
 		end if
 		if(this % debug > 1) print *, "alamo:: info: [General] section check done"
 		
-		! Estimate the number of particles per step
+		! Compute the number of particles per step
+		this % maxpart = this % Np * size(this % tvPointStatic) * this % Nstep * this % MaxAge / this % Tmed
+		if(this % debug > 1) print *, "alamo:: info: Maximum number of particles equal to ", this % maxpart
 	
 	end function cfgRead
 	
