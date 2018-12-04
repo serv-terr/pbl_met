@@ -346,6 +346,13 @@ contains
 			return
 		end if
 		if(this % debug > 1) print *, "alamo:: info: [Meteo] section check done"
+		! -1- General
+		if(this % frameInterval <= 0) then
+			iRetCode = 3
+			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'frame_interval' in [General]"
+			return
+		end if
+		if(this % debug > 1) print *, "alamo:: info: [General] section check done"
 	
 	end function cfgRead
 	
