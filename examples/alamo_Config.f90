@@ -19,8 +19,8 @@ module Configuration
 		! Timing
 		integer				:: Tmed		! Averaging time (s)
 		integer				:: Nstep	! Number of substeps in an averaging period
-		! Particles emitted per substep
-		integer				:: Np
+		integer				:: Np		! Number of particles released per source per substep
+		integer				:: MaxAge	! Maximum particle age (s)
 		! Static and dynamic emissions
 		character(len=256)	:: Filemis	
 		character(len=256)	:: Fileprofemi	
@@ -121,6 +121,12 @@ contains
 		if(iErrCode /= 0) then
 			iRetCode = 2
 			if(this % debug > 0) print *, "alamo:: error: Invalid 'npart' in [Timing]"
+			return
+		end if
+		iErrCode = cfg % getInteger("Timing", "maxage", this % Np, 5*3600)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			if(this % debug > 0) print *, "alamo:: error: Invalid 'maxage' in [Timing]"
 			return
 		end if
 		! -1- Emission
@@ -246,6 +252,11 @@ contains
 			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'npart' in [Timing]"
 			return
 		end if
+		if(this % MaxAge < 1) then
+			iRetCode = 3
+			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'maxage' in [Timing]"
+			return
+		end if
 		if(this % debug > 1) print *, "alamo:: info: [Timing] section check done"
 		! -1- Output
 		if(this % Fileout == "") then
@@ -353,6 +364,8 @@ contains
 			return
 		end if
 		if(this % debug > 1) print *, "alamo:: info: [General] section check done"
+		
+		! Estimate the number of particles per step
 	
 	end function cfgRead
 	
