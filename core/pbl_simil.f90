@@ -384,7 +384,7 @@ contains
 		real(8), intent(in)					:: z0	! Aerodynamic roughness length (m)
 		real(8), intent(in)					:: hmix	! Mixing height above ground (m)
 		real(8), intent(in)					:: us	! Friction velocity (m/s)
-		real(8), intent(in)					:: hlm	! Stability parameter (unitless)
+		real(8), intent(in)					:: hlm	! Reciprocal of Obukhov length (1/m)
 		real(8), dimension(:), intent(out)	:: u	! Wind component U (m/s)
 		real(8), dimension(:), intent(out)	:: v	! Wind component V (m/s)
 		integer								:: iRetCode
@@ -446,13 +446,21 @@ contains
 			iRetCode = 5
 			return
 		end if
+		if(nz > 1) then
+			do i = 2, nz
+				if(z(i) <= z(i-1)) then
+					iRetCode = 6
+					return
+				end if
+			end do
+		end if
 		
 		! Compute Coriolis coefficient, given the hemisphere
 		rot = 1.d0
 		if(iglo == 0) rot = -1.d0
 
 		! Find index of the PBL top
-		if(z(1) > hmix) then
+		if(minval(z) > hmix) then
 			n_PBL = 0
 		elseif(zr > hmix) then
 			! Wind has been measured above Hmix: extend it vertically as it is
@@ -576,5 +584,190 @@ contains
 		end if
 
 	end function WindProfile
-!
+	
+
+	function TempProfile(z,z0,zr,Tr,gamma,hmix,Ts,us,hm,T) result(iRetCode)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: z		! Heights above ground (m)
+		real(8), intent(in)					:: z0		! Aerodynamic roughness length (m)
+		real(8), intent(in)					:: zr		! Wind measurement height above ground (m)
+		real(8), intent(in)					:: Tr		! Temperature (K)
+		real(8), intent(in)					:: gamma	! Temperature lapse rate (above the PBL) (K/m)
+		real(8), intent(in)					:: hmix		! Mixing height above ground (m)
+		real(8), intent(in)					:: Ts		! Scale temperature (K)
+		real(8), intent(in)					:: us		! Friction velocity (m/s)
+		real(8), intent(in)					:: hm		! Reciprocal of Obukhov length (1/m)
+		real(8), dimension(:), intent(out)	:: T		! Temperature (K)
+		integer								:: iRetCode
+		
+		! Locals
+		integer	:: n
+		integer	:: i
+		integer	:: itop
+		integer	:: nzhm
+		real(8)	:: smu
+		real(8)	:: psi
+		real(8)	:: Cfun
+		real(8)	:: AA
+		real(8)	:: Trif
+		real(8)	:: zbase
+		real(8)	:: Tbase
+		real(8)	:: zbot
+		real(8)	:: ztop
+		real(8)	:: Ttop
+		real(8)	:: DelT
+		real(8)	:: we
+		real(8)	:: RiE
+		real(8)	:: Coe
+		real(8)	:: DelZ
+		real(8)	:: gz
+		
+		! Constants
+		real(8), parameter	:: K = 0.4
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check critical parameters
+		n = size(z)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(n /= size(T)) then
+			iRetCode = 2
+			return
+		end if
+		if(z0 <= 0.d0) then
+			iRetCode = 3
+			return
+		end if
+		if(n > 1) then
+			do i = 2, n
+				if(z(i) <= z(i-1)) then
+					iRetCode = 4
+					return
+				end if
+			end do
+		end if
+
+		! Find the PBL top
+		if(minval(z) > hmix) then
+			nzhm = 1
+		else
+			nzhm = n
+			do i = 2, n
+				if(z(i) > hmix) then
+					nzhm = i - 1
+					exit
+				end if
+			end do
+		end if
+
+		! Assign above-PBL profile, if requested
+		if(nzhm == 1) then
+			t(1) = tr
+			do i = 2, n
+				T(i) = tr + gamma*z(i)
+			end do
+			return
+		end if
+
+		! Some level is within-PBL: estimate the PBL profile
+		smu	= hmix*hm
+		if(smu > 0.d0) then
+			psi = -17.d0 * (1.d0 - exp(-0.29d0*zr*hm))			! Businger, stable
+		else
+			psi = 2.d0*log((1.d0+sqrt(1.d0-16.d0*zr*hm))/2.d0)	! Businger, convective
+		end if
+		Cfun =  C_fun(smu)
+		AA   = -Ts/K * (log(hmix/zr) + psi - Cfun)
+		Trif =  Tr - AA
+
+		! Estimate temperature profile up to PBL top
+		do i = 1, nzhm
+			if(smu > 0.d0) then
+				psi = -17.d0 * (1.d0 - exp(-0.29d0*z(i)*hm))			! Businger, stable
+			else
+				psi = 2.d0*log((1.d0+sqrt(1.d0-16.d0*z(i)*hm))/2.d0)	! Businger, convective
+			end if
+			AA   = -Ts/K * (log(hmix/z(i)) + psi - Cfun)
+			T(i) =  trif  + AA
+		end do
+
+		! Temperature profile above the PBL top
+		if(smu >= 0.d0) then
+			! Stable
+			if(n > nzhm) then
+				zbase = z(nzhm)
+				do i = nzhm, n
+					T(i) = T(nzhm) + gamma*(z(i) - zbase)
+				end do
+			end if
+			return
+		else
+			! Convective
+			psi  =  2.d0*log((1.d0+sqrt(1.d0-16.d0*z0*hm))/2.d0)	! Businger, convective
+			Cfun =  C_fun(smu)
+			AA   = -Ts/K * (log(hmix/z0) + psi - Cfun)
+			Ttop =  Tr + AA
+			DelT =  Ttop-T(NZHM)
+			we   =  hmix**2/(1.4*hmix-2./hm)
+			we   =  (-Ts*us)/gamma/we
+			RiE  = 9.81/Tr * DelT*hmix/we**2
+			Coe  = 3.3/RiE**0.3333 + 0.2
+			DelZ = Coe*hmix
+			gz   = DelT/DelZ
+			DelZ = DelZ/2.
+
+			! Entrainment Layer Depth					
+			ztop = hmix + Delz
+			do i = nzhm, n
+				if(z(i) > ztop) exit
+			end do
+			itop = i
+
+			! Entrainment Layer Profile
+			Tbase = T(NZHM)
+			zbot  = z(NZHM)
+			do i = nzhm + 1, itop
+				T(i) = Tbase + 2.d0*gz*(z(i)-zbot)
+			end do
+
+			! Free Atmosphere Profile
+			Tbase = T(itop)
+			do i = itop + 1, n
+				T(i) = Tbase + gz*(z(i)-ztop)						
+			end do
+		end if
+
+	end function TempProfile
+
+	! *************
+	! * Internals *
+	! *************
+
+	! From Yamada's (1976) correlations.
+	function C_fun(smu) result(Cf)
+	
+		! Routine arguments
+		real(8), intent(in)	:: smu	! hmix/L (unitless)
+		real(8)				:: Cf
+		
+		! Locals
+		! --none--
+		
+		if(smu < 0.d0) then
+			Cf = 12.d0-8.335d0/(1.d0-0.03106d0*smu)**0.3333d0
+		else
+			if(smu > 18.d0) then
+				Cf = -4.32d0*sqrt(smu-11.21d0)
+			else
+				Cf = 3.665d0-0.829d0*smu
+			end if
+		end if
+		
+	end function C_fun
+
 end module pbl_simil
