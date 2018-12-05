@@ -483,11 +483,7 @@ contains
 		
 			! Stable or convective
 			h_mu = 4000. * us * hlm
-			if(h_mu > 0.) then
-				s_mu = sqrt(h_mu)
-			else
-				s_mu = sqrt(h_mu)
-			endif
+			s_mu = sqrt(abs(h_mu))
 			
 			if(hlm.GT.0.) then
 			
