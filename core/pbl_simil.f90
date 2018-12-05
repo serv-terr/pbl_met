@@ -36,6 +36,8 @@ module pbl_simil
     ! 3.Universal similarity functions
     public	:: psih
     public	:: psim
+    ! 4.Vertical profiles
+    public	:: WindProfile
     
     ! Constants (please do not change)
     
@@ -366,4 +368,217 @@ contains
 		
 	end function psim
 	      
+
+	! Reference: R.Sozzi, T.Georgiadis, M.Valentivi, "Introduzione alla turbolenza atmosferica: Concetti,
+	! stime, misure", Pitagora Editrice (2002)
+	!
+	! Code is an extensive refactoring of R.Sozzi's WIND_PBL routine, written in 2000
+	function WindProfile(iglo,z,zr,vr,dir,z0,hmix,us,hlm,u,v) result(iRetCode)
+	
+		! Routine arguments
+		integer, intent(in)					:: iglo	! Hemisphere (0: Southern, 1: Northern)
+		real(8), dimension(:), intent(in)	:: z	! Heights above ground (m)
+		real(8), intent(in)					:: zr	! Wind measurement height above ground (m)
+		real(8), intent(in)					:: vr	! Wind speed (m/s)
+		real(8), intent(in)					:: dir	! Wind direction (°)
+		real(8), intent(in)					:: z0	! Aerodynamic roughness length (m)
+		real(8), intent(in)					:: hmix	! Mixing height above ground (m)
+		real(8), intent(in)					:: us	! Friction velocity (m/s)
+		real(8), intent(in)					:: hlm	! Stability parameter (unitless)
+		real(8), dimension(:), intent(out)	:: u	! Wind component U (m/s)
+		real(8), dimension(:), intent(out)	:: v	! Wind component V (m/s)
+		integer								:: iRetCode
+		
+		! Locals
+		integer	:: nz		! Number of levels
+		real(8)	:: rot		! Coriolis coefficient (Hemisphere dependent)
+		integer	:: n_PBL	! Index of PBL top (0 if lower height is above Zi)
+		real(8)	:: a
+		real(8)	:: b
+		real(8)	:: a0
+		real(8)	:: b0
+		real(8)	:: a1
+		real(8)	:: b1
+		real(8)	:: h_mu
+		real(8)	:: s_mu
+		real(8)	:: usk
+		real(8)	:: al0
+		real(8)	:: zz
+		real(8)	:: ur
+		real(8)	:: cor
+		real(8)	:: umix
+		real(8)	:: vmix
+		real(8)	:: velmix
+		real(8)	:: dirmix
+		real(8)	:: ang
+		real(8)	:: uu
+		real(8)	:: vv
+		real(8)	:: velp
+		real(8)	:: dirpp
+		integer	:: i
+		
+		! Constants
+		real(8), parameter	:: TO_RAD = atan(1.d0)*4.d0 / 180.d0
+		real(8), parameter	:: K      = 0.4d0	! von Karman constant
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check critical parameters
+		nz = size(z)
+		if(nz <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(u) /= nz .or. size(v) /= nz) then
+			iRetCode = 2
+			return
+		end if
+		if(z0 <= 0.d0) then
+			iRetCode = 3
+			return
+		end if
+		if(vr <= 0.d0) then
+			iRetCode = 4
+			return
+		end if
+		if(dir < 0.d0 .or. dir >= 360.) then
+			iRetCode = 5
+			return
+		end if
+		
+		! Compute Coriolis coefficient, given the hemisphere
+		rot = 1.d0
+		if(iglo == 0) rot = -1.d0
+
+		! Find index of the PBL top
+		if(z(1) > hmix) then
+			n_PBL = 0
+		elseif(zr > hmix) then
+			! Wind has been measured above Hmix: extend it vertically as it is
+			u = -vr*sin(TO_RAD*dir)
+			v = -vr*cos(TO_RAD*dir)
+			return
+		else
+			n_PBL = nz
+			do i = nz, 1, -1
+				if(z(i) < hmix) then
+					n_PBL = i
+					exit
+				end if
+			end do
+		end if
+		! Post-condition: n_PBL is 0 if z(1) is above Hmix, or > 0
+
+		! Estimate profile
+		if(abs(hlm) < 1.d-3) then
+		
+			! Neutral
+			a0 = 10.d0
+			a1 = -5.5d0
+			b0 =  4.0d0
+			b1 = -4.5d0
+			
+		else
+		
+			! Stable or convective
+			h_mu = 4000. * us * hlm
+			if(h_mu > 0.) then
+				s_mu = sqrt(h_mu)
+			else
+				s_mu = sqrt(h_mu)
+			endif
+			
+			if(hlm.GT.0.) then
+			
+				! Stable
+				a0 = 10.d0
+				a1 = -5.5d0 +  1.7647d0 * s_mu
+				b0 =  4.0d0 + 10.20d0 * s_mu
+				b1 = -4.5d0 -  7.65d0 * s_mu
+				
+			else
+		
+				! Convective
+				a  = 1.d0 + 1.581d0 * s_mu
+				b  = 1.d0 + 0.027d0 * s_mu
+				a0 = 10.0d0 / a
+				a1 = -5.5d0 / a
+				b0 = -34.d0 + 38.0d0 / b
+				b1 =  24.d0 - 28.5d0 / b
+				
+			end if
+			
+		end if
+
+		!	Calcolo del vento a zr e confronto col dato misurato
+		usk = us/K
+		al0 = log(zr/z0)
+		zz  = (zr-z0)/hmix
+		ur  = usk*(al0+b0*zz+b1*zz*zz)
+		cor = vr/ur
+
+		! Estimate wind velocity at wind speed
+		al0    = log(hmix/z0)
+		umix   = usk*(al0+b0+b1)*cor
+		vmix   = usk*(a0+a1)*cor
+		
+		! Translate wind vector velocity at Hmix into polar form
+		velmix = sqrt(umix**2+vmix**2)
+		if(abs(vmix) < 1.d-5) then
+			if(umix > 0.d0) then
+				dirmix = dir +  90.0d0*rot
+			else
+				dirmix = dir + 270.0d0*rot
+			end if
+		else
+			dirmix = dir + atan2(vmix,umix)/TO_RAD*rot
+		end if
+		if(dirmix <   0.d0) dirmix = dirmix + 360.d0
+		if(dirmix > 360.d0) dirmix = dirmix - 360.d0
+
+		! In case the first z level is above the mixing height, extend it vertically
+		! as it has been estimated at Hmix. Otherwise, construct the profile until
+		! Hmix, then extend it vertically as it is
+		if(n_PBL == 0) then
+		
+			! Vertical extension of Hmix estimated wind
+			u = -velmix*sin(TO_RAD*dirmix)
+			v = -velmix*cos(TO_RAD*dirmix)
+			return
+			
+		else
+		
+			! Compute a real profile within the PBL
+			do i = 1, n_PBL
+				zz  = (z(i)-z0)/hmix
+				al0 = log(z(i)/z0)
+				uu  = usk*(al0+b0*zz+b1*zz*zz)*cor
+				vv  = usk*(a0*zz+a1*zz*zz)*cor
+				if(abs(vv) < 1.d-5) then
+					if(uu > 0.d0) then
+						ang=90.d0
+					else
+						ang=270.d0
+					end if
+				else
+					ang = atan2(vv,uu) / TO_RAD
+				end if
+				velp  = sqrt(uu**2+vv**2)
+				dirpp = dir + ang*rot
+				if(dirpp .LT. 0.  ) dirpp = dirpp + 360.
+				if(dirpp .GT. 360.) dirpp = dirpp - 360.
+				u(i) = -velp*SIN(TO_RAD*dirpp)
+				v(i) = -velp*COS(TO_RAD*dirpp)
+			end do
+			
+			! Propagate Hmix values above the PBL
+			if(n_PBL < nz) then
+				u(i) = -velmix*SIN(TO_RAD*dirmix)
+				v(i) = -velmix*COS(TO_RAD*dirmix)
+			end if
+		end if
+
+	end function WindProfile
+!
 end module pbl_simil
