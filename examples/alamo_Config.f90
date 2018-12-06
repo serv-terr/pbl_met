@@ -31,6 +31,7 @@ module Configuration
 		real(8)				:: zlev
 		real(8)				:: z0
 		real(8)				:: zr
+		integer				:: hemisphere	! 0:Southern, 1:Northern
 		! Output
 		character(len=256)	:: Fileout
 		real(8)				:: fat
@@ -159,19 +160,25 @@ contains
 		iErrCode = cfg % getReal8("Meteo", "height", this % zlev, -9999.9d0)
 		if(iErrCode /= 0) then
 			iRetCode = 2
-			if(this % debug > 0) print *, "alamo:: error: Invalid 'height' in [Emission]"
+			if(this % debug > 0) print *, "alamo:: error: Invalid 'height' in [Meteo]"
 			return
 		end if
 		iErrCode = cfg % getReal8("Meteo", "z0", this % z0, 0.02d0)
 		if(iErrCode /= 0) then
 			iRetCode = 2
-			if(this % debug > 0) print *, "alamo:: error: Invalid 'z0' in [Emission]"
+			if(this % debug > 0) print *, "alamo:: error: Invalid 'z0' in [Meteo]"
 			return
 		end if
 		iErrCode = cfg % getReal8("Meteo", "zr", this % zr, 10.d0)
 		if(iErrCode /= 0) then
 			iRetCode = 2
-			if(this % debug > 0) print *, "alamo:: error: Invalid 'zr' in [Emission]"
+			if(this % debug > 0) print *, "alamo:: error: Invalid 'zr' in [Meteo]"
+			return
+		end if
+		iErrCode = cfg % getInteger("Meteo", "hemisphere", this % hemisphere, 1)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			if(this % debug > 0) print *, "alamo:: error: Invalid 'hemisphere' in [Meteo]"
 			return
 		end if
 		! -1- Output
@@ -280,7 +287,7 @@ contains
 			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'dx' or 'dy' in [Output]"
 			return
 		end if
-		if(this % nz <= 0) then
+		if(this % nz <= 1) then
 			iRetCode = 3
 			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'nz' in [Output]"
 			return
@@ -351,6 +358,11 @@ contains
 		if(this % zr <= 0.d0) then
 			iRetCode = 3
 			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'zr' in [Meteo]"
+			return
+		end if
+		if(this % hemisphere < 0 .or. this % hemisphere > 1) then
+			iRetCode = 3
+			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'hemisphere' in [Meteo]"
 			return
 		end if
 		iErrCode = this % tMeteo % read(iLUN1, this % Filemeteo, this % Tmed, this % Nstep, this % FilemeteoOut)
