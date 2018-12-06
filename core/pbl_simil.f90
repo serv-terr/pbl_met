@@ -42,6 +42,7 @@ module pbl_simil
     public	:: HorizontalWindVarProfile
     public	:: VerticalWindVarProfile
     public	:: TKEDissipationProfile
+    public	:: KolmogorovConstants
     
     ! Constants (please do not change)
     
@@ -1010,6 +1011,41 @@ contains
 		end do
 		
 	end function TKEDissipationProfile
+	
+	
+	! Reference: Degrazia e Anfossi (1998)
+	function KolmogorovConstants(ws,C0u,C0v,C0w) result(iRetCode)
+	
+		! Routine arguments
+		real(8), intent(in)		:: ws
+		real(8), intent(out)	:: C0u
+		real(8), intent(out)	:: C0v
+		real(8), intent(out)	:: C0w
+		integer					:: iRetCode
+		
+		! Locals
+		real(8)	:: Coe
+		
+		! Constants
+		real(8), parameter	:: PG2K  = 0.541d0			!(2 pg k)**-2/3
+		real(8), parameter	:: K     = 0.4d0
+		
+		! Compute estimates based on convective and stable conditions
+		if(ws > 0.d0) then
+			! Convective
+			Coe = 8.d0*K / (1.d0*0.55d0)
+			C0u = Coe * (1.96d0 * 0.5d0*PG2K)**1.5d0
+			C0v = Coe * (1.96d0 * 0.66667d0*PG2K)**1.5d0
+			C0w = C0v
+		else
+			! Stable
+			Coe = 8.*K / (0.64d0 * 0.55d0)
+			C0u = Coe * (2.33d0 * 0.5d0*PG2K)**1.5d0
+			C0v = Coe * (1.96d0 * 0.66667d0*PG2K)**1.5d0
+			C0w = C0v
+		end if
+
+	end function KolmogorovConstants
 
 	! *************
 	! * Internals *
