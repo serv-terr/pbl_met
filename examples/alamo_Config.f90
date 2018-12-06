@@ -31,6 +31,8 @@ module Configuration
 		real(8)				:: zlev
 		real(8)				:: z0
 		real(8)				:: zr
+		real(8)				:: zt
+		real(8)				:: gamma
 		integer				:: hemisphere	! 0:Southern, 1:Northern
 		! Output
 		character(len=256)	:: Fileout
@@ -173,6 +175,18 @@ contains
 		if(iErrCode /= 0) then
 			iRetCode = 2
 			if(this % debug > 0) print *, "alamo:: error: Invalid 'zr' in [Meteo]"
+			return
+		end if
+		iErrCode = cfg % getReal8("Meteo", "zt", this % zt, 2.d0)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			if(this % debug > 0) print *, "alamo:: error: Invalid 'zt' in [Meteo]"
+			return
+		end if
+		iErrCode = cfg % getReal8("Meteo", "gamma", this % gamma, -0.0098d0)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			if(this % debug > 0) print *, "alamo:: error: Invalid 'gamma' in [Meteo]"
 			return
 		end if
 		iErrCode = cfg % getInteger("Meteo", "hemisphere", this % hemisphere, 1)
@@ -358,6 +372,16 @@ contains
 		if(this % zr <= 0.d0) then
 			iRetCode = 3
 			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'zr' in [Meteo]"
+			return
+		end if
+		if(this % zt <= 0.d0) then
+			iRetCode = 3
+			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'zt' in [Meteo]"
+			return
+		end if
+		if(this % gamma >= 0.d0) then
+			iRetCode = 3
+			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'gamma' in [Meteo]"
 			return
 		end if
 		if(this % hemisphere < 0 .or. this % hemisphere > 1) then
