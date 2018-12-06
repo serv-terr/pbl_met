@@ -41,6 +41,7 @@ module pbl_simil
     public	:: TempProfile
     public	:: HorizontalWindVarProfile
     public	:: VerticalWindVarProfile
+    public	:: TKEDissipationProfile
     
     ! Constants (please do not change)
     
@@ -932,6 +933,83 @@ contains
 		end do
 		
 	end function VerticalWindVarProfile
+	
+	! References: Rotach, Gryning, Tassone (1996) e Ryall e Maryon (1998)
+	! This is a very extensive refactoring of code by prof. Roberto Sozzi
+	function TKEDissipationProfile(z,us,ws,zi,eps) result(iRetCode)
+	
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: z
+		real(8), intent(in)					:: us
+		real(8), intent(in)					:: ws
+		real(8), intent(in)					:: zi
+		real(8), dimension(:), intent(out)	:: eps
+		integer								:: iRetCode
+		
+		! Locals
+		integer	:: iErrCode
+		integer	:: n
+		integer	:: i
+		real(8)	:: us3
+		real(8)	:: ws3
+		real(8)	:: es1
+		real(8)	:: zz
+		real(8)	:: epsm
+		real(8)	:: epsc
+
+		! Constants
+		real(8), parameter	:: eps_min = 1.d-4
+		real(8), parameter	:: K = 0.4d0
+	
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check essential parameters
+		n = size(z)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(eps) /= n) then
+			iRetCode = 2
+			return
+		end if
+		if(n > 1) then
+			do i = 2, n
+				if(z(i) <= z(i-1)) then
+					iRetCode = 3
+					return
+				end if
+			end do
+		end if
+
+		! Initialization
+		us3 = us**3
+		ws3 = ws**3
+		es1 = 1.d0/3.d0
+
+		! Main loop: estimate TKE dissipation profile
+		do i = 1, n
+
+			! Normalize altitude to PBL height
+			zz = z(i)/zi
+			if(zz <= 1.d0) then
+				! Within pbl
+				epsm   = us3 / (K*z(i)) * (1.d0 - 0.8d0*zz)
+				if(ws > 0.d0) then
+					epsc   = (1.5d0 - 1.2d0*zz**es1) * ws3 / zi
+					eps(i) = max(epsm + epsc, eps_min)
+				else
+					eps(i) = max(epsm, eps_min)
+				end if
+			else
+				! Above PBL
+				eps(i) = eps_min
+			end if
+
+		end do
+		
+	end function TKEDissipationProfile
 
 	! *************
 	! * Internals *
