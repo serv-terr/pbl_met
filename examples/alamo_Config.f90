@@ -55,6 +55,29 @@ module Configuration
 		procedure			:: read => cfgRead
 	end type Config
 	
+	
+	type Summary
+		real(8)	:: rTimeStamp
+		real(8)	:: u, uMin, uMax
+		real(8)	:: v, vMin, vMax
+		real(8)	:: su2, su2Min, su2Max
+		real(8)	:: sv2, sv2Min, sv2Max
+		real(8)	:: sw2, sw2Min, sw2Max
+		real(8)	:: eps, epsMin, epsMax
+		real(8)	:: alfa, alfaMin, alfaMax
+		real(8)	:: beta, betaMin, betaMax
+		real(8)	:: gamma, gammaMin, gammaMax
+		real(8)	:: delta, deltaMin, deltaMax
+		real(8)	:: alfa_u, alfa_uMin, alfa_uMax
+		real(8)	:: alfa_v, alfa_vMin, alfa_vMax
+		real(8)	:: deltau, deltauMin, deltauMax
+		real(8)	:: deltav, deltavMin, deltavMax
+		real(8)	:: deltat, deltatMin, deltatMax
+	contains
+		procedure	:: printHeader => sumHeader
+		procedure	:: printLine   => sumLine
+	end type Summary
+	
 contains
 
 	function cfgRead(this, iLUN, iLUN1, sFileName) result(iRetCode)
@@ -410,4 +433,111 @@ contains
 	
 	end function cfgRead
 	
-end module Configuration
+	
+	function sumHeader(this, iLUN) result(iRetCode)
+	
+		! Routine arguments
+		class(Summary), intent(in)	:: this
+		integer, intent(in)			:: iLUN
+		integer						:: iRetCode
+		
+		! Locals
+		integer	:: iErrCode
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Attempt printing header
+		write(iLUN, "(a,45(',',a))", iostat=iErrCode) &
+			'date', &
+			'u.Min', 'u.Mean', 'u.Max', &
+			'v.Min', 'v.Mean', 'v.Max', &
+			'uu.Min', 'uu.Mean', 'uu.Max', &
+			'vv.Min', 'vv.Mean', 'vv.Max', &
+			'ww.Min', 'ww.Mean', 'ww.Max', &
+			'eps.Min', 'eps.Mean', 'eps.Max', &
+			'alpha.Min', 'alpha.Mean', 'alpha.Max', &
+			'beta.Min', 'beta.Mean', 'beta.Max', &
+			'gamma.Min', 'gamma.Mean', 'gamma.Max', &
+			'delta.Min', 'delta.Mean', 'delta.Max', &
+			'alpha.u.Min', 'alpha.u.Mean', 'alpha.u.Max', &
+			'alpha.v.Min', 'alpha.v.Mean', 'alpha.v.Max', &
+			'delta.u.Min', 'delta.u.Mean', 'delta.u.Max', &
+			'delta.v.Min', 'delta.v.Mean', 'delta.v.Max', &
+			'delta.t.Min', 'delta.t.Mean', 'delta.t.Max'
+		if(iErrCode /= 0) then
+			iRetCode = 1
+		end if
+		
+	end function sumHeader
+	
+	
+	function sumLine(this, iLUN) result(iRetCode)
+	
+		! Routine arguments
+		class(Summary), intent(in)	:: this
+		integer, intent(in)			:: iLUN
+		integer						:: iRetCode
+		
+		! Locals
+		integer				:: iErrCode
+		type(DateTime)		:: tStamp
+		character(len=23)	:: sDateTime
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Attempt printing current data line
+		iErrCode = tStamp % fromEpoch(this % rTimeStamp)
+		sDateTime = tStamp % toISO()
+		write(iLUN, "(a, 45(',', e15.7))") &
+			sDateTime, &
+			this % uMin, &
+			this % u, &
+			this % uMax, &
+			this % vMin, &
+			this % v, &
+			this % vMax, &
+			this % su2Min, &
+			this % su2, &
+			this % su2Max, &
+			this % sv2Min, &
+			this % sv2, &
+			this % sv2Max, &
+			this % sw2Min, &
+			this % sw2, &
+			this % sw2Max, &
+			this % epsMin, &
+			this % eps, &
+			this % epsMax, &
+			this % alfaMin, &
+			this % alfa, &
+			this % alfaMax, &
+			this % betaMin, &
+			this % beta, &
+			this % betaMax, &
+			this % gammaMin, &
+			this % gamma, &
+			this % gammaMax, &
+			this % deltaMin, &
+			this % delta, &
+			this % deltaMax, &
+			this % alfa_uMin, &
+			this % alfa_u, &
+			this % alfa_uMax, &
+			this % alfa_vMin, &
+			this % alfa_v, &
+			this % alfa_vMax, &
+			this % deltauMin, &
+			this % deltau, &
+			this % deltauMax, &
+			this % deltavMin, &
+			this % deltav, &
+			this % deltavMax, &
+			this % deltatMin, &
+			this % deltat, &
+			this % deltatMax
+		
+		end function sumLine
+		
+	end module Configuration
