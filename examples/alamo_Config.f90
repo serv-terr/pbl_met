@@ -56,6 +56,35 @@ module Configuration
 	end type Config
 	
 	
+	type MetProfiles
+		real(8)								:: rEpoch	! Time stamp of current profile set
+		real(8), dimension(:), allocatable	:: z		! Levels' height above ground (m)
+		real(8), dimension(:), allocatable	:: u		! U components (m/s)
+		real(8), dimension(:), allocatable	:: v		! V components (m/s)
+		real(8), dimension(:), allocatable	:: T		! Temperatures (K)
+		real(8), dimension(:), allocatable	:: su2		! var(U) values (m2/s2)
+		real(8), dimension(:), allocatable	:: sv2		! var(V) values (m2/s2)
+		real(8), dimension(:), allocatable	:: sw2		! var(W) values (m2/s2)
+		real(8), dimension(:), allocatable	:: dsw2		! d var(W) / dz (m/s2)
+		real(8), dimension(:), allocatable	:: eps		! TKE dissipation rate
+		real(8), dimension(:), allocatable	:: alfa		! Langevin equation coefficient
+		real(8), dimension(:), allocatable	:: beta		! Langevin equation coefficient
+		real(8), dimension(:), allocatable	:: gamma	! Langevin equation coefficient
+		real(8), dimension(:), allocatable	:: delta	! Langevin equation coefficient
+		real(8), dimension(:), allocatable	:: alfa_u	! Langevin equation coefficient
+		real(8), dimension(:), allocatable	:: alfa_v	! Langevin equation coefficient
+		real(8), dimension(:), allocatable	:: deltau	! Langevin equation coefficient
+		real(8), dimension(:), allocatable	:: deltav	! Langevin equation coefficient
+		real(8), dimension(:), allocatable	:: deltat	! Langevin equation coefficient
+	contains
+		procedure	:: clean     => metpClean
+		procedure	:: alloc     => metpAlloc
+		procedure	:: create    => metpCreate
+		procedure	:: evaluate  => metpEvaluate
+		procedure	:: summarize => metpSummarize
+	end type MetProfiles
+	
+	
 	type Summary
 		real(8)	:: rTimeStamp
 		real(8)	:: u, uMin, uMax
@@ -432,6 +461,482 @@ contains
 		if(this % debug > 1) print *, "alamo:: info: Maximum number of particles equal to ", this % maxpart
 	
 	end function cfgRead
+	
+	function metpClean(this) result(iRetCode)
+	
+		! Routine arguments
+		class(MetProfiles), intent(out)		:: this
+		integer								:: iRetCode
+		
+		! Locals
+		! --none--
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Clean-up workspace
+		if(allocated(this % z))      deallocate(this % z)
+		if(allocated(this % u))      deallocate(this % u)
+		if(allocated(this % v))      deallocate(this % v)
+		if(allocated(this % T))      deallocate(this % T)
+		if(allocated(this % su2))    deallocate(this % su2)
+		if(allocated(this % sv2))    deallocate(this % sv2)
+		if(allocated(this % sw2))    deallocate(this % sw2)
+		if(allocated(this % dsw2))   deallocate(this % dsw2)
+		if(allocated(this % eps))    deallocate(this % eps)
+		if(allocated(this % alfa))   deallocate(this % alfa)
+		if(allocated(this % beta))   deallocate(this % beta)
+		if(allocated(this % gamma))  deallocate(this % gamma)
+		if(allocated(this % delta))  deallocate(this % delta)
+		if(allocated(this % alfa_u)) deallocate(this % alfa_u)
+		if(allocated(this % alfa_v)) deallocate(this % alfa_v)
+		if(allocated(this % deltau)) deallocate(this % deltau)
+		if(allocated(this % deltav)) deallocate(this % deltav)
+		if(allocated(this % deltat)) deallocate(this % deltat)
+		
+	end function metpClean
+	
+	
+	function metpAlloc(this, iNumData) result(iRetCode)
+	
+		! Routine arguments
+		class(MetProfiles), intent(out)		:: this
+		integer, intent(in)					:: iNumData
+		integer								:: iRetCode
+		
+		! Locals
+		integer		:: iErrCode
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check parameters
+		if(iNumData <= 0) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Reserve workspace
+		allocate( &
+			this % z(iNumData), &
+			this % u(iNumData), &
+			this % v(iNumData), &
+			this % T(iNumData), &
+			this % su2(iNumData), &
+			this % sv2(iNumData), &
+			this % sw2(iNumData), &
+			this % dsw2(iNumData), &
+			this % eps(iNumData), &
+			this % alfa(iNumData), &
+			this % beta(iNumData), &
+			this % gamma(iNumData), &
+			this % delta(iNumData), &
+			this % alfa_u(iNumData), &
+			this % alfa_v(iNumData), &
+			this % deltau(iNumData), &
+			this % deltav(iNumData), &
+			this % deltat(iNumData), &
+			stat = iErrCode &
+		)
+		if(iRetCode /= 0) then
+			iRetCode = 2
+			return
+		end if
+		
+	end function metpAlloc
+	
+	
+	function metpCreate( &
+		this, &
+		cfg, &
+		met, &
+		dt,	&		! Substep?
+		i &		! Index of current row in 'met'
+	) result(iRetCode)
+	
+		! Routine arguments
+		class(MetProfiles), intent(out)		:: this
+		type(Config), intent(in)			:: cfg
+		type(MetData), intent(in)			:: met
+		real(8), intent(in)					:: dt
+		integer, intent(in)					:: i
+		integer								:: iRetCode
+		
+		! Locals
+		integer	:: n		! Max number of met data
+		integer	:: m		! Number of levels
+		integer	:: j
+		integer	:: iErrCode
+		real(8)	:: Ta		! Absolute temperature (K)
+		real(8)	:: Pres		! Air pressure (hPa)
+		real(8)	:: rc		! rho*Cp
+		real(8)	:: wT		! mean(w'T')
+		real(8)	:: hL		! 1/L
+		real(8)	:: Ts		! Scale temperature (°C)
+		real(8)	:: ws		! Deardoff velocity (m/s)
+		real(8)	:: C0u
+		real(8)	:: C0v
+		real(8)	:: C0w
+		real(8)	:: C0uu
+		real(8)	:: C0vv
+		real(8)	:: C0ww
+		real(8)	:: ssw2_2
+		
+		! Constants
+		real(8), parameter	:: K    = 0.4d0		! von Karman constant
+		real(8), parameter	:: G    = 9.81d0	! Universal gravity constant
+		real(8), parameter	:: P0   = 1013.d0	! Pressure assumed at 0m MSL
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check critical parameters
+		n = size(met % rvExtEpoch)
+		if(i < 1 .or. i > n) then
+			iRetCode = 1
+			return
+		end if
+		
+		! Initialize
+		m = cfg % nz
+		iErrCode = this % clean()
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			return
+		end if
+		iErrCode = this % alloc(m)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		this % z = [(cfg % z0 + (j-1) * cfg % dz, j = 1, m)]
+		Ta = met % rvExtTemp(i) + 273.15d0
+		
+		! Assign time stamp
+		this % rEpoch = met % rvExtEpoch(i)
+		
+		! Estimate ground pressure at site
+		Pres = P0 * exp(-0.0342d0 * cfg % zlev / Ta)
+
+		! Estimation of RhoCp and wT (harmless, and not passed as 'met' data to avoid clutter)
+		rc = 350.125d0 * Pres / Ta
+		wT = met % rvExtH0(i) / rc
+		
+		! Reciprocal of Obukhov length
+		hL = -K*G/Ta * wT / met % rvExtUstar(i)**3
+
+		! Scale temperature
+		Ts = -wT / met % rvExtUstar(i)
+
+		! Deardoff velocity
+		ws = wStar(real(Ta,kind=4), real(met % rvExtH0(i),kind=4), real(met % rvExtZi(i),kind=4))
+		
+		! Estimate wind and temperature profiles, based on SL similarity
+		iErrCode = WindProfile( &
+			cfg % hemisphere, &
+			this % z, &
+			cfg % zr, &
+			met % rvExtVel(i), &
+			met % rvExtDir(i), &
+			cfg % z0, &
+			met % rvExtZi(i), &
+			met % rvExtUstar(i), &
+			hL, &
+			this % u, &
+			this % v &
+		)
+		if(iErrCode /= 0) then
+			iRetCode = 4
+			return
+		end if
+		iErrCode = TempProfile( &
+			this % z, &
+			cfg % z0, &
+			cfg % zt, &
+			Ta, &
+			-cfg % gamma, &
+			met % rvExtZi(i), &
+			Ts, &
+			met % rvExtUstar(i), &
+			hL, &
+			this % T &
+		)
+		if(iErrCode /= 0) then
+			iRetCode = 5
+			return
+		end if
+		
+		! Estimate vertical and horizontal sigmas
+		iErrCode = VerticalWindVarProfile( &
+			this % z, &
+			met % rvExtUstar(i), &
+			ws, &
+			met % rvExtZi(i), &
+			this % sw2, &
+			this % dsw2 &
+		)
+		if(iErrCode /= 0) then
+			iRetCode = 6
+			return
+		end if
+		iErrCode = HorizontalWindVarProfile( &
+			this % z, &
+			met % rvExtUstar(i), &
+			ws, &
+			met % rvExtZi(i), &
+			this % su2, &
+			this % sv2 &
+		)
+		if(iErrCode /= 0) then
+			iRetCode = 7
+			return
+		end if
+
+		! TKE dissipation
+		iErrCode = TKEDissipationProfile( &
+			this % z, &
+			met % rvExtUstar(i), &
+			ws, &
+			met % rvExtZi(i), &
+			this % eps &
+		)
+		if(iErrCode /= 0) then
+			iRetCode = 8
+			return
+		end if
+
+		! Kolmogorov coefficients, used in further calculations
+		iErrCode = KolmogorovConstants(ws, C0u, C0v, C0w)
+		if(iErrCode /= 0) then
+			iRetCode = 9
+			return
+		end if
+
+		! Langevin coefficients and optimal time step (a function
+		! of vertical Lagrangian decorrelation time
+		do j = 1, n
+			if(ws > 0.) then
+				! Convective
+				C0uu   = C0u * this % eps(j)
+				C0vv   = C0v * this % eps(j)
+				C0ww   = C0w * this % eps(j)
+				ssw2_2 = 2.d0 * this % sw2(j)
+				if(this % z(j) <= met % rvExtZi(i)) then
+					! Inside the PBL
+					
+					! Langevin coefficients for W component
+					this % alfa(j)   = this % dsw2(j) / ssw2_2 
+					this % beta(j)   = -C0ww / ssw2_2 		
+					this % gamma(j)  = 0.5d0 * this % dsw2(j)
+					this % delta(j)  = sqrt(C0ww)
+					
+					! Optimal time step
+					this % deltat(j) = 0.1d0 * ssw2_2 / C0ww
+					
+					! Langevin coefficients for U, V component
+					this % alfa_u(j) = -C0uu / (2.d0 * this % su2(j))
+					this % alfa_v(j) = -C0vv / (2.d0 * this % sv2(j))
+					this % deltau(j) = sqrt(C0uu)
+					this % deltav(j) = sqrt(C0vv)
+					
+				else
+					! Above the PBL
+				
+					! Langevin coefficients for W component
+					this % alfa(j)   = 0.d0
+					this % beta(j)   = -C0ww / ssw2_2 		
+					this % gamma(j)  = 0.d0
+					this % delta(j)  = sqrt(C0ww)
+					
+					! Optimal time step
+					this % deltat(j) = 100.d0	! Not used, in reality: just an indication
+					
+					! Langevin coefficients for U, V component
+					this % alfa_u(j) = -C0uu / (2.d0 * this % su2(j))
+					this % alfa_v(j) = -C0vv / (2.d0 * this % sv2(j))
+					this % deltau(j) = sqrt(C0uu)
+					this % deltav(j) = sqrt(C0vv)
+					
+				end if
+				
+			else
+				! Stable
+
+				! Langevin coefficients for W component
+				C0ww             = C0w * this % eps(j)
+				ssw2_2           = 2.d0 * this % sw2(j)
+				this % alfa(j)   = this % dsw2(j) / ssw2_2 
+				this % beta(j)   = -C0ww / ssw2_2 		
+				this % gamma(j)  = 0.5d0 * this % dsw2(j)
+				this % delta(j)  = sqrt(C0ww)
+				
+				! Optimal time step
+				this % deltat(j) = 0.1d0 * ssw2_2/C0ww
+			
+				! Langevin coefficients for U, V component
+				C0uu             = C0u * this % eps(j)
+				C0vv             = C0v * this % eps(j)
+				this % alfa_u(j) = -C0uu / (2.d0 * this % su2(j))
+				this % alfa_v(j) = -C0vv / (2.d0 * this % sv2(j))
+				this % deltau(j) = sqrt(C0uu)
+				this % deltav(j) = sqrt(C0vv)
+				
+			end if
+			
+		end do
+	
+	end function metpCreate
+
+
+	function metpEvaluate( &
+		this, &		! Current meteo profiles
+		cfg, &		! Configuration parameters
+		zp, &		! Reference height at which to evaluate
+		u, &
+		v, &
+		su2, &
+		sv2, &
+		sw2, &
+		eps, &
+		alfa, &
+		beta, &
+		gamma, &
+		delta, &
+		alfa_u, &
+		alfa_v, &
+		deltau, &
+		deltav, &
+		deltat &
+	) result(iRetCode)
+	
+		! Routine arguments
+		class(MetProfiles), intent(out)		:: this
+		type(Config), intent(in)			:: cfg
+		real(8), intent(in)					:: zp
+		real(8), intent(out)				:: u
+		real(8), intent(out)				:: v
+		real(8), intent(out)				:: su2
+		real(8), intent(out)				:: sv2
+		real(8), intent(out)				:: sw2
+		real(8), intent(out)				:: eps
+		real(8), intent(out)				:: alfa
+		real(8), intent(out)				:: beta
+		real(8), intent(out)				:: gamma
+		real(8), intent(out)				:: delta
+		real(8), intent(out)				:: alfa_u
+		real(8), intent(out)				:: alfa_v
+		real(8), intent(out)				:: deltau
+		real(8), intent(out)				:: deltav
+		real(8), intent(out)				:: deltat
+		integer								:: iRetCode
+		
+		! Locals
+		integer	:: n
+		real(8)	:: zpp
+		integer	:: izFrom
+		integer	:: izTo
+		
+		! Assume success (will falsify on failure
+		iRetCode = 0
+		
+		! Identify the indices bounding the desired height
+		n = size(this % z)
+		if(zp <= this % z(1)) then
+			izFrom = 1
+			izTo   = 1
+		elseif(zp >= this % z(n)) then
+			izFrom = n
+			izTo   = n
+		else ! Entry condition: z(1) < zp < z(n)
+			izFrom = floor((zp - cfg % z0) / cfg % dz)
+			izTo   = ceiling((zp - cfg % z0) / cfg % dz)
+		end if
+		
+		! Evaluate linear interpolation coefficients
+		zpp = (zp - this % z(izFrom)) / cfg % dz
+		
+		! Compute linear interpolation
+		u   = this % u(izFrom) + zpp * (this % u(izTo) - this % u(izFrom))
+		v   = this % v(izFrom) + zpp * (this % v(izTo) - this % v(izFrom))
+		su2 = this % su2(izFrom) + zpp * (this % su2(izTo) - this % su2(izFrom))
+		sv2 = this % sv2(izFrom) + zpp * (this % sv2(izTo) - this % sv2(izFrom))
+		sw2 = this % sw2(izFrom) + zpp * (this % sw2(izTo) - this % sw2(izFrom))
+		eps = this % eps(izFrom) + zpp * (this % eps(izTo) - this % eps(izFrom))
+		alfa = this % alfa(izFrom) + zpp * (this % alfa(izTo) - this % alfa(izFrom))
+		beta = this % beta(izFrom) + zpp * (this % beta(izTo) - this % beta(izFrom))
+		gamma = this % gamma(izFrom) + zpp * (this % gamma(izTo) - this % gamma(izFrom))
+		delta = this % delta(izFrom) + zpp * (this % delta(izTo) - this % delta(izFrom))
+		alfa_u = this % alfa_u(izFrom) + zpp * (this % alfa_u(izTo) - this % alfa_u(izFrom))
+		alfa_v = this % alfa_v(izFrom) + zpp * (this % alfa_v(izTo) - this % alfa_v(izFrom))
+		deltau = this % deltau(izFrom) + zpp * (this % deltau(izTo) - this % deltau(izFrom))
+		deltav = this % deltav(izFrom) + zpp * (this % deltav(izTo) - this % deltav(izFrom))
+		deltat = this % deltat(izFrom) + zpp * (this % deltat(izTo) - this % deltat(izFrom))
+
+	end function metpEvaluate
+
+
+	function metpSummarize(this, report) result(iRetCode)
+	
+		! Routine arguments
+		class(MetProfiles), intent(in)	:: this
+		type(Summary), intent(out)		:: report
+		integer							:: iRetCode
+		
+		! Locals
+		integer	:: n
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+	
+		! Compute report values
+		n = size(this % z)
+		report % u         = sum(this % u) / n
+		report % uMin      = minval(this % u)
+		report % uMax      = maxval(this % u)
+		report % v         = sum(this % v) / n
+		report % vMin      = minval(this % v)
+		report % vMax      = maxval(this % v)
+		report % su2       = sum(this % su2) / n
+		report % su2Min    = minval(this % su2)
+		report % su2Max    = maxval(this % su2)
+		report % sv2       = sum(this % sv2) / n
+		report % sv2Min    = minval(this % sv2)
+		report % sv2Max    = maxval(this % sv2)
+		report % sw2       = sum(this % sw2) / n
+		report % sw2Min    = minval(this % sw2)
+		report % sw2Max    = maxval(this % sw2)
+		report % eps       = sum(this % eps) / n
+		report % epsMin    = minval(this % eps)
+		report % epsMax    = maxval(this % eps)
+		report % alfa      = sum(this % alfa) / n
+		report % alfaMin   = minval(this % alfa)
+		report % alfaMax   = maxval(this % alfa)
+		report % beta      = sum(this % beta) / n
+		report % betaMin   = minval(this % beta)
+		report % betaMax   = maxval(this % beta)
+		report % gamma     = sum(this % gamma) / n
+		report % gammaMin  = minval(this % gamma)
+		report % gammaMax  = maxval(this % gamma)
+		report % delta     = sum(this % delta) / n
+		report % deltaMin  = minval(this % delta)
+		report % deltaMax  = maxval(this % delta)
+		report % alfa_u    = sum(this % alfa_u) / n
+		report % alfa_uMin = minval(this % alfa_u)
+		report % alfa_vMax = maxval(this % alfa_u)
+		report % alfa_v    = sum(this % alfa_v) / n
+		report % alfa_vMin = minval(this % alfa_v)
+		report % alfa_vMax = maxval(this % alfa_v)
+		report % deltau    = sum(this % deltau) / n
+		report % deltauMin = minval(this % deltau)
+		report % deltauMax = maxval(this % deltau)
+		report % deltav    = sum(this % deltav) / n
+		report % deltavMin = minval(this % deltav)
+		report % deltavMax = maxval(this % deltav)
+		report % deltat    = sum(this % deltat) / n
+		report % deltatMin = minval(this % deltat)
+		report % deltatMax = maxval(this % deltat)
+		
+	end function metpSummarize
 	
 	
 	function sumHeader(this, iLUN) result(iRetCode)
