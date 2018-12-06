@@ -38,6 +38,8 @@ module pbl_simil
     public	:: psim
     ! 4.Vertical profiles
     public	:: WindProfile
+    public	:: TempProfile
+    public	:: VerticalWindVarProfile
     
     ! Constants (please do not change)
     
@@ -591,8 +593,8 @@ contains
 		! Routine arguments
 		real(8), dimension(:), intent(in)	:: z		! Heights above ground (m)
 		real(8), intent(in)					:: z0		! Aerodynamic roughness length (m)
-		real(8), intent(in)					:: zr		! Wind measurement height above ground (m)
-		real(8), intent(in)					:: Tr		! Temperature (K)
+		real(8), intent(in)					:: zr		! Temperature measurement measurement height above ground (m)
+		real(8), intent(in)					:: Tr		! Measured temperature (K)
 		real(8), intent(in)					:: gamma	! Temperature lapse rate (above the PBL) (K/m)
 		real(8), intent(in)					:: hmix		! Mixing height above ground (m)
 		real(8), intent(in)					:: Ts		! Scale temperature (K)
@@ -743,6 +745,92 @@ contains
 		end if
 
 	end function TempProfile
+	
+	
+	!	Horizontal wind components variance according to
+	!	Rotach, Gryning, Tassone, 1996.
+	function VerticalWindVarProfile(z,us,ws,zi,su2,sv2) result(iRetCode)
+	
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: z
+		real(8), intent(in)					:: us
+		real(8), intent(in)					:: ws
+		real(8), intent(in)					:: zi
+		real(8), dimension(:), intent(out)	:: su2
+		real(8), dimension(:), intent(out)	:: sv2
+		integer								:: iRetCode
+
+		! Locals
+		integer	:: iErrCode
+		integer	:: i
+		integer	:: n
+		real(8)	:: us2
+		real(8)	:: ws2
+		real(8)	:: zz
+		real(8)	:: s1
+		real(8)	:: s2
+		
+		! Constants
+		real(8), parameter	:: Sh2_min = 0.05d0
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check essential parameters
+		n = size(z)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(su2) /= n .or. size(sv2) /= n) then
+			iRetCode = 2
+			return
+		end if
+		if(n > 1) then
+			do i = 2, n
+				if(z(i) <= z(i-1)) then
+					iRetCode = 3
+					return
+				end if
+			end do
+		end if
+		
+		! Initialization
+		us2 = us**2
+		ws2 = ws**2
+
+		! Main loop
+		do i = 1, n
+
+			! Normalize height toPBL depth
+			zz = z(i)/zi
+			if(zz <= 1.0d0) then
+				! Within-PBL
+
+				! Mechanical part of variance
+				s1 = max((5.d0 - 4.d0*zz) * us2,0.d0)
+				
+				! Convective part of variance
+				if(ws > 0.) then
+					s2 = 0.4d0 * ws2
+				else
+					s2 = 0.d0
+				end if
+				
+				! Combine mechanical and convective variances
+				su2(i) = max((s1 + 1.33333*s2) , Sh2_min)
+				sv2(i) = max((s1 +         s2) , Sh2_min)
+				
+			else
+			
+				su2(i) = Sh2_min
+				sv2(i) = Sh2_min
+				
+			end if
+
+		end do
+
+	end function VerticalWindVarProfile
 
 	! *************
 	! * Internals *
