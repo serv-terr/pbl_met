@@ -39,6 +39,7 @@ module pbl_simil
     ! 4.Vertical profiles
     public	:: WindProfile
     public	:: TempProfile
+    public	:: HorizontalWindVarProfile
     public	:: VerticalWindVarProfile
     
     ! Constants (please do not change)
@@ -588,6 +589,7 @@ contains
 	end function WindProfile
 	
 
+	! This is a very extensive refactoring of code by prof. Roberto Sozzi
 	function TempProfile(z,z0,zr,Tr,gamma,hmix,Ts,us,hm,T) result(iRetCode)
 
 		! Routine arguments
@@ -747,9 +749,10 @@ contains
 	end function TempProfile
 	
 	
-	!	Horizontal wind components variance according to
-	!	Rotach, Gryning, Tassone, 1996.
-	function VerticalWindVarProfile(z,us,ws,zi,su2,sv2) result(iRetCode)
+	! Horizontal wind components variance according to
+	! Rotach, Gryning, Tassone, 1996.
+	! This is a very extensive refactoring of code by prof. Roberto Sozzi
+	function HorizontalWindVarProfile(z,us,ws,zi,su2,sv2) result(iRetCode)
 	
 		! Routine arguments
 		real(8), dimension(:), intent(in)	:: z
@@ -830,6 +833,104 @@ contains
 
 		end do
 
+	end function HorizontalWindVarProfile
+	
+	
+	! Estimation of vertical wind component variance and its first derivative
+	! Reference: Rotach, Gryning, Tassone (1996).
+	! This is a very extensive refactoring of code by prof. Roberto Sozzi
+	function VerticalWindVarProfile(z,us,ws,zi,sw2,d_sw2) result(iRetCode)
+	
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: z
+		real(8), intent(in)					:: us
+		real(8), intent(in)					:: ws
+		real(8), intent(in)					:: zi
+		real(8), dimension(:), intent(out)	:: sw2
+		real(8), dimension(:), intent(out)	:: d_sw2
+		integer								:: iRetCode
+		
+		! Locals
+		integer	:: iErrCode
+		integer	:: n
+		integer	:: i
+		real(8)	:: us2
+		real(8)	:: ws2
+		real(8)	:: es1
+		real(8)	:: es2
+		real(8)	:: zz
+		real(8)	:: sw2m
+		real(8)	:: sw2c
+		real(8)	:: ezz
+
+		! Constants
+		real(8), parameter	:: Sw2_min = 0.01d0
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check essential parameters
+		n = size(z)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(sw2) /= n .or. size(d_sw2) /= n) then
+			iRetCode = 2
+			return
+		end if
+		if(n > 1) then
+			do i = 2, n
+				if(z(i) <= z(i-1)) then
+					iRetCode = 3
+					return
+				end if
+			end do
+		end if
+		
+		! Initialization
+		us2 = us**2
+		ws2 = ws**2
+		es1 = 2.d0/3.d0
+		es2 = 1.d0/3.d0
+
+		! Main loop: compute the profiles desired
+		do i = 1, n
+	
+			! Normalize altitude to PBL height
+			zz = z(i)/zi
+			if(zz <= 1.d0) then
+				! Within PBL
+				
+				! Mechanical variance portion
+				sw2m = max((1.7d0 - zz) * us2, 0.d0)
+				
+				! Convective variance portion
+				if(zz > 100.d0) then
+	                ezz = 0.d0
+				else
+					ezz = exp(-2.d0*zz)
+				end if
+				if(ws > 0.d0) then
+					sw2c = 1.5d0 * zz**es1 * ezz * ws2 
+				else
+					sw2c = 0.d0
+				end if
+				
+				! Combine mechanical and convective variances
+				sw2(i) = max(sw2m + sw2c, Sw2_min)
+
+				! First derivative of variance
+				d_sw2(i) = ((1.d0-3.d0*zz)/(zz**es2) *ezz*ws2 - us2) / zi
+				
+			else
+				! Beyond PBL
+				sw2(i)   = Sw2_min
+				d_sw2(i) = 0.
+			end if
+			
+		end do
+		
 	end function VerticalWindVarProfile
 
 	! *************
