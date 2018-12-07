@@ -1030,6 +1030,9 @@ contains
 		real(8), parameter	:: PG2K  = 0.541d0			!(2 pg k)**-2/3
 		real(8), parameter	:: K     = 0.4d0
 		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
 		! Compute estimates based on convective and stable conditions
 		if(ws > 0.d0) then
 			! Convective
