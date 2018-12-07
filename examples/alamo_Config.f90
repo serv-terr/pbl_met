@@ -7,6 +7,8 @@ module Configuration
 	implicit none
 	
 	type Config
+		! Status
+		logical				:: lIsFull = .false.
 		! Grid data
 		real(8)				:: x0
 		real(8)				:: y0
@@ -53,7 +55,8 @@ module Configuration
 		! Meteo data
 		type(MetData)									:: tMeteo
 	contains
-		procedure			:: read => cfgRead
+		procedure			:: read        => cfgRead
+		procedure			:: getNumMeteo => cfgGetMeteoSize
 	end type Config
 	
 	
@@ -128,6 +131,7 @@ contains
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
+		this % lIsFull = .false.
 		
 		! Get configuration file, and prepare to parse it
 		iErrCode = cfg % read(10, sFileName)
@@ -467,7 +471,30 @@ contains
 		this % maxpart = this % Np * size(this % tvPointStatic) * this % Nstep * this % MaxAge / this % Tmed
 		if(this % debug > 1) print *, "alamo:: info: Maximum number of particles equal to ", this % maxpart
 	
+		! Leave
+		this % lIsFull = .true.
+		
 	end function cfgRead
+	
+	
+	function cfgGetMeteoSize(this) result(iMeteoSize)
+	
+		! Routine arguments
+		class(Config), intent(in)	:: this
+		integer						:: iMeteoSize
+		
+		! Locals
+		! --none--
+		
+		! Get the information piece desired
+		if(this % lIsFull) then
+			iMeteoSize = size(this % tMeteo % rvExtEpoch)
+		else
+			iMeteoSize = 0
+		end if
+		
+	end function cfgGetMeteoSize
+	
 	
 	function metpClean(this) result(iRetCode)
 	
