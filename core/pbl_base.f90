@@ -923,10 +923,10 @@ contains
 			! Use boundary values outside the 'x' interval
 			if(rvX(l) < this % x(1)) then
 				rvY(l) = this % y(1)
-				return
+				cycle
 			elseif(rvX(l) > this % x(n)) then
 				rvY(l) = this % y(n)
-				return
+				cycle
 			end if
 
 			! Find index i such that x(i) <= rX <= x(i+1)
