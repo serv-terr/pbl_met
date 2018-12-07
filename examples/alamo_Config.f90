@@ -583,16 +583,12 @@ contains
 	function metpCreate( &
 		this, &
 		cfg, &
-		met, &
-		dt,	&		! Substep?
 		i &		! Index of current row in 'met'
 	) result(iRetCode)
 	
 		! Routine arguments
 		class(MetProfiles), intent(out)		:: this
 		type(Config), intent(in)			:: cfg
-		type(MetData), intent(in)			:: met
-		real(8), intent(in)					:: dt
 		integer, intent(in)					:: i
 		integer								:: iRetCode
 		
@@ -625,7 +621,7 @@ contains
 		iRetCode = 0
 		
 		! Check critical parameters
-		n = size(met % rvExtEpoch)
+		n = size(cfg % tMeteo % rvExtEpoch)
 		if(i < 1 .or. i > n) then
 			iRetCode = 1
 			return
@@ -644,37 +640,37 @@ contains
 			return
 		end if
 		this % z = [(cfg % z0 + (j-1) * cfg % dz, j = 1, m)]
-		Ta = met % rvExtTemp(i) + 273.15d0
+		Ta = cfg % tMeteo % rvExtTemp(i) + 273.15d0
 		
 		! Assign time stamp
-		this % rEpoch = met % rvExtEpoch(i)
+		this % rEpoch = cfg % tMeteo % rvExtEpoch(i)
 		
 		! Estimate ground pressure at site
 		Pres = P0 * exp(-0.0342d0 * cfg % zlev / Ta)
 
 		! Estimation of RhoCp and wT (harmless, and not passed as 'met' data to avoid clutter)
 		rc = 350.125d0 * Pres / Ta
-		wT = met % rvExtH0(i) / rc
+		wT = cfg % tMeteo % rvExtH0(i) / rc
 		
 		! Reciprocal of Obukhov length
-		hL = -K*G/Ta * wT / met % rvExtUstar(i)**3
+		hL = -K*G/Ta * wT / cfg % tMeteo % rvExtUstar(i)**3
 
 		! Scale temperature
-		Ts = -wT / met % rvExtUstar(i)
+		Ts = -wT / cfg % tMeteo % rvExtUstar(i)
 
 		! Deardoff velocity
-		ws = wStar(real(Ta,kind=4), real(met % rvExtH0(i),kind=4), real(met % rvExtZi(i),kind=4))
+		ws = wStar(real(Ta,kind=4), real(cfg % tMeteo % rvExtH0(i),kind=4), real(cfg % tMeteo % rvExtZi(i),kind=4))
 		
 		! Estimate wind and temperature profiles, based on SL similarity
 		iErrCode = WindProfile( &
 			cfg % hemisphere, &
 			this % z, &
 			cfg % zr, &
-			met % rvExtVel(i), &
-			met % rvExtDir(i), &
+			cfg % tMeteo % rvExtVel(i), &
+			cfg % tMeteo % rvExtDir(i), &
 			cfg % z0, &
-			met % rvExtZi(i), &
-			met % rvExtUstar(i), &
+			cfg % tMeteo % rvExtZi(i), &
+			cfg % tMeteo % rvExtUstar(i), &
 			hL, &
 			this % u, &
 			this % v &
@@ -689,9 +685,9 @@ contains
 			cfg % zt, &
 			Ta, &
 			-cfg % gamma, &
-			met % rvExtZi(i), &
+			cfg % tMeteo % rvExtZi(i), &
 			Ts, &
-			met % rvExtUstar(i), &
+			cfg % tMeteo % rvExtUstar(i), &
 			hL, &
 			this % T &
 		)
@@ -703,9 +699,9 @@ contains
 		! Estimate vertical and horizontal sigmas
 		iErrCode = VerticalWindVarProfile( &
 			this % z, &
-			met % rvExtUstar(i), &
+			cfg % tMeteo % rvExtUstar(i), &
 			ws, &
-			met % rvExtZi(i), &
+			cfg % tMeteo % rvExtZi(i), &
 			this % sw2, &
 			this % dsw2 &
 		)
@@ -715,9 +711,9 @@ contains
 		end if
 		iErrCode = HorizontalWindVarProfile( &
 			this % z, &
-			met % rvExtUstar(i), &
+			cfg % tMeteo % rvExtUstar(i), &
 			ws, &
-			met % rvExtZi(i), &
+			cfg % tMeteo % rvExtZi(i), &
 			this % su2, &
 			this % sv2 &
 		)
@@ -729,9 +725,9 @@ contains
 		! TKE dissipation
 		iErrCode = TKEDissipationProfile( &
 			this % z, &
-			met % rvExtUstar(i), &
+			cfg % tMeteo % rvExtUstar(i), &
 			ws, &
-			met % rvExtZi(i), &
+			cfg % tMeteo % rvExtZi(i), &
 			this % eps &
 		)
 		if(iErrCode /= 0) then
@@ -755,7 +751,7 @@ contains
 				C0vv   = C0v * this % eps(j)
 				C0ww   = C0w * this % eps(j)
 				ssw2_2 = 2.d0 * this % sw2(j)
-				if(this % z(j) <= met % rvExtZi(i)) then
+				if(this % z(j) <= cfg % tMeteo % rvExtZi(i)) then
 					! Inside the PBL
 					
 					! Langevin coefficients for W component
