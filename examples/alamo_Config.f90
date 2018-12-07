@@ -738,13 +738,14 @@ contains
 		! Kolmogorov coefficients, used in further calculations
 		iErrCode = KolmogorovConstants(ws, C0u, C0v, C0w)
 		if(iErrCode /= 0) then
+			print *, iErrCode
 			iRetCode = 9
 			return
 		end if
 
 		! Langevin coefficients and optimal time step (a function
 		! of vertical Lagrangian decorrelation time
-		do j = 1, n
+		do j = 1, m
 			if(ws > 0.) then
 				! Convective
 				C0uu   = C0u * this % eps(j)
@@ -920,51 +921,52 @@ contains
 	
 		! Compute report values
 		n = size(this % z)
-		report % u         = sum(this % u) / n
-		report % uMin      = minval(this % u)
-		report % uMax      = maxval(this % u)
-		report % v         = sum(this % v) / n
-		report % vMin      = minval(this % v)
-		report % vMax      = maxval(this % v)
-		report % su2       = sum(this % su2) / n
-		report % su2Min    = minval(this % su2)
-		report % su2Max    = maxval(this % su2)
-		report % sv2       = sum(this % sv2) / n
-		report % sv2Min    = minval(this % sv2)
-		report % sv2Max    = maxval(this % sv2)
-		report % sw2       = sum(this % sw2) / n
-		report % sw2Min    = minval(this % sw2)
-		report % sw2Max    = maxval(this % sw2)
-		report % eps       = sum(this % eps) / n
-		report % epsMin    = minval(this % eps)
-		report % epsMax    = maxval(this % eps)
-		report % alfa      = sum(this % alfa) / n
-		report % alfaMin   = minval(this % alfa)
-		report % alfaMax   = maxval(this % alfa)
-		report % beta      = sum(this % beta) / n
-		report % betaMin   = minval(this % beta)
-		report % betaMax   = maxval(this % beta)
-		report % gamma     = sum(this % gamma) / n
-		report % gammaMin  = minval(this % gamma)
-		report % gammaMax  = maxval(this % gamma)
-		report % delta     = sum(this % delta) / n
-		report % deltaMin  = minval(this % delta)
-		report % deltaMax  = maxval(this % delta)
-		report % alfa_u    = sum(this % alfa_u) / n
-		report % alfa_uMin = minval(this % alfa_u)
-		report % alfa_vMax = maxval(this % alfa_u)
-		report % alfa_v    = sum(this % alfa_v) / n
-		report % alfa_vMin = minval(this % alfa_v)
-		report % alfa_vMax = maxval(this % alfa_v)
-		report % deltau    = sum(this % deltau) / n
-		report % deltauMin = minval(this % deltau)
-		report % deltauMax = maxval(this % deltau)
-		report % deltav    = sum(this % deltav) / n
-		report % deltavMin = minval(this % deltav)
-		report % deltavMax = maxval(this % deltav)
-		report % deltat    = sum(this % deltat) / n
-		report % deltatMin = minval(this % deltat)
-		report % deltatMax = maxval(this % deltat)
+		report % rTimeStamp = this % rEpoch
+		report % u          = sum(this % u) / n
+		report % uMin       = minval(this % u)
+		report % uMax       = maxval(this % u)
+		report % v          = sum(this % v) / n
+		report % vMin       = minval(this % v)
+		report % vMax       = maxval(this % v)
+		report % su2        = sum(this % su2) / n
+		report % su2Min     = minval(this % su2)
+		report % su2Max     = maxval(this % su2)
+		report % sv2        = sum(this % sv2) / n
+		report % sv2Min     = minval(this % sv2)
+		report % sv2Max     = maxval(this % sv2)
+		report % sw2        = sum(this % sw2) / n
+		report % sw2Min     = minval(this % sw2)
+		report % sw2Max     = maxval(this % sw2)
+		report % eps        = sum(this % eps) / n
+		report % epsMin     = minval(this % eps)
+		report % epsMax     = maxval(this % eps)
+		report % alfa       = sum(this % alfa) / n
+		report % alfaMin    = minval(this % alfa)
+		report % alfaMax    = maxval(this % alfa)
+		report % beta       = sum(this % beta) / n
+		report % betaMin    = minval(this % beta)
+		report % betaMax    = maxval(this % beta)
+		report % gamma      = sum(this % gamma) / n
+		report % gammaMin   = minval(this % gamma)
+		report % gammaMax   = maxval(this % gamma)
+		report % delta      = sum(this % delta) / n
+		report % deltaMin   = minval(this % delta)
+		report % deltaMax   = maxval(this % delta)
+		report % alfa_u     = sum(this % alfa_u) / n
+		report % alfa_uMin  = minval(this % alfa_u)
+		report % alfa_vMax  = maxval(this % alfa_u)
+		report % alfa_v     = sum(this % alfa_v) / n
+		report % alfa_vMin  = minval(this % alfa_v)
+		report % alfa_vMax  = maxval(this % alfa_v)
+		report % deltau     = sum(this % deltau) / n
+		report % deltauMin  = minval(this % deltau)
+		report % deltauMax  = maxval(this % deltau)
+		report % deltav     = sum(this % deltav) / n
+		report % deltavMin  = minval(this % deltav)
+		report % deltavMax  = maxval(this % deltav)
+		report % deltat     = sum(this % deltat) / n
+		report % deltatMin  = minval(this % deltat)
+		report % deltatMax  = maxval(this % deltat)
 		
 	end function metpSummarize
 	
