@@ -22,6 +22,7 @@ program Alamo
 	
 	character(len=256)	:: sCfgFile
 	integer				:: iRetCode
+	integer				:: i
 	
 	type Particle
 		real	::	Xp, Yp, Zp	! Position
@@ -31,21 +32,10 @@ program Alamo
 	end type Particle
 	type(Particle), dimension(:), allocatable	:: Part
 	
-	type Environment
-		real, dimension(:), allocatable	:: z							! Heights (m above ground)
-		real, dimension(:), allocatable	:: u, v							! Wind velocity (w assumed zero in the moment) (m/s)
-		real, dimension(:), allocatable	:: T							! Air temperature (°C)
-		real, dimension(:), allocatable	:: su2, sv2, sw2				! Wind velocity 
-		real, dimension(:), allocatable	:: dsw2
-		real, dimension(:), allocatable	:: eps
-		real, dimension(:), allocatable	:: alfa, beta, gamma, delta
-		real, dimension(:), allocatable	:: alfa_u, alfa_v
-		real, dimension(:), allocatable	:: deltau, deltav
-		real, dimension(:), allocatable	:: deltat
-	end type Environment
-	type(Environment)	:: air
-	
 	type(Config)		:: cfg
+	type(MetProfiles)	:: prf
+	type(Summary)		:: prfSummary
+	type(DateTime)		:: curTime
 	
 	! Get parameters
 	if(command_argument_count() /= 1) then
@@ -65,7 +55,43 @@ program Alamo
 	! Read configuration
 	iRetCode = cfg % read(10, 11, sCfgFile)
 	if(iRetCode /= 0) then
-		print *, ''
+		print *, 'alamo:: error: Missing or invalid configuration - Return code = ', iRetCode
+		stop
+	end if
+	
+	! Iterate over all time steps
+	if(cfg % metDiaFile /= "") then
+		open(10, file=cfg % metDiaFile, status='unknown', action='write')
+		iRetCode = prfSummary % printHeader(10)
+	end if
+	do i = 1, cfg % getNumMeteo()
+	
+		! Gather meteo profiles for current time step
+		iRetCode = prf % create(cfg, i)
+		if(iRetCode /= 0) then
+			print *, 'alamo:: error: Profile not created - Return code = ', iRetCode
+			stop
+		end if
+		
+		! Add summary to summary file, if requested
+		if(cfg % metDiaFile /= "") then
+			iRetCode = prf % summarize(prfSummary)
+			if(iRetCode /= 0) then
+				print *, 'alamo:: error: Meteo profile summary not built - Return code = ', iRetCode
+				stop
+			end if
+			iRetCode = prfSummary % printLine(10)
+		end if
+		
+		! Inform of progress, if requested
+		if(cfg % debug > 0) then
+			iRetCode = curTime % fromEpoch(cfg % tMeteo % rvExtEpoch(i))
+			print *, "Processed: ", curTime % toISO()
+		end if
+		
+	end do
+	if(cfg % metDiaFile /= "") then
+		close(10)
 	end if
 	
 end program Alamo
