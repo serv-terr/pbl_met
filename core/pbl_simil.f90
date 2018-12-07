@@ -583,8 +583,8 @@ contains
 			
 			! Propagate Hmix values above the PBL
 			if(n_PBL < nz) then
-				u(i) = -velmix*SIN(TO_RAD*dirmix)
-				v(i) = -velmix*COS(TO_RAD*dirmix)
+				u(n_PBL+1:) = -velmix*SIN(TO_RAD*dirmix)
+				v(n_PBL+1:) = -velmix*COS(TO_RAD*dirmix)
 			end if
 		end if
 
