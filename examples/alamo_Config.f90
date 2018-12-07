@@ -27,6 +27,7 @@ module Configuration
 		! Meteo data files
 		character(len=256)	:: Filemeteo
 		character(len=256)	:: FilemeteoOut	! May be an empty string
+		character(len=256)	:: metDiaFile
 		! Site parameters of meteorological file
 		real(8)				:: zlev
 		real(8)				:: z0
@@ -142,7 +143,7 @@ contains
 			iRetCode = 2
 			return
 		end if
-		iErrCode = cfg % getString("General", "diag_file", this % diag, "")
+		iErrCode = cfg % getString("General", "diafile", this % diag, "")
 		if(iErrCode /= 0) then
 			iRetCode = 2
 			if(this % debug > 0) print *, "alamo:: error: Invalid 'diag_file' in [General]"
@@ -206,6 +207,12 @@ contains
 			return
 		end if
 		iErrCode = cfg % getString("Meteo", "outfile", this % FilemeteoOut, "")
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			if(this % debug > 0) print *, "alamo:: error: Invalid 'inpfile' in [Meteo]"
+			return
+		end if
+		iErrCode = cfg % getString("Meteo", "diafile", this % metDiaFile, "")
 		if(iErrCode /= 0) then
 			iRetCode = 2
 			if(this % debug > 0) print *, "alamo:: error: Invalid 'inpfile' in [Meteo]"
