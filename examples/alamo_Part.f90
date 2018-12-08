@@ -19,9 +19,43 @@ module Particles
 		type(Particle), dimension(:), allocatable	:: tvPart
 		integer										:: next
 	contains
-		procedure	:: Emit => parEmit
+		procedure	:: Emit => pplEmit
 	end type ParticlePool
 	
 contains
 
+	! *******************
+	! * Single particle *
+	! *******************
+	
+	function parEmit(this) result(iRetCode)
+	
+		! Routine arguments
+		class(Particle), intent(out)	:: this
+		integer							:: iRetCode
+		
+		! Locals
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+	end function parEmit
+	
+	! *****************
+	! * Particle pool *
+	! *****************
+
+	function pplEmit(this) result(iRetCode)
+	
+		! Routine arguments
+		class(Particle), intent(out)	:: this
+		integer							:: iRetCode
+		
+		! Locals
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+	end function pplEmit
+	
 end module Particles
