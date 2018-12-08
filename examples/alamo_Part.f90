@@ -26,6 +26,13 @@ module Particles
 		real(8)										:: zmax
 		! Timing
 		real(8)										:: T_step
+		! Gridded receptor coordinates
+		integer										:: nx
+		integer										:: ny
+		real(8), dimension(:), allocatable			:: xrec
+		real(8), dimension(:), allocatable			:: yrec
+		! Concentrations
+		real(8), dimension(:,:), allocatable		:: C
 		! Particle pool
 		type(Particle), dimension(:), allocatable	:: tvPart
 		integer										:: maxpart
@@ -79,16 +86,32 @@ contains
 		this % zmin = 0.d0
 		this % zmax = cfg % zmax
 		
-		! Assign timing
+		! Initialise receptor coordinates
+		this % nx = cfg % nx
+		this % ny = cfg % ny
+		if(allocated(this % xrec)) deallocate(this % xrec)
+		if(allocated(this % yrec)) deallocate(this % yrec)
+		allocate(this % xrec(cfg % nx))
+		allocate(this % yrec(cfg % ny))
+		this % xrec = [(this % xmin + (i-1) * cfg % dx, i = 1, cfg % nx)]
+		this % yrec = [(this % ymin + (i-1) * cfg % dy, i = 1, cfg % ny)]
+		
+		! Initialize concentration array
+		if(allocated(this % C)) deallocate(this % C)
+		allocate(this % C(this % nx, this % ny))
+		this % C = 0.d0
+		
+		! Assign timing constants
 		this % T_step = cfg % Tmed / cfg % Nstep
 		
-		! Initialize particle pool
+		! Initialise particle space
 		this % maxpart = cfg % maxpart
 		if(allocated(this % tvPart)) deallocate(this % tvPart)
 		allocate(this % tvPart(this % maxpart))
 		do i = 1, this % maxpart
 			this % tvPart(i) % filled = .false.
 		end do
+		this % next = 1
 		
 	end function pplInit
 	
