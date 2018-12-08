@@ -48,8 +48,8 @@ contains
 	function pplEmit(this) result(iRetCode)
 	
 		! Routine arguments
-		class(Particle), intent(out)	:: this
-		integer							:: iRetCode
+		class(ParticlePool), intent(out)	:: this
+		integer								:: iRetCode
 		
 		! Locals
 		
