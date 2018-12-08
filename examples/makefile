@@ -1,8 +1,8 @@
 dewpoint : DewPoint.f90
 	gfortran -J ../core -o dewpoint DewPoint.f90 ../core/pbl_met.a
 
-alamo : alamo.o alamo_config.o alamo_emis.o alamo_meteo.o alamo_part.o
-	gfortran -Wuninitialized -fcheck=all -J ../core -o alamo alamo.o alamo_config.o alamo_emis.o alamo_meteo.o alamo_part.o ../core/pbl_met.a
+alamo : alamo.o alamo_config.o alamo_emis.o alamo_meteo.o alamo_part.o ziggurat.o
+	gfortran -Wuninitialized -fcheck=all -J ../core -o alamo alamo.o alamo_config.o alamo_emis.o alamo_meteo.o alamo_part.o ziggurat.o ../core/pbl_met.a
 
 alamo.o : Alamo.f90 configuration.mod
 	gfortran -Wuninitialized -fcheck=all -J ../core -c Alamo.f90
@@ -16,8 +16,11 @@ alamo_emis.o emission.mod : Alamo_Emis.f90
 alamo_meteo.o meteo.mod : Alamo_Meteo.f90
 	gfortran -Wuninitialized -fcheck=all -J ../core -c Alamo_Meteo.f90
 
-alamo_part.o particles.mod : Alamo_Part.f90 configuration.mod
+alamo_part.o particles.mod : Alamo_Part.f90 configuration.mod ziggurat.mod
 	gfortran -Wuninitialized -fcheck=all -J ../core -c Alamo_Part.f90
+	
+ziggurat.o ziggurat.mod : ziggurat.f90
+	gfortran -Wuninitialized -fcheck=all -J ../core -c ziggurat.f90
 
 radgen : radgen.f90
 	gfortran -J ../core -o radgen radgen.f90 ../core/pbl_met.a
