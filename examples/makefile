@@ -4,7 +4,7 @@ dewpoint : DewPoint.f90
 alamo : alamo.o alamo_config.o alamo_emis.o alamo_meteo.o alamo_part.o ziggurat.o
 	gfortran -Wuninitialized -fcheck=all -J ../core -o alamo alamo.o alamo_config.o alamo_emis.o alamo_meteo.o alamo_part.o ziggurat.o ../core/pbl_met.a
 
-alamo.o : Alamo.f90 configuration.mod
+alamo.o : Alamo.f90 configuration.mod particles.mod
 	gfortran -Wuninitialized -fcheck=all -J ../core -c Alamo.f90
 
 alamo_config.o configuration.mod : Alamo_Config.f90 emission.mod meteo.mod
