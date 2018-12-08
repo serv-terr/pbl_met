@@ -29,6 +29,7 @@ program Alamo
 	type(MetProfiles)	:: prf
 	type(Summary)		:: prfSummary
 	type(DateTime)		:: curTime
+	type(ParticlePool)	:: part
 	
 	! Get parameters
 	if(command_argument_count() /= 1) then
@@ -52,7 +53,14 @@ program Alamo
 		stop
 	end if
 	
-	! Iterate over all time steps
+	! Initialize particle pool
+	iRetCode = part % Initialize(cfg)
+	if(iRetCode /= 0) then
+		print *, 'alamo:: error: Error initializing particle pool - Return code = ', iRetCode
+		stop
+	end if
+	
+	! Main loop: get meteo information, and care for particles
 	if(cfg % metDiaFile /= "") then
 		open(10, file=cfg % metDiaFile, status='unknown', action='write')
 		iRetCode = prfSummary % printHeader(10)
