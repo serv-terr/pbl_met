@@ -17,20 +17,13 @@ program Alamo
 	
 	use pbl_met
 	use Configuration
+	use Particles
 	
 	implicit none
 	
 	character(len=256)	:: sCfgFile
 	integer				:: iRetCode
 	integer				:: i
-	
-	type Particle
-		real	::	Xp, Yp, Zp	! Position
-		real	::	up, vp, wp	! Velocity
-		real	::	Qp, Tp		! Mass, temperature
-		real	::	sh, sz		! Horizontal, vertical sigmas for Gaussian kernel
-	end type Particle
-	type(Particle), dimension(:), allocatable	:: Part
 	
 	type(Config)		:: cfg
 	type(MetProfiles)	:: prf
