@@ -55,8 +55,10 @@ module Configuration
 		! Meteo data
 		type(MetData)									:: tMeteo
 	contains
-		procedure			:: read        => cfgRead
-		procedure			:: getNumMeteo => cfgGetMeteoSize
+		procedure			:: read               => cfgRead
+		procedure			:: getNumTimeSteps    => cfgGetTimeSteps
+		procedure			:: getNumTimeSubSteps => cfgGetTimeSubSteps
+		procedure			:: getNumMeteo        => cfgGetMeteoSize
 	end type Config
 	
 	
@@ -494,6 +496,44 @@ contains
 		end if
 		
 	end function cfgGetMeteoSize
+	
+	
+	function cfgGetTimeSteps(this) result(iMeteoSize)
+	
+		! Routine arguments
+		class(Config), intent(in)	:: this
+		integer						:: iMeteoSize
+		
+		! Locals
+		! --none--
+		
+		! Get the information piece desired
+		if(this % lIsFull) then
+			iMeteoSize = size(this % tMeteo % rvEpoch)
+		else
+			iMeteoSize = 0
+		end if
+		
+	end function cfgGetTimeSteps
+	
+	
+	function cfgGetTimeSubSteps(this) result(iMeteoSize)
+	
+		! Routine arguments
+		class(Config), intent(in)	:: this
+		integer						:: iMeteoSize
+		
+		! Locals
+		! --none--
+		
+		! Get the information piece desired
+		if(this % lIsFull) then
+			iMeteoSize = size(this % tMeteo % rvExtEpoch) / size(this % tMeteo % rvEpoch)
+		else
+			iMeteoSize = 0
+		end if
+		
+	end function cfgGetTimeSubSteps
 	
 	
 	function metpClean(this) result(iRetCode)
@@ -1075,6 +1115,6 @@ contains
 			this % deltat, &
 			this % deltatMax
 		
-		end function sumLine
+	end function sumLine
 		
-	end module Configuration
+end module Configuration
