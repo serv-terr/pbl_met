@@ -120,17 +120,18 @@ contains
 	function pplResetC(this) result(iRetCode)
 	
 		! Routine arguments
-		class(ParticlePool), intent(out)	:: this
+		class(ParticlePool), intent(inout)	:: this
 		integer								:: iRetCode
 		
 		! Locals
-		! --none--
+		logical	:: isAllocated
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
 		! Reset concentration matrix
-		if(allocated(this % C)) then
+		isAllocated = allocated(this % C)
+		if(isAllocated) then
 			this % C = 0.d0
 		else
 			iRetCode = 1
