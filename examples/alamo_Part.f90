@@ -254,6 +254,9 @@ contains
 		real(8)				:: vel
 		real(8)				:: sina
 		real(8)				:: cosa
+		real(8)				:: Coe
+		real(8)				:: Tlh
+		real(8)				:: Tlw
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -365,6 +368,24 @@ contains
 
 				! Update particle age
 				this % tvPart(iPart) % Tp = this % tvPart(iPart) % Tp + deltat
+				
+				! *************************************
+				! * Update the Gaussian kernel sigmas *
+				! *************************************
+				
+				Coe = 3.d0 * eps
+				TLh = 2.d0 * su2 / Coe
+				TLw = 2.d0 * sw2 / Coe
+				if(this % tvPart(iPart) % Tp < TLh) then
+					this % tvPart(iPart) % sh = this % tvPart(iPart) % sh + sqrt(su2) * deltat 
+				else
+					this % tvPart(iPart) % sh = sqrt(this % tvPart(iPart) % sh ** 2 + 2.d0 * TLh * su2 * deltat)
+				end if
+				if(this % tvPart(iPart) % Tp < TLw) then
+					this % tvPart(iPart) % sz = this % tvPart(iPart) % sz + sqrt(sw2) * deltat 
+				else
+					this % tvPart(iPart) % sz = sqrt(this % tvPart(iPart) % sz ** 2 + 2.d0 * TLw * sw2 * deltat)
+				end if
 				
 			end do
 			
