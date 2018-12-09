@@ -98,12 +98,19 @@ program Alamo
 				iRetCode = prfSummary % printLine(10)
 			end if
 			
+			! Emit new particles
+			iRetCode = part % Emit(cfg, prf)
+			if(iRetCode /= 0) then
+				print *, 'alamo:: error: Meteo profile summary not built - Return code = ', iRetCode
+				stop
+			end if
+			
 		end do
 		
 		! Inform of progress, if requested
 		if(cfg % debug > 0) then
-			iRetCode = curTime % fromEpoch(cfg % tMeteo % rvExtEpoch(i))
-			print *, "Processed: ", curTime % toISO()
+			iRetCode = curTime % fromEpoch(cfg % tMeteo % rvEpoch(iStep))
+			print *, "Processed: ", curTime % toISO(), "   Active particles: ", part % count()
 		end if
 		
 	end do
