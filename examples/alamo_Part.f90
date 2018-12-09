@@ -40,6 +40,7 @@ module Particles
 		procedure	:: Initialize => pplInit
 		procedure	:: ResetConc  => pplResetC
 		procedure	:: Emit       => pplEmit
+		procedure	:: Move       => pplMove
 		procedure	:: Count      => pplCount
 	end type ParticlePool
 	
@@ -214,6 +215,162 @@ contains
 		end do
 		
 	end function pplEmit
+	
+	
+	function pplMove(this, cfg, prf, iSubStep) result(iRetCode)
+	
+		! Routine arguments
+		class(ParticlePool), intent(inout)	:: this
+		type(Config), intent(in)			:: cfg
+		type(MetProfiles), intent(in)		:: prf
+		integer, intent(in)					:: iSubStep
+		integer								:: iRetCode
+		
+		! Locals
+		integer				:: iErrCode
+		integer				:: iPart
+		integer				:: iSource
+		real(8)				:: z
+		real(8)				:: u
+		real(8)				:: v
+		real(8)				:: su2
+		real(8)				:: sv2
+		real(8)				:: sw2
+		real(8)				:: dsw2
+		real(8)				:: eps
+		real(8)				:: alpha
+		real(8)				:: beta
+		real(8)				:: gamma
+		real(8)				:: delta
+		real(8)				:: alpha_u
+		real(8)				:: alpha_v
+		real(8)				:: deltau
+		real(8)				:: deltav
+		real(8)				:: deltat
+		real(8)				:: curPeriod
+		real(8)				:: zi
+		real(8)				:: h0
+		real(8)				:: rootDeltat
+		real(8)				:: vel
+		real(8)				:: sina
+		real(8)				:: cosa
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		do iPart = 1, cfg % Np
+		
+			! Here we follow the time evolution of each particle in sequence
+			curPeriod = this % T_substep
+			do while(curPeriod > 0.d0)
+			
+				! **************
+				! * Initialise *
+				! **************
+				
+				! Set met environment and, what counts no less, the ideal time step
+				z = this % tvPart(iPart) % Zp
+				iErrCode = prf % evaluate( &
+					cfg, &
+					z, &
+					u, v, &
+					su2, sv2, sw2, dsw2, &
+					eps, &
+					alpha, beta, gamma, delta, &
+					alpha_u, alpha_v, &
+					deltau, deltav, &
+					deltat &
+				)
+				if(iErrCode /= 0) then
+					iRetCode = 1
+					return
+				end if
+				
+				! Compute time delta, as the ideal time step but possibly for end value
+				if(curPeriod > deltat) then
+					curPeriod = curPeriod - deltat
+				else
+					deltat = curPeriod
+					curPeriod = 0.d0	! Will force inner cycle to terminate
+				end if
+				
+				! *************************
+				! * Drift along mean wind *
+				! *************************
+				
+				! Get wind direction through its directing cosines
+				! (no need of trig function calls)
+				vel  = sqrt(u**2 + v**2)
+				sina = v/vel
+				cosa = u/vel
+				
+				! Update particle position
+				this % tvPart(iPart) % Xp = this % tvPart(iPart) % Xp + &
+					(u + this % tvPart(iPart) % up * cosa - this % tvPart(iPart) % vp * sina) * deltat
+				this % tvPart(iPart) % Yp = this % tvPart(iPart) % Yp + &
+					(v + this % tvPart(iPart) % up * sina + this % tvPart(iPart) % vp * cosa) * deltat
+				this % tvPart(iPart) % Zp = this % tvPart(iPart) % Zp + &
+					this % tvPart(iPart) % wp * deltat
+					
+				! Check if reflections occurred at ground or Zi
+				if(this % tvPart(iPart) % Zp < 0.d0) then
+					this % tvPart(iPart) % Zp = -this % tvPart(iPart) % Zp
+					this % tvPart(iPart) % wp = -this % tvPart(iPart) % wp
+				end if
+				zi = cfg % tMeteo % rvExtZi(iSubStep)
+				h0 = cfg % tMeteo % rvExtH0(iSubStep)
+				if(this % tvPart(iPart) % Zp > zi .and. h0 > 0.d0) then
+					this % tvPart(iPart) % Zp = 2.*zi - this % tvPart(iPart) % Zp
+					this % tvPart(iPart) % wp = -this % tvPart(iPart) % wp
+				end if
+				
+				! Label the particle as lost if, after application of preceding checks, it
+				! is found below ground surface (which in principle might happen due to
+				! a high vertical intrinsic velocity)
+				if(this % tvPart(iPart) % Zp < 0.d0) then
+					this % tvPart(iPart) % filled = .false.
+					cycle ! Abandon this particle to its dire destiny, avoiding it
+						  ! to enter the expensive Langevin step
+				end if
+				
+				! **************************
+				! * Monte-Carlo simulation *
+				! * of Langevin part       *
+				! **************************
+				
+				! Compute Langevin time scale
+				rootDeltat = sqrt(deltat)
+				
+				! Model's Langevin formulation is different within and above the PBL
+				if(this % tvPart(iPart) % Zp < zi) then
+				
+					this % tvPart(iPart) % wp = &
+						(alpha * this % tvPart(iPart) % wp ** 2 + gamma) * deltat + &
+						exp(beta * deltat) * this % tvPart(iPart) % wp + &
+						delta * rootDeltat * rnor()
+					this % tvPart(iPart) % up = &
+						exp(alpha_u * deltat) * this % tvPart(iPart) % up + &
+						deltau * rootDeltat * rnor()
+					this % tvPart(iPart) % vp = &
+						exp(alpha_v * deltat) * this % tvPart(iPart) % vp + &
+						deltav * rootDeltat * rnor()
+						
+				else
+				
+					this % tvPart(iPart) % wp = exp(alpha * deltat) * this % tvPart(iPart) % wp + delta * rootDeltat * rnor()
+					this % tvPart(iPart) % up = exp(alpha_u * deltat) * this % tvPart(iPart) % up + deltau * rootDeltat * rnor()
+					this % tvPart(iPart) % vp = exp(alpha_v * deltat) * this % tvPart(iPart) % vp + deltav * rootDeltat * rnor()
+					
+				end if
+
+				! Update particle age
+				this % tvPart(iPart) % Tp = this % tvPart(iPart) % Tp + deltat
+				
+			end do
+			
+		end do
+		
+	end function pplMove
 	
 	
 	function pplCount(this) result(iNumPart)
