@@ -7,7 +7,7 @@ module Particles
 	implicit none
 
 	type Particle
-		logical	:: filled
+		logical	:: filled       = .false.
 		real(8)	:: EmissionTime
 		real(8)	:: Xp, Yp, Zp	! Position
 		real(8)	:: up, vp, wp	! Velocity
@@ -40,6 +40,7 @@ module Particles
 		procedure	:: Initialize => pplInit
 		procedure	:: ResetConc  => pplResetC
 		procedure	:: Emit       => pplEmit
+		procedure	:: Count      => pplCount
 	end type ParticlePool
 	
 contains
@@ -202,11 +203,32 @@ contains
 					this % T_substep / cfg % Np
 				this % tvPart(this % partIdx) % EmissionTime = prf % rEpoch
 				this % tvPart(this % partIdx) % Tp           = 0.d0
+				this % tvPart(this % partIdx) % filled       = .true.
 			
 			end do
 			
 		end do
 		
 	end function pplEmit
+	
+	
+	function pplCount(this) result(iNumPart)
+
+		! Routine arguments
+		class(ParticlePool), intent(inout)	:: this
+		integer								:: iNumPart
+		
+		! Locals
+		integer	:: i
+		
+		! Get the information desired
+		iNumPart = 0
+		if(allocated(this % tvPart)) then
+			do i = 1, size(this % tvPart)
+				if(this % tvPart(i) % filled) iNumPart = iNumPart + 1
+			end do
+		end if
+		
+	end function pplCount
 	
 end module Particles
