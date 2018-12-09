@@ -868,6 +868,7 @@ contains
 		su2, &
 		sv2, &
 		sw2, &
+		dsw2, &
 		eps, &
 		alfa, &
 		beta, &
@@ -881,7 +882,7 @@ contains
 	) result(iRetCode)
 	
 		! Routine arguments
-		class(MetProfiles), intent(out)		:: this
+		class(MetProfiles), intent(in)		:: this
 		type(Config), intent(in)			:: cfg
 		real(8), intent(in)					:: zp
 		real(8), intent(out)				:: u
@@ -889,6 +890,7 @@ contains
 		real(8), intent(out)				:: su2
 		real(8), intent(out)				:: sv2
 		real(8), intent(out)				:: sw2
+		real(8), intent(out)				:: dsw2
 		real(8), intent(out)				:: eps
 		real(8), intent(out)				:: alfa
 		real(8), intent(out)				:: beta
@@ -932,6 +934,7 @@ contains
 		su2 = this % su2(izFrom) + zpp * (this % su2(izTo) - this % su2(izFrom))
 		sv2 = this % sv2(izFrom) + zpp * (this % sv2(izTo) - this % sv2(izFrom))
 		sw2 = this % sw2(izFrom) + zpp * (this % sw2(izTo) - this % sw2(izFrom))
+		dsw2 = this % dsw2(izFrom) + zpp * (this % dsw2(izTo) - this % dsw2(izFrom))
 		eps = this % eps(izFrom) + zpp * (this % eps(izTo) - this % eps(izFrom))
 		alfa = this % alfa(izFrom) + zpp * (this % alfa(izTo) - this % alfa(izFrom))
 		beta = this % beta(izFrom) + zpp * (this % beta(izTo) - this % beta(izFrom))
