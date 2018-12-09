@@ -23,6 +23,8 @@ program Alamo
 	
 	character(len=256)	:: sCfgFile
 	integer				:: iRetCode
+	integer				:: iStep
+	integer				:: iSubStep
 	integer				:: i
 	
 	type(Config)		:: cfg
@@ -65,31 +67,40 @@ program Alamo
 		open(10, file=cfg % metDiaFile, status='unknown', action='write')
 		iRetCode = prfSummary % printHeader(10)
 	end if
-	do i = 1, cfg % getNumMeteo()
+	i = 0	! Actual time index
+	do iStep = 1, cfg % getNumTimeSteps()
 	
-		! Gather meteo profiles for current time step
-		iRetCode = prf % create(cfg, i)
-		if(iRetCode /= 0) then
-			print *, 'alamo:: error: Profile not created - Return code = ', iRetCode
-			stop
-		end if
+		! Reset concentration matrix
+		iRetCode = part % ResetConc()
+	
+		! Iterate over substeps in current time step
+		do iSubStep = 1, cfg % getNumTimeSubSteps()
+			i = i + 1
 		
-		! Add summary to summary file, if requested
-		if(cfg % metDiaFile /= "") then
-			iRetCode = prf % summarize(prfSummary)
+			! Gather meteo profiles for current time step
+			iRetCode = prf % create(cfg, i)
 			if(iRetCode /= 0) then
-				print *, 'alamo:: error: Meteo profile summary not built - Return code = ', iRetCode
+				print *, 'alamo:: error: Profile not created - Return code = ', iRetCode
 				stop
 			end if
-			iRetCode = prfSummary % printLine(10)
-		end if
+			
+			! Add summary to summary file, if requested
+			if(cfg % metDiaFile /= "") then
+				iRetCode = prf % summarize(prfSummary)
+				if(iRetCode /= 0) then
+					print *, 'alamo:: error: Meteo profile summary not built - Return code = ', iRetCode
+					stop
+				end if
+				iRetCode = prfSummary % printLine(10)
+			end if
+			
+			! Inform of progress, if requested
+			if(cfg % debug > 0) then
+				iRetCode = curTime % fromEpoch(cfg % tMeteo % rvExtEpoch(i))
+				print *, "Processed: ", curTime % toISO()
+			end if
 		
-		! Inform of progress, if requested
-		if(cfg % debug > 0) then
-			iRetCode = curTime % fromEpoch(cfg % tMeteo % rvExtEpoch(i))
-			print *, "Processed: ", curTime % toISO()
-		end if
-		
+		end do
 	end do
 	if(cfg % metDiaFile /= "") then
 		close(10)
