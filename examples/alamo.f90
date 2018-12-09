@@ -72,6 +72,10 @@ program Alamo
 	
 		! Reset concentration matrix
 		iRetCode = part % ResetConc()
+		if(iRetCode /= 0) then
+			print *, "alamo:: error: Concentration matrix was not allocated before use"
+			stop
+		end if
 	
 		! Iterate over substeps in current time step
 		do iSubStep = 1, cfg % getNumTimeSubSteps()
@@ -94,13 +98,14 @@ program Alamo
 				iRetCode = prfSummary % printLine(10)
 			end if
 			
-			! Inform of progress, if requested
-			if(cfg % debug > 0) then
-				iRetCode = curTime % fromEpoch(cfg % tMeteo % rvExtEpoch(i))
-				print *, "Processed: ", curTime % toISO()
-			end if
-		
 		end do
+		
+		! Inform of progress, if requested
+		if(cfg % debug > 0) then
+			iRetCode = curTime % fromEpoch(cfg % tMeteo % rvExtEpoch(i))
+			print *, "Processed: ", curTime % toISO()
+		end if
+		
 	end do
 	if(cfg % metDiaFile /= "") then
 		close(10)
