@@ -41,6 +41,7 @@ module Particles
 		procedure	:: ResetConc  => pplResetC
 		procedure	:: Emit       => pplEmit
 		procedure	:: Move       => pplMove
+		procedure	:: UpdateConc => pplConc
 		procedure	:: Count      => pplCount
 	end type ParticlePool
 	
@@ -392,7 +393,103 @@ contains
 		end do
 		
 	end function pplMove
+
+
+	! Add particle contribution to concentration on end of time substep
+	! (ref: Yamada-Bunker, 1988)
+	function pplConc(this, cfg, iSubStep) result(iRetCode)
 	
+		! Routine arguments
+		class(ParticlePool), intent(inout)	:: this
+		type(Config), intent(in)			:: cfg
+		integer, intent(in)					:: iSubStep
+		integer								:: iRetCode
+		
+		! Locals
+		integer				:: iErrCode
+		integer				:: iPart
+		integer				:: ix
+		integer				:: iy
+		real(8)				:: sigh4
+		real(8)				:: zi
+		real(8)				:: H0
+		real(8)				:: dx
+		real(8)				:: dy
+		real(8)				:: ex
+		real(8)				:: ey
+		real(8)				:: ez
+		real(8)				:: Cx
+		real(8)				:: Cy
+		real(8)				:: Cz
+		real(8)				:: C0
+		
+		! Constants
+		real(8), parameter	:: pi   = atan(1.d0)*4.d0
+		real(8), parameter	:: pi2  = 2.d0*pi
+		real(8), parameter	:: pi2r = (2.d0*pi)*sqrt(2.d0*pi)
+		real(8), parameter	:: amin = 0.045d0
+		real(8), parameter	:: amax = 15.d0
+		real(8), parameter	:: zr   = 1.d0
+		
+		! Main loop: iterate over particles, and add their contribution to receptors
+		zi = cfg % tMeteo % rvExtZi(iSubStep)
+		H0 = cfg % tMeteo % rvExtH0(iSubStep)
+		do iPart = 1, size(this % tvPart)
+			if(this % tvPart(iPart) % filled) then
+			
+				! Gaussian kernel is null at 4 sigma
+				sigh4 = 4.d0 * this % tvPart(iPart) % sh
+				
+				do ix = 1, this % nx
+					dx = this % xrec(ix) - this % tvPart(iPart) % Xp
+					if(abs(dx) <= sigh4) then
+						ex = 0.5d0 * (dx/this % tvPart(iPart) % sh)**2
+						if(ex < amin) then
+							Cx = 1.d0 - ex
+						elseif(ex > amax) then
+							Cx = 0.d0
+						else
+							Cx = exp(-ex)
+						end if
+						do iy = 1, this % ny
+							dy = this % yrec(iy) - this % tvPart(iPart) % Yp
+							if(abs(dy) <= sigh4) then
+								ey = 0.5d0*(dy/this % tvPart(iPart) % sh)**2
+								if(ey < amin) then
+									Cy = 1.d0 - ey
+								elseif(ey > amax) then
+									Cy = 0.d0
+								else
+									Cy = exp(-ey)
+								end if
+								if(this % tvPart(iPart) % Zp < zi .and. H0 > 0.d0 .and. this % tvPart(iPart) % sz > 0.8d0*zi) then
+									C0 = cfg % fat * this % tvPart(iPart) % Qp/(pi2 * this % tvPart(iPart) % sh ** 2)
+									Cz = 1.d0/zi
+								else
+									C0 = cfg % fat * &
+										this % tvPart(iPart) % Qp / &
+										(pi2r * this % tvPart(iPart) % sh ** 2 * this % tvPart(iPart) % sz)
+									ez = 0.5d0*(this % tvPart(iPart) % Zp / this % tvPart(iPart) % sz)**2
+									if(ez < amin) then
+										Cz = 1.d0 - ez
+									elseif(ez > amax) then
+										Cz = 0.d0
+									else
+										Cz = exp(-ez)
+									end if
+									Cz = 2.d0 * Cz
+								end if
+								this % C(ix,iy) = this % C(ix,iy) + C0 * Cx * Cy * Cz
+							end if
+						end do
+					end if
+				end do
+		
+			end if
+		end do
+		
+	end function pplConc
+
 	
 	function pplCount(this) result(iNumPart)
 
