@@ -68,6 +68,7 @@ program Alamo
 		iRetCode = prfSummary % printHeader(10)
 	end if
 	i = 0	! Actual time index
+	open(11, file=cfg % Fileout, access='stream', action='write', status='unknown')
 	do iStep = 1, cfg % getNumTimeSteps()
 	
 		! Reset concentration matrix
@@ -101,19 +102,43 @@ program Alamo
 			! Emit new particles
 			iRetCode = part % Emit(cfg, prf)
 			if(iRetCode /= 0) then
-				print *, 'alamo:: error: Meteo profile summary not built - Return code = ', iRetCode
+				print *, 'alamo:: error: Particle emission failed - Return code = ', iRetCode
+				stop
+			end if
+			
+			! Move particles
+			iRetCode = part % Move(cfg, prf, i)
+			if(iRetCode /= 0) then
+				print *, 'alamo:: error: Particle move failed - Return code = ', iRetCode
+				stop
+			end if
+			
+			! Add particles contributions to concentration
+			iRetCode = part % UpdateConc(cfg, i)
+			if(iRetCode /= 0) then
+				print *, 'alamo:: error: Concentration update failed - Return code = ', iRetCode
 				stop
 			end if
 			
 		end do
 		
+		! Compute mean concentration
+		part % C = part % C / cfg % getNumTimeSubSteps()
+		
+		! Write concentration to file (in 01 form)
+		iRetCode = curTime % fromEpoch(cfg % tMeteo % rvEpoch(iStep))
+		write(11) &
+			curTime % iYear, curTime % iMonth, curTime % iDay, &
+			curTime % iHour*100 + curTime % iMinute
+		write(11) part % C
+		
 		! Inform of progress, if requested
 		if(cfg % debug > 0) then
-			iRetCode = curTime % fromEpoch(cfg % tMeteo % rvEpoch(iStep))
 			print *, "Processed: ", curTime % toISO(), "   Active particles: ", part % count()
 		end if
 		
 	end do
+	close(11)
 	if(cfg % metDiaFile /= "") then
 		close(10)
 	end if
