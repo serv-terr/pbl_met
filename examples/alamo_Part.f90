@@ -2,6 +2,7 @@ module Particles
 	
 	use pbl_met
 	use Configuration
+	use ziggurat
 	
 	implicit none
 
@@ -10,10 +11,8 @@ module Particles
 		real(8)	:: EmissionTime
 		real(8)	:: Xp, Yp, Zp	! Position
 		real(8)	:: up, vp, wp	! Velocity
-		real(8)	:: Qp, Tp		! Mass, temperature
+		real(8)	:: Qp, Tp		! Mass, age
 		real(8)	:: sh, sz		! Horizontal, vertical sigmas for Gaussian kernel
-	contains
-		procedure	:: Emit => parEmit
 	end type Particle
 
 	type ParticlePool
@@ -25,7 +24,7 @@ module Particles
 		real(8)										:: zmin
 		real(8)										:: zmax
 		! Timing
-		real(8)										:: T_step
+		real(8)										:: T_substep
 		! Gridded receptor coordinates
 		integer										:: nx
 		integer										:: ny
@@ -36,7 +35,7 @@ module Particles
 		! Particle pool
 		type(Particle), dimension(:), allocatable	:: tvPart
 		integer										:: maxpart
-		integer										:: next
+		integer										:: partIdx
 	contains
 		procedure	:: Initialize => pplInit
 		procedure	:: ResetConc  => pplResetC
@@ -45,27 +44,6 @@ module Particles
 	
 contains
 
-	! *******************
-	! * Single particle *
-	! *******************
-	
-	function parEmit(this) result(iRetCode)
-	
-		! Routine arguments
-		class(Particle), intent(inout)	:: this
-		integer							:: iRetCode
-		
-		! Locals
-		
-		! Assume success (will falsify on failure)
-		iRetCode = 0
-		
-	end function parEmit
-	
-	! *****************
-	! * Particle pool *
-	! *****************
-	
 	function pplInit(this, cfg) result(iRetCode)
 	
 		! Routine arguments
@@ -103,7 +81,7 @@ contains
 		this % C = 0.d0
 		
 		! Assign timing constants
-		this % T_step = cfg % Tmed / cfg % Nstep
+		this % T_substep = cfg % Tmed / cfg % Nstep
 		
 		! Initialise particle space
 		this % maxpart = cfg % maxpart
@@ -112,7 +90,7 @@ contains
 		do i = 1, this % maxpart
 			this % tvPart(i) % filled = .false.
 		end do
-		this % next = 1
+		this % partIdx = 0
 		
 	end function pplInit
 	
@@ -140,16 +118,94 @@ contains
 	end function pplResetC
 	
 	
-	function pplEmit(this) result(iRetCode)
+	function pplEmit(this, cfg, prf) result(iRetCode)
 	
 		! Routine arguments
 		class(ParticlePool), intent(inout)	:: this
+		type(Config), intent(in)			:: cfg
+		type(MetProfiles), intent(in)		:: prf
 		integer								:: iRetCode
 		
 		! Locals
+		integer				:: iErrCode
+		integer				:: iPart
+		integer				:: iSource
+		real(8)				:: z
+		real(8)				:: u
+		real(8)				:: v
+		real(8)				:: su2
+		real(8)				:: sv2
+		real(8)				:: sw2
+		real(8)				:: dsw2
+		real(8)				:: eps
+		real(8)				:: alpha
+		real(8)				:: beta
+		real(8)				:: gamma
+		real(8)				:: delta
+		real(8)				:: alpha_u
+		real(8)				:: alpha_v
+		real(8)				:: deltau
+		real(8)				:: deltav
+		real(8)				:: deltat
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
+		
+		! Static point sources
+		do iSource = 1, size(cfg % tvPointStatic)
+		
+			! Get source height, and use it to get the new particles' atmospheric parameters
+			z = cfg % tvPointStatic(iSource) % z
+			iErrCode = prf % evaluate( &
+				cfg, &
+				z, &
+				u, v, &
+				su2, sv2, sw2, dsw2, &
+				eps, &
+				alpha, beta, gamma, delta, &
+				alpha_u, alpha_v, &
+				deltau, deltav, &
+				deltat &
+			)
+			if(iErrCode /= 0) then
+				iRetCode = 1
+				return
+			end if
+		
+			do iPart = 1, cfg % Np
+			
+				! Compute index of current particle in pool
+				this % partIdx = this % partIdx + 1
+				if(this % partIdx > this % maxpart) this % partIdx = 1
+				
+				! Assign particle initial position as source center plus a source radius dependent random shift
+				this % tvPart(this % partIdx) % Xp = &
+					cfg % tvPointStatic(iSource) % x + &
+					rnor() * cfg % tvPointStatic(iSource) % radius
+				this % tvPart(this % partIdx) % Yp = &
+					cfg % tvPointStatic(iSource) % y + &
+					rnor() * cfg % tvPointStatic(iSource) % radius
+				this % tvPart(this % partIdx) % Zp = &
+					cfg % tvPointStatic(iSource) % z + &
+					rnor() * cfg % tvPointStatic(iSource) % radius
+				if(this % tvPart(this % partIdx) % Zp < 0.d0) &
+					this % tvPart(this % partIdx) % Zp = -this % tvPart(this % partIdx) % Zp
+					
+				! Assign particle initial velocity
+				this % tvPart(this % partIdx) % up = rnor() * sqrt(su2)
+				this % tvPart(this % partIdx) % vp = rnor() * sqrt(sv2)
+				this % tvPart(this % partIdx) % wp = rnor() * sqrt(sw2)
+				
+				! Assign mass, creation time and age
+				this % tvPart(this % partIdx) % Qp = &
+					cfg % tvPointStatic(iSource) % q * &
+					this % T_substep / cfg % Np
+				this % tvPart(this % partIdx) % EmissionTime = prf % rEpoch
+				this % tvPart(this % partIdx) % Tp           = 0.d0
+			
+			end do
+			
+		end do
 		
 	end function pplEmit
 	
