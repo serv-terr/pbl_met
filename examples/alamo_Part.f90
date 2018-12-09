@@ -52,7 +52,7 @@ contains
 	function parEmit(this) result(iRetCode)
 	
 		! Routine arguments
-		class(Particle), intent(out)	:: this
+		class(Particle), intent(inout)	:: this
 		integer							:: iRetCode
 		
 		! Locals
@@ -143,7 +143,7 @@ contains
 	function pplEmit(this) result(iRetCode)
 	
 		! Routine arguments
-		class(ParticlePool), intent(out)	:: this
+		class(ParticlePool), intent(inout)	:: this
 		integer								:: iRetCode
 		
 		! Locals
