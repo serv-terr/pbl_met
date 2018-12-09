@@ -204,6 +204,10 @@ contains
 				this % tvPart(this % partIdx) % EmissionTime = prf % rEpoch
 				this % tvPart(this % partIdx) % Tp           = 0.d0
 				this % tvPart(this % partIdx) % filled       = .true.
+				
+				! Assign initial Gaussian kernel "sizes" to 0 - the particles on their beginning have a defined position
+				this % tvPart(this % partIdx) % sh = 0.d0
+				this % tvPart(this % partIdx) % sz = 0.d0
 			
 			end do
 			
