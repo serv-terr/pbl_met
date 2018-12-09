@@ -39,6 +39,7 @@ module Particles
 		integer										:: next
 	contains
 		procedure	:: Initialize => pplInit
+		procedure	:: ResetConc  => pplResetC
 		procedure	:: Emit       => pplEmit
 	end type ParticlePool
 	
@@ -114,6 +115,28 @@ contains
 		this % next = 1
 		
 	end function pplInit
+	
+	
+	function pplResetC(this) result(iRetCode)
+	
+		! Routine arguments
+		class(ParticlePool), intent(out)	:: this
+		integer								:: iRetCode
+		
+		! Locals
+		! --none--
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Reset concentration matrix
+		if(allocated(this % C)) then
+			this % C = 0.d0
+		else
+			iRetCode = 1
+		end if
+		
+	end function pplResetC
 	
 	
 	function pplEmit(this) result(iRetCode)
