@@ -298,32 +298,40 @@ contains
 		end if
 		
 		! Compute polar wind given vector
-		polar = CartesianToPolar2( real([this % rvU(i), this % rvV(i)], kind=4) )
-		this % rvVel(i) = polar(1)
-		this % rvDir(i) = polar(2)
+		do i = 1, size(this % rvExtEpoch)
+			polar = CartesianToPolar2( real([this % rvExtU(i), this % rvExtV(i)], kind=4) )
+			this % rvExtVel(i) = polar(1)
+			this % rvExtDir(i) = polar(2)
+		end do
 		
 		! Print meteo data, if requested
-		open(iLUN, file=sFineMeteoFile, status='unknown', action='write', iostat=iErrCode)
-		if(iErrCode /= 0) then
-			iRetCode = 12
-			return
+		if(sFineMeteoFile /= ' ') then
+			open(iLUN, file=sFineMeteoFile, status='unknown', action='write', iostat=iErrCode)
+			if(iErrCode /= 0) then
+				iRetCode = 12
+				return
+			end if
+			do i = 1, size(this % rvExtEpoch)
+				iErrCode = tDateTime % fromEpoch(this % rvExtEpoch(i))
+				sDateTime = tDateTime % toISO()
+				write(iLUN, "(a, 6(',', f9.4))") &
+					sDateTime, &
+					this % rvExtTemp(i), &
+					this % rvExtVel(i), &
+					this % rvExtDir(i), &
+					this % rvExtUstar(i), &
+					this % rvExtH0(i), &
+					this % rvExtZi(i)
+			end do
+			close(iLUN)
 		end if
-		do i = 1, size(this % rvExtEpoch)
-			iErrCode = tDateTime % fromEpoch(this % rvExtEpoch(i))
-			sDateTime = tDateTime % toISO()
-			write(iLUN, "(a, 6(',', f8.3))") &
-				sDateTime, &
-				this % rvExtTemp(i), &
-				this % rvExtVel(i), &
-				this % rvExtDir(i), &
-				this % rvExtUstar(i), &
-				this % rvExtH0(i), &
-				this % rvExtZi(i)
-		end do
-		close(iLUN)
-		
+			
 		! Construct profiles
 		
 	end function metRead
+	
+	! **********************
+	! * Auxiliary routines *
+	! **********************
 
 end module Meteo
