@@ -138,9 +138,9 @@ program Alamo
 				curTime % toISO(), " ", &
 				part % count(), &
 				" particles, Mean conc = ", &
-				sum(part % C) / (part % nx * part % ny), &
+				real(sum(part % C) / (part % nx * part % ny), kind=4), &
 				"   Max conc = ", &
-				maxval(part % C)
+				real(maxval(part % C), kind=4)
 		end if
 		
 	end do
