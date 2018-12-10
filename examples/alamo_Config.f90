@@ -921,8 +921,8 @@ contains
 			izFrom = n
 			izTo   = n
 		else ! Entry condition: z(1) < zp < z(n)
-			izFrom = floor((zp - cfg % z0) / cfg % dz)
-			izTo   = ceiling((zp - cfg % z0) / cfg % dz)
+			izFrom = floor((zp - cfg % z0) / cfg % dz) + 1
+			izTo   = ceiling((zp - cfg % z0) / cfg % dz) + 1
 		end if
 		
 		! Evaluate linear interpolation coefficients
