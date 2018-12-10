@@ -134,7 +134,13 @@ program Alamo
 		
 		! Inform of progress, if requested
 		if(cfg % debug > 0) then
-			print *, "Processed: ", curTime % toISO(), "   Active particles: ", part % count()
+			print *, &
+				curTime % toISO(), " ", &
+				part % count(), &
+				" particles, Mean conc = ", &
+				sum(part % C) / (part % nx * part % ny), &
+				"   Max conc = ", &
+				maxval(part % C)
 		end if
 		
 	end do
