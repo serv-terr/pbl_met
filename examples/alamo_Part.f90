@@ -36,6 +36,7 @@ module Particles
 		type(Particle), dimension(:), allocatable	:: tvPart
 		integer										:: maxpart
 		integer										:: partIdx
+		integer										:: partNum
 		! Snapshot generation
 		character(len=256)							:: sSnapPath
 		character(len=256)							:: sSnapGridFile
@@ -105,6 +106,7 @@ contains
 			this % tvPart(i) % filled = .false.
 		end do
 		this % partIdx = 0
+		this % partNum = 0
 		
 	end function pplInit
 	
@@ -191,6 +193,7 @@ contains
 				! Compute index of current particle in pool
 				this % partIdx = this % partIdx + 1
 				if(this % partIdx > this % maxpart) this % partIdx = 1
+				this % partNum = min(this % partNum + 1, this % maxpart)
 				
 				! Assign particle initial position as source center plus a source radius dependent random shift
 				this % tvPart(this % partIdx) % Xp = &
@@ -273,7 +276,7 @@ contains
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
-		do iPart = 1, cfg % Np
+		do iPart = 1, this % partNum
 		
 			! Here we follow the time evolution of each particle in sequence
 			curPeriod = this % T_substep
