@@ -48,6 +48,7 @@ module Particles
 		procedure	:: UpdateConc => pplConc
 		procedure	:: Count      => pplCount
 		procedure	:: SnapInit   => pplSnapInit
+		procedure	:: SnapTake   => pplSnapTake
 	end type ParticlePool
 	
 contains
@@ -573,5 +574,54 @@ contains
 		close(iLUN)
 		
 	end function pplSnapInit
+	
+	
+	function pplSnapTake(this, iLUN, iSnap) result(iRetCode)
+	
+		! Routine arguments
+		class(ParticlePool), intent(in)	:: this
+		integer, intent(in)				:: iLUN
+		integer, intent(in)				:: iSnap
+		integer							:: iRetCode
+		
+		! Locals
+		integer				:: iErrCode
+		integer				:: iPart
+		character(len=256)	:: sSnapFile
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check if something is to be made
+		if(this % sSnapPath == " ") return
+		
+		! Write active in-grid particles to file
+		write(sSnapFile, "(a, '/snap_', i7.7, '.csv')") trim(this % sSnapPath), iSnap
+		open(iLUN, file = sSnapFile, status='unknown', action='write')
+		write(iLUN, "('X, Y, Z, Q, Age')")
+		do iPart = 1, size(this % tvPart)
+			if(this % tvPart(iPart) % filled) then
+				if( &
+					this % xmin <= this % tvPart(iPart) % Xp .and. this % tvPart(iPart) % Xp <= this % xmax .and. &
+					this % ymin <= this % tvPart(iPart) % Yp .and. this % tvPart(iPart) % Yp <= this % ymax .and. &
+					this % zmin <= this % tvPart(iPart) % Zp .and. this % tvPart(iPart) % Zp <= this % zmax &
+				) then
+					write(iLUN, "(f10.2, 2(',',f10.2),',',f15.7,',',f10.2)") &
+						this % tvPart(iPart) % Xp, &
+						this % tvPart(iPart) % Yp, &
+						this % tvPart(iPart) % Zp, &
+						this % tvPart(iPart) % Qp, &
+						this % tvPart(iPart) % Tp
+				end if
+			end if
+		end do
+		close(iLUN)
+		
+		! Append row to snapshot list
+		open(iLUN, file=this % sSnapListFile, status='old', action='write', position='append')
+		write(iLUN, "(a)") trim(sSnapFile)
+		close(iLUN)
+		
+	end function pplSnapTake
 	
 end module Particles
