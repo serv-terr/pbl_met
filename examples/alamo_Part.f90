@@ -36,6 +36,10 @@ module Particles
 		type(Particle), dimension(:), allocatable	:: tvPart
 		integer										:: maxpart
 		integer										:: partIdx
+		! Snapshot generation
+		character(len=256)							:: sSnapPath
+		character(len=256)							:: sSnapGridFile
+		character(len=256)							:: sSnapListFile
 	contains
 		procedure	:: Initialize => pplInit
 		procedure	:: ResetConc  => pplResetC
@@ -43,6 +47,7 @@ module Particles
 		procedure	:: Move       => pplMove
 		procedure	:: UpdateConc => pplConc
 		procedure	:: Count      => pplCount
+		procedure	:: SnapInit   => pplSnapInit
 	end type ParticlePool
 	
 contains
@@ -67,6 +72,11 @@ contains
 		this % ymax = cfg % y1
 		this % zmin = 0.d0
 		this % zmax = cfg % zmax
+		
+		! Assign snapshot path and related data files
+		this % sSnapPath     = cfg % framePath
+		this % sSnapGridFile = trim(cfg % framePath) // ".grd"
+		this % sSnapListFile = trim(cfg % framePath) // ".lst"
 		
 		! Initialise receptor coordinates
 		this % nx = cfg % nx
@@ -431,6 +441,9 @@ contains
 		real(8), parameter	:: amax = 15.d0
 		real(8), parameter	:: zr   = 1.d0
 		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
 		! Main loop: iterate over particles, and add their contribution to receptors
 		zi = cfg % tMeteo % rvExtZi(iSubStep)
 		H0 = cfg % tMeteo % rvExtH0(iSubStep)
@@ -509,5 +522,56 @@ contains
 		end if
 		
 	end function pplCount
+	
+	
+	function pplSnapInit(this, iLUN) result(iRetCode)
+	
+		! Routine arguments
+		class(ParticlePool), intent(in)	:: this
+		integer, intent(in)				:: iLUN
+		integer							:: iRetCode
+		
+		! Locals
+		integer				:: iErrCode
+		character(len=256)	:: sSnapGuideFile
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something is to be made
+		if(this % sSnapPath == " ") return
+		
+		! Check movie directory really exists
+		sSnapGuideFile = trim(this % sSnapPath) // "/guide.txt"
+		open(iLUN, file=sSnapGuideFile, status='unknown', action='write', iostat=iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 1
+			return
+		end if
+		write(iLUN, "('Snapshot guide file')", iostat=iErrCode)
+		if(iErrCode /= 0) then
+			close(iLUN)
+			iRetCode = 1
+			return
+		end if
+		close(iLUN)
+		! Post-condition: Guide file has been created, so likely the snaps will be too
+		
+		! Create snap list with empty contents
+		open(iLUN, file = this % sSnapListFile, status='unknown', action='write')
+		close(iLUN)
+		
+		! Create snap grid file
+		open(iLUN, file = this % sSnapGridFile, status='unknown', action='write')
+		write(iLUN, "(f10.2,5(',',f10.2))") &
+			this % xmin, &
+			this % xmax, &
+			this % ymin, &
+			this % ymax, &
+			this % zmin, &
+			this % zmax
+		close(iLUN)
+		
+	end function pplSnapInit
 	
 end module Particles
