@@ -68,6 +68,11 @@ program Alamo
 		iRetCode = prfSummary % printHeader(10)
 	end if
 	i = 0	! Actual time index
+	iRetCode = part % SnapInit(10)
+	if(iRetCode /= 0) then
+		print *, "alamo:: error: Impossible to generate snapshot data files - Return code = ", iRetCode
+		stop
+	end if
 	open(11, file=cfg % Fileout, access='stream', action='write', status='unknown')
 	do iStep = 1, cfg % getNumTimeSteps()
 	
@@ -119,6 +124,8 @@ program Alamo
 				print *, 'alamo:: error: Concentration update failed - Return code = ', iRetCode
 				stop
 			end if
+			
+			iRetCode = part % SnapTake(10, i)
 			
 		end do
 		
