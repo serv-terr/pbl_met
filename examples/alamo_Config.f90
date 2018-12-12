@@ -91,6 +91,29 @@ module Configuration
 	end type MetProfiles
 	
 	
+	type MetProfValues
+		real(8)	:: rEpoch	! Time stamp of current profile set
+		real(8)	:: z		! Levels' height above ground (m)
+		real(8)	:: u		! U components (m/s)
+		real(8)	:: v		! V components (m/s)
+		real(8)	:: T		! Temperatures (K)
+		real(8)	:: su2		! var(U) values (m2/s2)
+		real(8)	:: sv2		! var(V) values (m2/s2)
+		real(8)	:: sw2		! var(W) values (m2/s2)
+		real(8)	:: dsw2		! d var(W) / dz (m/s2)
+		real(8)	:: eps		! TKE dissipation rate
+		real(8)	:: alfa		! Langevin equation coefficient
+		real(8)	:: beta		! Langevin equation coefficient
+		real(8)	:: gamma	! Langevin equation coefficient
+		real(8)	:: delta	! Langevin equation coefficient
+		real(8)	:: alfa_u	! Langevin equation coefficient
+		real(8)	:: alfa_v	! Langevin equation coefficient
+		real(8)	:: deltau	! Langevin equation coefficient
+		real(8)	:: deltav	! Langevin equation coefficient
+		real(8)	:: deltat	! Langevin equation coefficient
+	end type MetProfValues
+	
+	
 	type Summary
 		real(8)	:: rTimeStamp
 		real(8)	:: u, uMin, uMax
