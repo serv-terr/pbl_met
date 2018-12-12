@@ -33,6 +33,17 @@ program Alamo
 	type(DateTime)		:: curTime
 	type(ParticlePool)	:: part
 	
+	real				:: timeFrom1
+	real				:: timeTo1
+	real				:: timeFrom2
+	real				:: timeTo2
+	real				:: timeSpentOnStep
+	real				:: timeSpentOnMeteo
+	real				:: timeSpentOnParticleEmission
+	real				:: timeSpentOnParticleMovement
+	real				:: timeSpentOnConcentrations
+	real				:: timeSpentOnWriting
+	
 	! Get parameters
 	if(command_argument_count() /= 1) then
 		print *, "alamo - Air LAgrangian particle MOdel"
@@ -64,8 +75,11 @@ program Alamo
 	
 	! Main loop: get meteo information, and care for particles
 	if(cfg % metDiaFile /= "") then
-		open(10, file=cfg % metDiaFile, status='unknown', action='write')
-		iRetCode = prfSummary % printHeader(10)
+		open(100, file=cfg % metDiaFile, status='unknown', action='write')
+		write(100, "(a)") &
+			"Date.Time,               Num.Part,  C.Med,          C.Max,          " // &
+			"Time.Step,      Time.Meteo,     Time.Emission   Time.Movement,  " // &
+			"Time.Concentr,  Time.Writing"
 	end if
 	i = 0	! Actual time index
 	iRetCode = part % SnapInit(10)
@@ -76,23 +90,37 @@ program Alamo
 	open(11, file=cfg % Fileout, access='stream', action='write', status='unknown')
 	do iStep = 1, cfg % getNumTimeSteps()
 	
+		call cpu_time(timeFrom1)
+	
+		timeSpentOnConcentrations = 0.
+		timeSpentOnWriting        = 0.
+		
 		! Reset concentration matrix
 		iRetCode = part % ResetConc()
+		call cpu_time(timeFrom2)
 		if(iRetCode /= 0) then
 			print *, "alamo:: error: Concentration matrix was not allocated before use"
 			stop
 		end if
+		call cpu_time(timeTo2)
+		timeSpentOnConcentrations = timeSpentOnConcentrations + (timeTo2 - timeFrom2)
 	
 		! Iterate over substeps in current time step
+		timeSpentOnMeteo            = 0.
+		timeSpentOnParticleEmission = 0.
+		timeSpentOnParticleMovement = 0.
 		do iSubStep = 1, cfg % getNumTimeSubSteps()
 			i = i + 1
-		
+			
 			! Gather meteo profiles for current time step
+			call cpu_time(timeFrom2)
 			iRetCode = prf % create(cfg, i)
 			if(iRetCode /= 0) then
 				print *, 'alamo:: error: Profile not created - Return code = ', iRetCode
 				stop
 			end if
+			call cpu_time(timeTo2)
+			timeSpentOnMeteo = timeSpentOnMeteo + (timeTo2 - timeFrom2)
 			
 			! Add summary to summary file, if requested
 			if(cfg % metDiaFile /= "") then
@@ -105,27 +133,39 @@ program Alamo
 			end if
 			
 			! Emit new particles
+			call cpu_time(timeFrom2)
 			iRetCode = part % Emit(cfg, prf)
 			if(iRetCode /= 0) then
 				print *, 'alamo:: error: Particle emission failed - Return code = ', iRetCode
 				stop
 			end if
+			call cpu_time(timeTo2)
+			timeSpentOnParticleEmission = timeSpentOnParticleEmission + (timeTo2 - timeFrom2)
 			
 			! Move particles
+			call cpu_time(timeFrom2)
 			iRetCode = part % Move(cfg, prf, i)
 			if(iRetCode /= 0) then
 				print *, 'alamo:: error: Particle move failed - Return code = ', iRetCode
 				stop
 			end if
+			call cpu_time(timeTo2)
+			timeSpentOnParticleMovement = timeSpentOnParticleMovement + (timeTo2 - timeFrom2)
 			
 			! Add particles contributions to concentration
+			call cpu_time(timeFrom2)
 			iRetCode = part % UpdateConc(cfg, i)
 			if(iRetCode /= 0) then
 				print *, 'alamo:: error: Concentration update failed - Return code = ', iRetCode
 				stop
 			end if
+			call cpu_time(timeTo2)
+			timeSpentOnConcentrations = timeSpentOnConcentrations + (timeTo2 - timeFrom2)
 			
+			call cpu_time(timeFrom2)
 			iRetCode = part % SnapTake(10, i)
+			call cpu_time(timeTo2)
+			timeSpentOnWriting = timeSpentOnWriting + (timeTo2 - timeFrom2)
 			
 		end do
 		
@@ -150,10 +190,28 @@ program Alamo
 				real(maxval(part % C), kind=4)
 		end if
 		
+		call cpu_time(timeTo1)
+		timeSpentOnStep = timeTo1 - timeFrom1
+	
+		if(cfg % metDiaFile /= "") then
+			write(100, "(a,',',i10,8(',',e15.7))") &
+				curTime % toISO(), &
+				part % count(), &
+				real(sum(part % C) / (part % nx * part % ny), kind=4), &
+				real(maxval(part % C), kind=4), &
+				timeSpentOnStep, &
+				timeSpentOnMeteo, &
+				timeSpentOnParticleEmission, &
+				timeSpentOnParticleMovement, &
+				timeSpentOnConcentrations, &
+				timeSpentOnWriting
+			flush(100)
+		end if
+	
 	end do
 	close(11)
 	if(cfg % metDiaFile /= "") then
-		close(10)
+		close(100)
 	end if
 	
 end program Alamo
