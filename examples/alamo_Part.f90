@@ -147,22 +147,7 @@ contains
 		integer				:: iPart
 		integer				:: iSource
 		real(8)				:: z
-		real(8)				:: u
-		real(8)				:: v
-		real(8)				:: su2
-		real(8)				:: sv2
-		real(8)				:: sw2
-		real(8)				:: dsw2
-		real(8)				:: eps
-		real(8)				:: alpha
-		real(8)				:: beta
-		real(8)				:: gamma
-		real(8)				:: delta
-		real(8)				:: alpha_u
-		real(8)				:: alpha_v
-		real(8)				:: deltau
-		real(8)				:: deltav
-		real(8)				:: deltat
+		type(MetProfValues)	:: met
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -175,13 +160,7 @@ contains
 			iErrCode = prf % evaluate( &
 				cfg, &
 				z, &
-				u, v, &
-				su2, sv2, sw2, dsw2, &
-				eps, &
-				alpha, beta, gamma, delta, &
-				alpha_u, alpha_v, &
-				deltau, deltav, &
-				deltat &
+				met &
 			)
 			if(iErrCode /= 0) then
 				iRetCode = 1
@@ -209,9 +188,9 @@ contains
 					this % tvPart(this % partIdx) % Zp = -this % tvPart(this % partIdx) % Zp
 					
 				! Assign particle initial velocity
-				this % tvPart(this % partIdx) % up = rnor() * sqrt(su2)
-				this % tvPart(this % partIdx) % vp = rnor() * sqrt(sv2)
-				this % tvPart(this % partIdx) % wp = rnor() * sqrt(sw2)
+				this % tvPart(this % partIdx) % up = rnor() * sqrt(met % su2)
+				this % tvPart(this % partIdx) % vp = rnor() * sqrt(met % sv2)
+				this % tvPart(this % partIdx) % wp = rnor() * sqrt(met % sw2)
 				
 				! Assign mass, creation time and age
 				this % tvPart(this % partIdx) % Qp = &
@@ -246,21 +225,7 @@ contains
 		integer				:: iPart
 		integer				:: iSource
 		real(8)				:: z
-		real(8)				:: u
-		real(8)				:: v
-		real(8)				:: su2
-		real(8)				:: sv2
-		real(8)				:: sw2
-		real(8)				:: dsw2
-		real(8)				:: eps
-		real(8)				:: alpha
-		real(8)				:: beta
-		real(8)				:: gamma
-		real(8)				:: delta
-		real(8)				:: alpha_u
-		real(8)				:: alpha_v
-		real(8)				:: deltau
-		real(8)				:: deltav
+		type(MetProfValues)	:: met
 		real(8)				:: deltat
 		real(8)				:: curPeriod
 		real(8)				:: zi
@@ -291,13 +256,7 @@ contains
 				iErrCode = prf % evaluate( &
 					cfg, &
 					z, &
-					u, v, &
-					su2, sv2, sw2, dsw2, &
-					eps, &
-					alpha, beta, gamma, delta, &
-					alpha_u, alpha_v, &
-					deltau, deltav, &
-					deltat &
+					met &
 				)
 				if(iErrCode /= 0) then
 					iRetCode = 1
@@ -305,6 +264,7 @@ contains
 				end if
 				
 				! Compute time delta, as the ideal time step but possibly for end value
+				deltat = met % deltat
 				if(curPeriod > deltat) then
 					curPeriod = curPeriod - deltat
 				else
@@ -318,15 +278,15 @@ contains
 				
 				! Get wind direction through its directing cosines
 				! (no need of trig function calls)
-				vel  = sqrt(u**2 + v**2)
-				sina = v/vel
-				cosa = u/vel
+				vel  = sqrt(met % u**2 + met % v**2)
+				sina = met % v/vel
+				cosa = met % u/vel
 				
 				! Update particle position
 				this % tvPart(iPart) % Xp = this % tvPart(iPart) % Xp + &
-					(u + this % tvPart(iPart) % up * cosa - this % tvPart(iPart) % vp * sina) * deltat
+					(met % u + this % tvPart(iPart) % up * cosa - this % tvPart(iPart) % vp * sina) * deltat
 				this % tvPart(iPart) % Yp = this % tvPart(iPart) % Yp + &
-					(v + this % tvPart(iPart) % up * sina + this % tvPart(iPart) % vp * cosa) * deltat
+					(met % v + this % tvPart(iPart) % up * sina + this % tvPart(iPart) % vp * cosa) * deltat
 				this % tvPart(iPart) % Zp = this % tvPart(iPart) % Zp + &
 					this % tvPart(iPart) % wp * deltat
 					
@@ -363,21 +323,24 @@ contains
 				if(this % tvPart(iPart) % Zp < zi) then
 				
 					this % tvPart(iPart) % wp = &
-						(alpha * this % tvPart(iPart) % wp ** 2 + gamma) * deltat + &
-						exp(beta * deltat) * this % tvPart(iPart) % wp + &
-						delta * rootDeltat * rnor()
+						(met % alfa * this % tvPart(iPart) % wp ** 2 + met % gamma) * deltat + &
+						exp(met % beta * deltat) * this % tvPart(iPart) % wp + &
+						met % delta * rootDeltat * rnor()
 					this % tvPart(iPart) % up = &
-						exp(alpha_u * deltat) * this % tvPart(iPart) % up + &
-						deltau * rootDeltat * rnor()
+						exp(met % alfa_u * deltat) * this % tvPart(iPart) % up + &
+						met % deltau * rootDeltat * rnor()
 					this % tvPart(iPart) % vp = &
-						exp(alpha_v * deltat) * this % tvPart(iPart) % vp + &
-						deltav * rootDeltat * rnor()
+						exp(met % alfa_v * deltat) * this % tvPart(iPart) % vp + &
+						met % deltav * rootDeltat * rnor()
 						
 				else
 				
-					this % tvPart(iPart) % wp = exp(alpha * deltat) * this % tvPart(iPart) % wp + delta * rootDeltat * rnor()
-					this % tvPart(iPart) % up = exp(alpha_u * deltat) * this % tvPart(iPart) % up + deltau * rootDeltat * rnor()
-					this % tvPart(iPart) % vp = exp(alpha_v * deltat) * this % tvPart(iPart) % vp + deltav * rootDeltat * rnor()
+					this % tvPart(iPart) % wp = exp(met % alfa * deltat) * this % tvPart(iPart) % wp + &
+						met % delta * rootDeltat * rnor()
+					this % tvPart(iPart) % up = exp(met % alfa_u * deltat) * this % tvPart(iPart) % up + &
+						met % deltau * rootDeltat * rnor()
+					this % tvPart(iPart) % vp = exp(met % alfa_v * deltat) * this % tvPart(iPart) % vp + &
+						met % deltav * rootDeltat * rnor()
 					
 				end if
 
@@ -388,18 +351,18 @@ contains
 				! * Update the Gaussian kernel sigmas *
 				! *************************************
 				
-				Coe = 3.d0 * eps
-				TLh = 2.d0 * su2 / Coe
-				TLw = 2.d0 * sw2 / Coe
+				Coe = 3.d0 * met % eps
+				TLh = 2.d0 * met % su2 / Coe
+				TLw = 2.d0 * met % sw2 / Coe
 				if(this % tvPart(iPart) % Tp < TLh) then
-					this % tvPart(iPart) % sh = this % tvPart(iPart) % sh + sqrt(su2) * deltat 
+					this % tvPart(iPart) % sh = this % tvPart(iPart) % sh + sqrt(met % su2) * deltat 
 				else
-					this % tvPart(iPart) % sh = sqrt(this % tvPart(iPart) % sh ** 2 + 2.d0 * TLh * su2 * deltat)
+					this % tvPart(iPart) % sh = sqrt(this % tvPart(iPart) % sh ** 2 + 2.d0 * TLh * met % su2 * deltat)
 				end if
 				if(this % tvPart(iPart) % Tp < TLw) then
-					this % tvPart(iPart) % sz = this % tvPart(iPart) % sz + sqrt(sw2) * deltat 
+					this % tvPart(iPart) % sz = this % tvPart(iPart) % sz + sqrt(met % sw2) * deltat 
 				else
-					this % tvPart(iPart) % sz = sqrt(this % tvPart(iPart) % sz ** 2 + 2.d0 * TLw * sw2 * deltat)
+					this % tvPart(iPart) % sz = sqrt(this % tvPart(iPart) % sz ** 2 + 2.d0 * met % sw2 * deltat)
 				end if
 				
 			end do
