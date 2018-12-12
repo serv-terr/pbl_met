@@ -886,44 +886,14 @@ contains
 		this, &		! Current meteo profiles
 		cfg, &		! Configuration parameters
 		zp, &		! Reference height at which to evaluate
-		u, &
-		v, &
-		su2, &
-		sv2, &
-		sw2, &
-		dsw2, &
-		eps, &
-		alfa, &
-		beta, &
-		gamma, &
-		delta, &
-		alfa_u, &
-		alfa_v, &
-		deltau, &
-		deltav, &
-		deltat &
+		met &
 	) result(iRetCode)
 	
 		! Routine arguments
 		class(MetProfiles), intent(in)		:: this
 		type(Config), intent(in)			:: cfg
 		real(8), intent(in)					:: zp
-		real(8), intent(out)				:: u
-		real(8), intent(out)				:: v
-		real(8), intent(out)				:: su2
-		real(8), intent(out)				:: sv2
-		real(8), intent(out)				:: sw2
-		real(8), intent(out)				:: dsw2
-		real(8), intent(out)				:: eps
-		real(8), intent(out)				:: alfa
-		real(8), intent(out)				:: beta
-		real(8), intent(out)				:: gamma
-		real(8), intent(out)				:: delta
-		real(8), intent(out)				:: alfa_u
-		real(8), intent(out)				:: alfa_v
-		real(8), intent(out)				:: deltau
-		real(8), intent(out)				:: deltav
-		real(8), intent(out)				:: deltat
+		type(MetProfValues), intent(out)	:: met
 		integer								:: iRetCode
 		
 		! Locals
@@ -952,22 +922,22 @@ contains
 		zpp = (zp - this % z(izFrom)) / cfg % dz
 		
 		! Compute linear interpolation
-		u   = this % u(izFrom) + zpp * (this % u(izTo) - this % u(izFrom))
-		v   = this % v(izFrom) + zpp * (this % v(izTo) - this % v(izFrom))
-		su2 = this % su2(izFrom) + zpp * (this % su2(izTo) - this % su2(izFrom))
-		sv2 = this % sv2(izFrom) + zpp * (this % sv2(izTo) - this % sv2(izFrom))
-		sw2 = this % sw2(izFrom) + zpp * (this % sw2(izTo) - this % sw2(izFrom))
-		dsw2 = this % dsw2(izFrom) + zpp * (this % dsw2(izTo) - this % dsw2(izFrom))
-		eps = this % eps(izFrom) + zpp * (this % eps(izTo) - this % eps(izFrom))
-		alfa = this % alfa(izFrom) + zpp * (this % alfa(izTo) - this % alfa(izFrom))
-		beta = this % beta(izFrom) + zpp * (this % beta(izTo) - this % beta(izFrom))
-		gamma = this % gamma(izFrom) + zpp * (this % gamma(izTo) - this % gamma(izFrom))
-		delta = this % delta(izFrom) + zpp * (this % delta(izTo) - this % delta(izFrom))
-		alfa_u = this % alfa_u(izFrom) + zpp * (this % alfa_u(izTo) - this % alfa_u(izFrom))
-		alfa_v = this % alfa_v(izFrom) + zpp * (this % alfa_v(izTo) - this % alfa_v(izFrom))
-		deltau = this % deltau(izFrom) + zpp * (this % deltau(izTo) - this % deltau(izFrom))
-		deltav = this % deltav(izFrom) + zpp * (this % deltav(izTo) - this % deltav(izFrom))
-		deltat = this % deltat(izFrom) + zpp * (this % deltat(izTo) - this % deltat(izFrom))
+		met % u      = this % u(izFrom)      + zpp * (this % u(izTo)      - this % u(izFrom))
+		met % v      = this % v(izFrom)      + zpp * (this % v(izTo)      - this % v(izFrom))
+		met % su2    = this % su2(izFrom)    + zpp * (this % su2(izTo)    - this % su2(izFrom))
+		met % sv2    = this % sv2(izFrom)    + zpp * (this % sv2(izTo)    - this % sv2(izFrom))
+		met % sw2    = this % sw2(izFrom)    + zpp * (this % sw2(izTo)    - this % sw2(izFrom))
+		met % dsw2   = this % dsw2(izFrom)   + zpp * (this % dsw2(izTo)   - this % dsw2(izFrom))
+		met % eps    = this % eps(izFrom)    + zpp * (this % eps(izTo)    - this % eps(izFrom))
+		met % alfa   = this % alfa(izFrom)   + zpp * (this % alfa(izTo)   - this % alfa(izFrom))
+		met % beta   = this % beta(izFrom)   + zpp * (this % beta(izTo)   - this % beta(izFrom))
+		met % gamma  = this % gamma(izFrom)  + zpp * (this % gamma(izTo)  - this % gamma(izFrom))
+		met % delta  = this % delta(izFrom)  + zpp * (this % delta(izTo)  - this % delta(izFrom))
+		met % alfa_u = this % alfa_u(izFrom) + zpp * (this % alfa_u(izTo) - this % alfa_u(izFrom))
+		met % alfa_v = this % alfa_v(izFrom) + zpp * (this % alfa_v(izTo) - this % alfa_v(izFrom))
+		met % deltau = this % deltau(izFrom) + zpp * (this % deltau(izTo) - this % deltau(izFrom))
+		met % deltav = this % deltav(izFrom) + zpp * (this % deltav(izTo) - this % deltav(izFrom))
+		met % deltat = this % deltat(izFrom) + zpp * (this % deltat(izTo) - this % deltat(izFrom))
 
 	end function metpEvaluate
 
