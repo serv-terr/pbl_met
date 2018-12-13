@@ -63,7 +63,9 @@ module Configuration
 	
 	
 	type MetProfiles
+		! Time stamp
 		real(8)								:: rEpoch	! Time stamp of current profile set
+		! Primitive profiles
 		real(8), dimension(:), allocatable	:: z		! Levels' height above ground (m)
 		real(8), dimension(:), allocatable	:: u		! U components (m/s)
 		real(8), dimension(:), allocatable	:: v		! V components (m/s)
@@ -82,6 +84,11 @@ module Configuration
 		real(8), dimension(:), allocatable	:: deltau	! Langevin equation coefficient
 		real(8), dimension(:), allocatable	:: deltav	! Langevin equation coefficient
 		real(8), dimension(:), allocatable	:: deltat	! Langevin equation coefficient
+		! Convenience derived values
+		real(8), dimension(:), allocatable	:: Au		! exp(alfa_u*dt)
+		real(8), dimension(:), allocatable	:: Av		! exp(alfa_v*dt)
+		real(8), dimension(:), allocatable	:: A		! exp(alfa*dt)
+		real(8), dimension(:), allocatable	:: B		! exp(beta*dt)
 	contains
 		procedure	:: clean     => metpClean
 		procedure	:: alloc     => metpAlloc
@@ -111,6 +118,10 @@ module Configuration
 		real(8)	:: deltau	! Langevin equation coefficient
 		real(8)	:: deltav	! Langevin equation coefficient
 		real(8)	:: deltat	! Langevin equation coefficient
+		real(8)	:: Au		! exp(alfa_u*dt)
+		real(8)	:: Av		! exp(alfa_v*dt)
+		real(8)	:: A		! exp(alfa*dt)
+		real(8)	:: B		! exp(beta*dt)
 	end type MetProfValues
 	
 	
@@ -590,6 +601,10 @@ contains
 		if(allocated(this % deltau)) deallocate(this % deltau)
 		if(allocated(this % deltav)) deallocate(this % deltav)
 		if(allocated(this % deltat)) deallocate(this % deltat)
+		if(allocated(this % Au))     deallocate(this % Au)
+		if(allocated(this % Av))     deallocate(this % Av)
+		if(allocated(this % A))      deallocate(this % A)
+		if(allocated(this % B))      deallocate(this % B)
 		
 	end function metpClean
 	
@@ -633,6 +648,10 @@ contains
 			this % deltau(iNumData), &
 			this % deltav(iNumData), &
 			this % deltat(iNumData), &
+			this % Au(iNumData), &
+			this % AV(iNumData), &
+			this % A(iNumData), &
+			this % B(iNumData), &
 			stat = iErrCode &
 		)
 		if(iRetCode /= 0) then
@@ -674,6 +693,7 @@ contains
 		real(8)	:: C0vv
 		real(8)	:: C0ww
 		real(8)	:: ssw2_2
+		real(8)	:: dt
 		
 		! Constants
 		real(8), parameter	:: K    = 0.4d0		! von Karman constant
@@ -807,7 +827,7 @@ contains
 		end if
 
 		! Langevin coefficients and optimal time step (a function
-		! of vertical Lagrangian decorrelation time
+		! of vertical Lagrangian decorrelation time)
 		do j = 1, m
 			if(ws > 0.) then
 				! Convective
@@ -878,6 +898,13 @@ contains
 			end if
 			
 		end do
+		
+		! Convenience values
+		dt        = real(cfg % Tmed, kind=8) / real(cfg % Nstep, kind=8)
+		this % Au = exp(this % alfa_u * dt)
+		this % Av = exp(this % alfa_v * dt)
+		this % A  = exp(this % alfa * dt)
+		this % B  = exp(this % beta * dt)
 	
 	end function metpCreate
 
@@ -938,6 +965,10 @@ contains
 		met % deltau = this % deltau(izFrom) + zpp * (this % deltau(izTo) - this % deltau(izFrom))
 		met % deltav = this % deltav(izFrom) + zpp * (this % deltav(izTo) - this % deltav(izFrom))
 		met % deltat = this % deltat(izFrom) + zpp * (this % deltat(izTo) - this % deltat(izFrom))
+		met % Au     = this % Au(izFrom)     + zpp * (this % Au(izTo)     - this % Au(izFrom))
+		met % Av     = this % Av(izFrom)     + zpp * (this % Av(izTo)     - this % Av(izFrom))
+		met % A      = this % A(izFrom)      + zpp * (this % A(izTo)      - this % A(izFrom))
+		met % B      = this % B(izFrom)      + zpp * (this % B(izTo)      - this % B(izFrom))
 
 	end function metpEvaluate
 
