@@ -308,26 +308,15 @@ contains
 			! Compute Langevin time scale
 			rootDeltat = sqrt(deltat)
 			
-			! Model's Langevin formulation is different within and above the PBL
+			! Langevin equations
+			this % tvPart(iPart) % up = met % Au * this % tvPart(iPart) % up + met % deltau * rootDeltat * rnor()
+			this % tvPart(iPart) % vp = met % Av * this % tvPart(iPart) % vp + met % deltav * rootDeltat * rnor()
 			if(this % tvPart(iPart) % Zp < zi) then
-			
-				this % tvPart(iPart) % up = exp(met % alfa_u * deltat) * this % tvPart(iPart) % up + &
-					met % deltau * rootDeltat * rnor()
-				this % tvPart(iPart) % vp = exp(met % alfa_v * deltat) * this % tvPart(iPart) % vp + &
-					met % deltav * rootDeltat * rnor()
-				this % tvPart(iPart) % wp = exp(met % beta * deltat) * this % tvPart(iPart) % wp + &
+				this % tvPart(iPart) % wp = met % B * this % tvPart(iPart) % wp + &
 					(met % alfa * this % tvPart(iPart) % wp ** 2 + met % gamma) * deltat + &
 					met % delta * rootDeltat * rnor()
-					
 			else
-			
-				this % tvPart(iPart) % up = exp(met % alfa_u * deltat) * this % tvPart(iPart) % up + &
-					met % deltau * rootDeltat * rnor()
-				this % tvPart(iPart) % vp = exp(met % alfa_v * deltat) * this % tvPart(iPart) % vp + &
-					met % deltav * rootDeltat * rnor()
-				this % tvPart(iPart) % wp = exp(met % alfa * deltat) * this % tvPart(iPart) % wp + &
-					met % delta * rootDeltat * rnor()
-				
+				this % tvPart(iPart) % wp = met % A  * this % tvPart(iPart) % wp + met % delta * rootDeltat * rnor()
 			end if
 			
 			! Update particle age
