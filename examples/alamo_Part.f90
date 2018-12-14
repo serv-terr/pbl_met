@@ -529,8 +529,12 @@ contains
 		
 		else
 		
-			this % tvPart(iPart) % sh = 0.d0
-			this % tvPart(iPart) % sz = 0.d0
+			do iPart = 1, this % partNum
+		
+				this % tvPart(iPart) % sh = 0.d0
+				this % tvPart(iPart) % sz = 0.d0
+			
+			end do
 			
 		end if
 		call cpu_time(rTime1)
