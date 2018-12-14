@@ -450,79 +450,89 @@ contains
 				
 		! *************************************
 		! * Update the Gaussian kernel sigmas *
+		! * (if Gaussian kernel desired)      *
 		! *************************************
 		
 		call cpu_time(rTime0)
-		do iPart = 1, this % partNum
+		if(cfg % iExecutionMode == 0) then
 		
-			! Ensure the particle is alive before to proceed
-			if(.not. this % tvPart(iPart) % filled) cycle
+			do iPart = 1, this % partNum
 		
-			! Set met environment at drifted positions
-			z = this % tvPart(iPart) % Zp
-			iErrCode = prf % evaluate( &
-				cfg, &
-				z, &
-				met &
-			)
-			if(iErrCode /= 0) then
-				iRetCode = 1
-				return
-			end if
+				! Ensure the particle is alive before to proceed
+				if(.not. this % tvPart(iPart) % filled) cycle
+		
+				! Set met environment at drifted positions
+				z = this % tvPart(iPart) % Zp
+				iErrCode = prf % evaluate( &
+					cfg, &
+					z, &
+					met &
+				)
+				if(iErrCode /= 0) then
+					iRetCode = 1
+					return
+				end if
 			
-			! Get wind direction through its directing cosines
-			! (no need of trig function calls)
-			vel  = sqrt(met % u**2 + met % v**2)
-			sina = met % v/vel
-			cosa = met % u/vel
+				! Get wind direction through its directing cosines
+				! (no need of trig function calls)
+				vel  = sqrt(met % u**2 + met % v**2)
+				sina = met % v/vel
+				cosa = met % u/vel
 			
-			! Get other useful data
-			zi = cfg % tMeteo % rvExtZi(iSubStep)
-			h0 = cfg % tMeteo % rvExtH0(iSubStep)
+				! Get other useful data
+				zi = cfg % tMeteo % rvExtZi(iSubStep)
+				h0 = cfg % tMeteo % rvExtH0(iSubStep)
 			
-			! Update particle sigmas
-			Coe = 3.d0 * met % eps
-			TLh = 2.d0 * met % su2 / Coe
-			TLw = 2.d0 * met % sw2 / Coe
-			if(this % tvPart(iPart) % Tp < TLh) then
-				this % tvPart(iPart) % sh = this % tvPart(iPart) % sh + sqrt(met % su2) * deltat 
-			else
-				this % tvPart(iPart) % sh = sqrt(this % tvPart(iPart) % sh ** 2 + 2.d0 * TLh * met % su2 * deltat)
-			end if
-			if(this % tvPart(iPart) % Tp < TLw) then
-				this % tvPart(iPart) % sz = this % tvPart(iPart) % sz + sqrt(met % sw2) * deltat 
-			else
-				this % tvPart(iPart) % sz = sqrt(this % tvPart(iPart) % sz ** 2 + 2.d0 * met % sw2 * deltat)
-			end if
+				! Update particle sigmas
+				Coe = 3.d0 * met % eps
+				TLh = 2.d0 * met % su2 / Coe
+				TLw = 2.d0 * met % sw2 / Coe
+				if(this % tvPart(iPart) % Tp < TLh) then
+					this % tvPart(iPart) % sh = this % tvPart(iPart) % sh + sqrt(met % su2) * deltat 
+				else
+					this % tvPart(iPart) % sh = sqrt(this % tvPart(iPart) % sh ** 2 + 2.d0 * TLh * met % su2 * deltat)
+				end if
+				if(this % tvPart(iPart) % Tp < TLw) then
+					this % tvPart(iPart) % sz = this % tvPart(iPart) % sz + sqrt(met % sw2) * deltat 
+				else
+					this % tvPart(iPart) % sz = sqrt(this % tvPart(iPart) % sz ** 2 + 2.d0 * met % sw2 * deltat)
+				end if
 				
-		end do
+			end do
 		
-		!NaN_Idx = 0
-		!do iPart = 1, this % partNum
-		!	if(isnan(this % tvPart(iPart) % Zp) .or. isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Zp)) then
-		!		NaN_Idx = iPart
-		!		print *, 'Expansion, NaN'
-		!		print *
-		!		print *, '  Index = ', NaN_Idx
-		!		print *, '  zi    = ', zi
-		!		print *, '  H0    = ', H0
-		!	end if
-		!end do
-		do iPart = 1, this % partNum
-			if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
-				this % tvPart(iPart) % filled = .false.
-			end if
-			if( &
-				this % tvPart(iPart) % Xp < x0 .or. &
-				this % tvPart(iPart) % Xp > x1 .or. &
-				this % tvPart(iPart) % Yp < y0 .or. &
-				this % tvPart(iPart) % Yp > y1 .or. &
-				this % tvPart(iPart) % Zp < zbot .or. &
-				this % tvPart(iPart) % Zp > ztop &
-			) then
-				this % tvPart(iPart) % filled = .false.
-			end if
-		end do
+			!NaN_Idx = 0
+			!do iPart = 1, this % partNum
+			!	if(isnan(this % tvPart(iPart) % Zp) .or. isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Zp)) then
+			!		NaN_Idx = iPart
+			!		print *, 'Expansion, NaN'
+			!		print *
+			!		print *, '  Index = ', NaN_Idx
+			!		print *, '  zi    = ', zi
+			!		print *, '  H0    = ', H0
+			!	end if
+			!end do
+			do iPart = 1, this % partNum
+				if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
+					this % tvPart(iPart) % filled = .false.
+				end if
+				if( &
+					this % tvPart(iPart) % Xp < x0 .or. &
+					this % tvPart(iPart) % Xp > x1 .or. &
+					this % tvPart(iPart) % Yp < y0 .or. &
+					this % tvPart(iPart) % Yp > y1 .or. &
+					this % tvPart(iPart) % Zp < zbot .or. &
+					this % tvPart(iPart) % Zp > ztop &
+				) then
+					this % tvPart(iPart) % filled = .false.
+				end if
+			end do
+		
+		else
+		
+			this % tvPart(iPart) % sh = 0.d0
+			this % tvPart(iPart) % sz = 0.d0
+			
+		end if
 		call cpu_time(rTime1)
 		this % rTimeExpansion = this % rTimeExpansion + (rTime1 - rTime0)
 				
