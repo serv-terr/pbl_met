@@ -236,20 +236,40 @@ contains
 		real(8)				:: Coe
 		real(8)				:: Tlh
 		real(8)				:: Tlw
+		real(8)				:: x0, y0, zbot
+		real(8)				:: x1, y1, ztop
+		real(8)				:: ampliX
+		real(8)				:: ampliY
+		real(8)				:: ampliZ
+		integer				:: NaN_Idx
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
 		! Here we follow the time evolution of each particle in sequence
 		deltat = this % T_substep
+		
+		! Extra-domain boundaries
+		ampliX = this % xmax - this % xmin
+		ampliY = this % ymax - this % ymin
+		ampliZ = this % zmax - this % zmin
+		x0   = this % xmin - ampliX / 2.d0
+		x1   = this % xmax + ampliX / 2.d0
+		y0   = this % ymin - ampliY / 2.d0
+		y1   = this % ymax + ampliY / 2.d0
+		zbot = this % zmin - ampliZ / 2.d0
+		ztop = this % zmax + ampliZ / 2.d0
 			
+		! *************************
+		! * Drift along mean wind *
+		! *************************
+		
 		do iPart = 1, this % partNum
 		
-			! **************
-			! * Initialise *
-			! **************
-				
-			! Set met environment and, what counts no less, the ideal time step
+			! Ensure the particle is alive before to proceed
+			if(.not. this % tvPart(iPart) % filled) cycle
+		
+			! Set met environment
 			z = this % tvPart(iPart) % Zp
 			iErrCode = prf % evaluate( &
 				cfg, &
@@ -260,16 +280,16 @@ contains
 				iRetCode = 1
 				return
 			end if
-				
-			! *************************
-			! * Drift along mean wind *
-			! *************************
-				
+			
 			! Get wind direction through its directing cosines
 			! (no need of trig function calls)
 			vel  = sqrt(met % u**2 + met % v**2)
 			sina = met % v/vel
 			cosa = met % u/vel
+			
+			! Get other useful data
+			zi = cfg % tMeteo % rvExtZi(iSubStep)
+			h0 = cfg % tMeteo % rvExtH0(iSubStep)
 			
 			! Update particle position
 			this % tvPart(iPart) % Xp = this % tvPart(iPart) % Xp + &
@@ -284,8 +304,6 @@ contains
 				this % tvPart(iPart) % Zp = -this % tvPart(iPart) % Zp
 				this % tvPart(iPart) % wp = -this % tvPart(iPart) % wp
 			end if
-			zi = cfg % tMeteo % rvExtZi(iSubStep)
-			h0 = cfg % tMeteo % rvExtH0(iSubStep)
 			if(this % tvPart(iPart) % Zp > zi .and. h0 > 0.d0) then
 				this % tvPart(iPart) % Zp = 2.*zi - this % tvPart(iPart) % Zp
 				this % tvPart(iPart) % wp = -this % tvPart(iPart) % wp
@@ -300,10 +318,66 @@ contains
 					  ! to enter the expensive Langevin step
 			end if
 			
-			! **************************
-			! * Monte-Carlo simulation *
-			! * of Langevin part       *
-			! **************************
+		end do
+		
+		!NaN_Idx = 0
+		!do iPart = 1, this % partNum
+		!	if(isnan(this % tvPart(iPart) % Zp) .or. isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Zp)) then
+		!		NaN_Idx = iPart
+		!		print *, 'Drift, NaN'
+		!		print *
+		!		print *, '  Index = ', NaN_Idx
+		!		print *, '  zi    = ', zi
+		!		print *, '  H0    = ', H0
+		!	end if
+		!end do
+		do iPart = 1, this % partNum
+			if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
+				this % tvPart(iPart) % filled = .false.
+			end if
+			if( &
+				this % tvPart(iPart) % Xp < x0 .or. &
+				this % tvPart(iPart) % Xp > x1 .or. &
+				this % tvPart(iPart) % Yp < y0 .or. &
+				this % tvPart(iPart) % Yp > y1 .or. &
+				this % tvPart(iPart) % Zp < zbot .or. &
+				this % tvPart(iPart) % Zp > ztop &
+			) then
+				this % tvPart(iPart) % filled = .false.
+			end if
+		end do
+		
+		! **************************
+		! * Monte-Carlo simulation *
+		! * of Langevin part       *
+		! **************************
+			
+		do iPart = 1, this % partNum
+		
+			! Ensure the particle is alive before to proceed
+			if(.not. this % tvPart(iPart) % filled) cycle
+		
+			! Set met environment at drifted positions
+			z = this % tvPart(iPart) % Zp
+			iErrCode = prf % evaluate( &
+				cfg, &
+				z, &
+				met &
+			)
+			if(iErrCode /= 0) then
+				iRetCode = 1
+				return
+			end if
+			
+			! Get wind direction through its directing cosines
+			! (no need of trig function calls)
+			vel  = sqrt(met % u**2 + met % v**2)
+			sina = met % v/vel
+			cosa = met % u/vel
+			
+			! Get other useful data
+			zi = cfg % tMeteo % rvExtZi(iSubStep)
+			h0 = cfg % tMeteo % rvExtH0(iSubStep)
 			
 			! Compute Langevin time scale
 			rootDeltat = sqrt(deltat)
@@ -322,10 +396,69 @@ contains
 			! Update particle age
 			this % tvPart(iPart) % Tp = this % tvPart(iPart) % Tp + deltat
 			
-			! *************************************
-			! * Update the Gaussian kernel sigmas *
-			! *************************************
+		end do
 				
+		!NaN_Idx = 0
+		!do iPart = 1, this % partNum
+		!	if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
+		!		NaN_Idx = iPart
+		!		print *, 'Diffusion, NaN'
+		!		print *
+		!		print *, '  Index = ', NaN_Idx
+		!		print *, '  zi    = ', zi
+		!		print *, '  H0    = ', H0
+		!		print *, '  Postn = ', this % tvPart(iPart) % Xp, this % tvPart(iPart) % Yp, this % tvPart(iPart) % Zp
+		!		print *, '  Age   = ', this % tvPart(iPart) % Tp
+		!	end if
+		!end do
+		do iPart = 1, this % partNum
+			if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
+				this % tvPart(iPart) % filled = .false.
+			end if
+			if( &
+				this % tvPart(iPart) % Xp < x0 .or. &
+				this % tvPart(iPart) % Xp > x1 .or. &
+				this % tvPart(iPart) % Yp < y0 .or. &
+				this % tvPart(iPart) % Yp > y1 .or. &
+				this % tvPart(iPart) % Zp < zbot .or. &
+				this % tvPart(iPart) % Zp > ztop &
+			) then
+				this % tvPart(iPart) % filled = .false.
+			end if
+		end do
+				
+		! *************************************
+		! * Update the Gaussian kernel sigmas *
+		! *************************************
+		
+		do iPart = 1, this % partNum
+		
+			! Ensure the particle is alive before to proceed
+			if(.not. this % tvPart(iPart) % filled) cycle
+		
+			! Set met environment at drifted positions
+			z = this % tvPart(iPart) % Zp
+			iErrCode = prf % evaluate( &
+				cfg, &
+				z, &
+				met &
+			)
+			if(iErrCode /= 0) then
+				iRetCode = 1
+				return
+			end if
+			
+			! Get wind direction through its directing cosines
+			! (no need of trig function calls)
+			vel  = sqrt(met % u**2 + met % v**2)
+			sina = met % v/vel
+			cosa = met % u/vel
+			
+			! Get other useful data
+			zi = cfg % tMeteo % rvExtZi(iSubStep)
+			h0 = cfg % tMeteo % rvExtH0(iSubStep)
+			
+			! Update particle sigmas
 			Coe = 3.d0 * met % eps
 			TLh = 2.d0 * met % su2 / Coe
 			TLw = 2.d0 * met % sw2 / Coe
@@ -342,6 +475,33 @@ contains
 				
 		end do
 		
+		!NaN_Idx = 0
+		!do iPart = 1, this % partNum
+		!	if(isnan(this % tvPart(iPart) % Zp) .or. isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Zp)) then
+		!		NaN_Idx = iPart
+		!		print *, 'Expansion, NaN'
+		!		print *
+		!		print *, '  Index = ', NaN_Idx
+		!		print *, '  zi    = ', zi
+		!		print *, '  H0    = ', H0
+		!	end if
+		!end do
+		do iPart = 1, this % partNum
+			if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
+				this % tvPart(iPart) % filled = .false.
+			end if
+			if( &
+				this % tvPart(iPart) % Xp < x0 .or. &
+				this % tvPart(iPart) % Xp > x1 .or. &
+				this % tvPart(iPart) % Yp < y0 .or. &
+				this % tvPart(iPart) % Yp > y1 .or. &
+				this % tvPart(iPart) % Zp < zbot .or. &
+				this % tvPart(iPart) % Zp > ztop &
+			) then
+				this % tvPart(iPart) % filled = .false.
+			end if
+		end do
+				
 	end function pplMove
 
 
