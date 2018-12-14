@@ -23,6 +23,8 @@ module Particles
 		real(8)										:: ymax
 		real(8)										:: zmin
 		real(8)										:: zmax
+		real(8)										:: dx
+		real(8)										:: dy
 		! Timing
 		real(8)										:: T_substep
 		! Gridded receptor coordinates
@@ -78,6 +80,8 @@ contains
 		this % ymax = cfg % y1
 		this % zmin = 0.d0
 		this % zmax = cfg % zmax
+		this % dx   = (this % xmax - this % xmin) / this % nx
+		this % dy   = (this % ymax - this % ymin) / this % ny
 		
 		! Assign snapshot path and related data files
 		this % sSnapPath     = cfg % framePath
@@ -525,8 +529,12 @@ contains
 	end function pplMove
 
 
-	! Add particle contribution to concentration on end of time substep
-	! (ref: Yamada-Bunker, 1988)
+	! Add particle contribution to concentration on end of time substep, using one of the following methods:
+	! 0: Gaussian kernel (ref: Yamada-Bunker, 1988)
+	! 1: Direct count between 0 and 2 m,
+	! 2: Direct count regardless of particle elevation above ground,
+	! These processing types are determined by a configuration key ('exec_mode')
+	! in the [General] section.
 	function pplConc(this, cfg, iSubStep) result(iRetCode)
 	
 		! Routine arguments
@@ -564,62 +572,87 @@ contains
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
-		! Main loop: iterate over particles, and add their contribution to receptors
-		zi = cfg % tMeteo % rvExtZi(iSubStep)
-		H0 = cfg % tMeteo % rvExtH0(iSubStep)
-		do iPart = 1, size(this % tvPart)
-			if(this % tvPart(iPart) % filled) then
-			
-				! Gaussian kernel is null at 4 sigma
-				sigh4 = 4.d0 * this % tvPart(iPart) % sh
-				
-				do ix = 1, this % nx
-					dx = this % xrec(ix) - this % tvPart(iPart) % Xp
-					if(abs(dx) <= sigh4) then
-						ex = 0.5d0 * (dx/this % tvPart(iPart) % sh)**2
-						if(ex < amin) then
-							Cx = 1.d0 - ex
-						elseif(ex > amax) then
-							Cx = 0.d0
-						else
-							Cx = exp(-ex)
-						end if
-						do iy = 1, this % ny
-							dy = this % yrec(iy) - this % tvPart(iPart) % Yp
-							if(abs(dy) <= sigh4) then
-								ey = 0.5d0*(dy/this % tvPart(iPart) % sh)**2
-								if(ey < amin) then
-									Cy = 1.d0 - ey
-								elseif(ey > amax) then
-									Cy = 0.d0
-								else
-									Cy = exp(-ey)
-								end if
-								if(this % tvPart(iPart) % Zp < zi .and. H0 > 0.d0 .and. this % tvPart(iPart) % sz > 0.8d0*zi) then
-									C0 = cfg % fat * this % tvPart(iPart) % Qp/(pi2 * this % tvPart(iPart) % sh ** 2)
-									Cz = 1.d0/zi
-								else
-									C0 = cfg % fat * &
-										this % tvPart(iPart) % Qp / &
-										(pi2r * this % tvPart(iPart) % sh ** 2 * this % tvPart(iPart) % sz)
-									ez = 0.5d0*(this % tvPart(iPart) % Zp / this % tvPart(iPart) % sz)**2
-									if(ez < amin) then
-										Cz = 1.d0 - ez
-									elseif(ez > amax) then
-										Cz = 0.d0
-									else
-										Cz = exp(-ez)
-									end if
-									Cz = 2.d0 * Cz
-								end if
-								this % C(ix,iy) = this % C(ix,iy) + C0 * Cx * Cy * Cz
-							end if
-						end do
-					end if
-				end do
+		! Decide the processing type
+		if(cfg % iExecutionMode == 0) then
 		
-			end if
-		end do
+			! Main loop: iterate over particles, and add their contribution to receptors
+			zi = cfg % tMeteo % rvExtZi(iSubStep)
+			H0 = cfg % tMeteo % rvExtH0(iSubStep)
+			do iPart = 1, size(this % tvPart)
+				if(this % tvPart(iPart) % filled) then
+				
+					! Gaussian kernel is null at 4 sigma
+					sigh4 = 4.d0 * this % tvPart(iPart) % sh
+					
+					do ix = 1, this % nx
+						dx = this % xrec(ix) - this % tvPart(iPart) % Xp
+						if(abs(dx) <= sigh4) then
+							ex = 0.5d0 * (dx/this % tvPart(iPart) % sh)**2
+							if(ex < amin) then
+								Cx = 1.d0 - ex
+							elseif(ex > amax) then
+								Cx = 0.d0
+							else
+								Cx = exp(-ex)
+							end if
+							do iy = 1, this % ny
+								dy = this % yrec(iy) - this % tvPart(iPart) % Yp
+								if(abs(dy) <= sigh4) then
+									ey = 0.5d0*(dy/this % tvPart(iPart) % sh)**2
+									if(ey < amin) then
+										Cy = 1.d0 - ey
+									elseif(ey > amax) then
+										Cy = 0.d0
+									else
+										Cy = exp(-ey)
+									end if
+										if(this % tvPart(iPart) % Zp < zi .and. H0 > 0.d0 .and. this % tvPart(iPart) % sz > 0.8d0*zi) then
+												C0 = cfg % fat * this % tvPart(iPart) % Qp/(pi2 * this % tvPart(iPart) % sh ** 2)
+										Cz = 1.d0/zi
+									else
+										C0 = cfg % fat * &
+											this % tvPart(iPart) % Qp / &
+											(pi2r * this % tvPart(iPart) % sh ** 2 * this % tvPart(iPart) % sz)
+										ez = 0.5d0*(this % tvPart(iPart) % Zp / this % tvPart(iPart) % sz)**2
+										if(ez < amin) then
+											Cz = 1.d0 - ez
+										elseif(ez > amax) then
+											Cz = 0.d0
+										else
+											Cz = exp(-ez)
+										end if
+										Cz = 2.d0 * Cz
+									end if
+									this % C(ix,iy) = this % C(ix,iy) + C0 * Cx * Cy * Cz
+								end if
+							end do
+						end if
+					end do
+		
+				end if
+			end do
+		
+		elseif(cfg % iExecutionMode == 1) then
+		
+			! Main loop: iterate over valid particles
+			do iPart = 1, size(this % tvPart)
+				if(this % tvPart(iPart) % filled) then
+				
+					! Check the particle is interesting
+					if(this % tvPart(iPart) % Zp < 2.d0) then
+						ix = nint((this % tvPart(iPart) % Xp - this % xmin) / this % Dx) + 1
+						iy = nint((this % tvPart(iPart) % Yp - this % ymin) / this % Dy) + 1
+						ix = max(min(ix, this % nx), 1)
+						iy = max(min(iy, this % ny), 1)
+						this % C(ix,iy) = this % C(ix,iy) + this % tvPart(iPart) % Qp * this % T_substep
+					end if
+				
+				end if
+			end do
+				
+		elseif(cfg % iExecutionMode == 2) then
+		
+		end if
 		
 	end function pplConc
 
