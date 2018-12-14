@@ -41,6 +41,10 @@ module Particles
 		character(len=256)							:: sSnapPath
 		character(len=256)							:: sSnapGridFile
 		character(len=256)							:: sSnapListFile
+		! Run times
+		real										:: rTimeDrift
+		real										:: rTimeDiffusion
+		real										:: rTimeExpansion
 	contains
 		procedure	:: Initialize => pplInit
 		procedure	:: ResetConc  => pplResetC
@@ -242,12 +246,19 @@ contains
 		real(8)				:: ampliY
 		real(8)				:: ampliZ
 		integer				:: NaN_Idx
+		real				:: rTime0
+		real				:: rTime1
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
 		! Here we follow the time evolution of each particle in sequence
 		deltat = this % T_substep
+		
+		! Initializations
+		this % rTimeDrift     = 0.
+		this % rTimeDiffusion = 0.
+		this % rTimeExpansion = 0.
 		
 		! Extra-domain boundaries
 		ampliX = this % xmax - this % xmin
@@ -264,6 +275,7 @@ contains
 		! * Drift along mean wind *
 		! *************************
 		
+		call cpu_time(rTime0)
 		do iPart = 1, this % partNum
 		
 			! Ensure the particle is alive before to proceed
@@ -346,12 +358,15 @@ contains
 				this % tvPart(iPart) % filled = .false.
 			end if
 		end do
+		call cpu_time(rTime1)
+		this % rTimeDrift = this % rTimeDrift + (rTime1 - rTime0)
 		
 		! **************************
 		! * Monte-Carlo simulation *
 		! * of Langevin part       *
 		! **************************
 			
+		call cpu_time(rTime0)
 		do iPart = 1, this % partNum
 		
 			! Ensure the particle is alive before to proceed
@@ -426,11 +441,14 @@ contains
 				this % tvPart(iPart) % filled = .false.
 			end if
 		end do
+		call cpu_time(rTime1)
+		this % rTimeDiffusion = this % rTimeDiffusion + (rTime1 - rTime0)
 				
 		! *************************************
 		! * Update the Gaussian kernel sigmas *
 		! *************************************
 		
+		call cpu_time(rTime0)
 		do iPart = 1, this % partNum
 		
 			! Ensure the particle is alive before to proceed
@@ -501,6 +519,8 @@ contains
 				this % tvPart(iPart) % filled = .false.
 			end if
 		end do
+		call cpu_time(rTime1)
+		this % rTimeExpansion = this % rTimeExpansion + (rTime1 - rTime0)
 				
 	end function pplMove
 
