@@ -9,6 +9,12 @@ module Configuration
 	type Config
 		! Status
 		logical				:: lIsFull = .false.
+		! General
+		integer				:: debug
+		character(len=256)	:: diag
+		integer				:: frameInterval
+		character(len=256)	:: framePath
+		integer				:: iExecutionMode	! 0: Gaussian kernel; 1:Direct count "at ground"; 2:Direct count regardless of Z value
 		! Grid data
 		real(8)				:: x0
 		real(8)				:: y0
@@ -40,11 +46,6 @@ module Configuration
 		! Output
 		character(len=256)	:: Fileout
 		real(8)				:: fat
-		! General
-		integer				:: debug
-		character(len=256)	:: diag
-		integer				:: frameInterval
-		character(len=256)	:: framePath
 		! Computed parameters
 		real(8)				:: x1
 		real(8)				:: y1
@@ -199,6 +200,12 @@ contains
 		if(iErrCode /= 0) then
 			iRetCode = 2
 			if(this % debug > 0) print *, "alamo:: error: Invalid 'frame_path' in [General]"
+			return
+		end if
+		iErrCode = cfg % getInteger("General", "exec_mode", this % iExecutionMode, 0)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			if(this % debug > 0) print *, "alamo:: error: Invalid 'exec_mode' in [General]"
 			return
 		end if
 		! -1- Timing
@@ -501,6 +508,12 @@ contains
 			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'frame_interval' in [General]"
 			return
 		end if
+		if(this % iExecutionMode < 0 .or. this % iExecutionMode > 2) then
+			iRetCode = 3
+			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'exec_mode' in [General]"
+			return
+		end if
+		
 		if(this % debug > 1) print *, "alamo:: info: [General] section check done"
 		
 		! Compute the number of particles per step
@@ -943,6 +956,10 @@ contains
 		else ! Entry condition: z(1) < zp < z(n)
 			izFrom = floor((zp - cfg % z0) / cfg % dz) + 1
 			izTo   = ceiling((zp - cfg % z0) / cfg % dz) + 1
+			if(izFrom < 1 .or. izFrom > n) then
+				print *, 'iZfrom = ', izFrom
+				print *, '         ', zp, cfg % z0, cfg % dz
+			end if
 		end if
 		
 		! Evaluate linear interpolation coefficients
