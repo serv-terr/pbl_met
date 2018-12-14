@@ -652,6 +652,19 @@ contains
 				
 		elseif(cfg % iExecutionMode == 2) then
 		
+			do iPart = 1, size(this % tvPart)
+				if(this % tvPart(iPart) % filled) then
+				
+					! Check the particle is interesting
+					ix = nint((this % tvPart(iPart) % Xp - this % xmin) / this % Dx) + 1
+					iy = nint((this % tvPart(iPart) % Yp - this % ymin) / this % Dy) + 1
+					ix = max(min(ix, this % nx), 1)
+					iy = max(min(iy, this % ny), 1)
+					this % C(ix,iy) = this % C(ix,iy) + this % tvPart(iPart) % Qp * this % T_substep
+				
+				end if
+			end do
+				
 		end if
 		
 	end function pplConc
