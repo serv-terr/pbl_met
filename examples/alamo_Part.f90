@@ -47,6 +47,13 @@ module Particles
 		real										:: rTimeDrift
 		real										:: rTimeDiffusion
 		real										:: rTimeExpansion
+		! Particle dynamics related counts
+		integer										:: iNanDrift
+		integer										:: iOutDrift
+		integer										:: iNanDiffusion
+		integer										:: iOutDiffusion
+		integer										:: iNanExpansion
+		integer										:: iOutExpansion
 	contains
 		procedure	:: Initialize => pplInit
 		procedure	:: ResetConc  => pplResetC
@@ -263,6 +270,12 @@ contains
 		this % rTimeDrift     = 0.
 		this % rTimeDiffusion = 0.
 		this % rTimeExpansion = 0.
+		this % iNanDrift      = 0
+		this % iOutDrift      = 0
+		this % iNanDiffusion  = 0
+		this % iOutDiffusion  = 0
+		this % iNanExpansion  = 0
+		this % iOutExpansion  = 0
 		
 		! Extra-domain boundaries
 		ampliX = this % xmax - this % xmin
@@ -350,6 +363,7 @@ contains
 		do iPart = 1, this % partNum
 			if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
 				this % tvPart(iPart) % filled = .false.
+				this % iNanDrift              = this % iNanDrift + 1
 			end if
 			if( &
 				this % tvPart(iPart) % Xp < x0 .or. &
@@ -360,6 +374,7 @@ contains
 				this % tvPart(iPart) % Zp > ztop &
 			) then
 				this % tvPart(iPart) % filled = .false.
+				this % iOutDrift              = this % iOutDrift + 1
 			end if
 		end do
 		call cpu_time(rTime1)
@@ -433,6 +448,7 @@ contains
 		do iPart = 1, this % partNum
 			if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
 				this % tvPart(iPart) % filled = .false.
+				this % iNanDiffusion          = this % iNanDiffusion + 1
 			end if
 			if( &
 				this % tvPart(iPart) % Xp < x0 .or. &
@@ -443,6 +459,7 @@ contains
 				this % tvPart(iPart) % Zp > ztop &
 			) then
 				this % tvPart(iPart) % filled = .false.
+				this % iOutDiffusion          = this % iOutDiffusion + 1
 			end if
 		end do
 		call cpu_time(rTime1)
@@ -514,6 +531,7 @@ contains
 			do iPart = 1, this % partNum
 				if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
 					this % tvPart(iPart) % filled = .false.
+					this % iNanExpansion          = this % iNanExpansion + 1
 				end if
 				if( &
 					this % tvPart(iPart) % Xp < x0 .or. &
@@ -524,6 +542,7 @@ contains
 					this % tvPart(iPart) % Zp > ztop &
 				) then
 					this % tvPart(iPart) % filled = .false.
+					this % iOutExpansion          = this % iOutExpansion + 1
 				end if
 			end do
 		
