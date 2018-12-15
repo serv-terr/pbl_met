@@ -79,8 +79,9 @@ program Alamo
 		write(100, "(a)") &
 			"Date.Time,               Num.Part,  C.Med,          C.Max,          " // &
 			"Time.Step,      Time.Meteo,     Time.Emission   Time.Movement,  " // &
-			"Time.Drift,     Time.Diffusion, Time.Expansion, " // &
-			"Time.Concentr,  Time.Writing"
+			"Time.Drift,     Nan.Drift,      Out.Drift,      Time.Diffusion, " // &
+			"Nan.Diffusion,  Out.Diffusion,  Time.Expansion, nan.Expansion,  " // &
+			"out.Expansion,  Time.Concentr,  Time.Writing"
 	end if
 	i = 0	! Actual time index
 	iRetCode = part % SnapInit(10)
@@ -195,7 +196,7 @@ program Alamo
 		timeSpentOnStep = timeTo1 - timeFrom1
 	
 		if(cfg % metDiaFile /= "") then
-			write(100, "(a,',',i10,11(',',e15.7))") &
+			write(100, "(a,',',i10,6(',',e15.7),3(',',e15.7,',',i15,',',i15),2(',',e15.7))") &
 				curTime % toISO(), &
 				part % count(), &
 				real(sum(part % C) / (part % nx * part % ny), kind=4), &
@@ -205,8 +206,14 @@ program Alamo
 				timeSpentOnParticleEmission, &
 				timeSpentOnParticleMovement, &
 				part % rTimeDrift, &
+				part % iNanDrift, &
+				part % iOutDrift, &
 				part % rTimeDiffusion, &
+				part % iNanDiffusion, &
+				part % iOutDiffusion, &
 				part % rTimeExpansion, &
+				part % iNanExpansion, &
+				part % iOutExpansion, &
 				timeSpentOnConcentrations, &
 				timeSpentOnWriting
 			flush(100)
