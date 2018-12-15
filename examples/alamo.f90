@@ -182,13 +182,13 @@ program Alamo
 		
 		! Inform of progress, if requested
 		if(cfg % debug > 0) then
-			print *, &
-				curTime % toISO(), " ", &
+			print "(a,1x,i8,2(1x,e15.7),1x,f4.1,1x,f6.1)", &
+				curTime % toISO(), &
 				part % count(), &
-				" particles, Mean conc = ", &
-				real(sum(part % C) / (part % nx * part % ny), kind=4), &
-				"   Max conc = ", &
-				real(maxval(part % C), kind=4)
+				sum(part % C) / (part % nx * part % ny), &
+				maxval(part % C), &
+				cfg % tMeteo % rvVel(iStep), &
+				cfg % tMeteo % rvZi(iStep)
 		end if
 		
 		call cpu_time(timeTo1)
