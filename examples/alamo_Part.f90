@@ -80,8 +80,8 @@ contains
 		this % ymax = cfg % y1
 		this % zmin = 0.d0
 		this % zmax = cfg % zmax
-		this % dx   = (this % xmax - this % xmin) / this % nx
-		this % dy   = (this % ymax - this % ymin) / this % ny
+		this % dx   = cfg % dx
+		this % dy   = cfg % dy
 		
 		! Assign snapshot path and related data files
 		this % sSnapPath     = cfg % framePath
@@ -620,8 +620,8 @@ contains
 									else
 										Cy = exp(-ey)
 									end if
-										if(this % tvPart(iPart) % Zp < zi .and. H0 > 0.d0 .and. this % tvPart(iPart) % sz > 0.8d0*zi) then
-												C0 = cfg % fat * this % tvPart(iPart) % Qp/(pi2 * this % tvPart(iPart) % sh ** 2)
+									if(this % tvPart(iPart) % Zp < zi .and. H0 > 0.d0 .and. this % tvPart(iPart) % sz > 0.8d0*zi) then
+										C0 = cfg % fat * this % tvPart(iPart) % Qp/(pi2 * this % tvPart(iPart) % sh ** 2)
 										Cz = 1.d0/zi
 									else
 										C0 = cfg % fat * &
@@ -658,7 +658,7 @@ contains
 						iy = nint((this % tvPart(iPart) % Yp - this % ymin) / this % Dy) + 1
 						ix = max(min(ix, this % nx), 1)
 						iy = max(min(iy, this % ny), 1)
-						this % C(ix,iy) = this % C(ix,iy) + this % tvPart(iPart) % Qp * this % T_substep
+						this % C(ix,iy) = this % C(ix,iy) + cfg % fat * this % tvPart(iPart) % Qp / (2.d0 * this % Dx * this % Dy)
 					end if
 				
 				end if
@@ -669,12 +669,13 @@ contains
 			do iPart = 1, size(this % tvPart)
 				if(this % tvPart(iPart) % filled) then
 				
-					! Check the particle is interesting
+					! Particles are always interesting in this mode
 					ix = nint((this % tvPart(iPart) % Xp - this % xmin) / this % Dx) + 1
 					iy = nint((this % tvPart(iPart) % Yp - this % ymin) / this % Dy) + 1
 					ix = max(min(ix, this % nx), 1)
 					iy = max(min(iy, this % ny), 1)
-					this % C(ix,iy) = this % C(ix,iy) + this % tvPart(iPart) % Qp * this % T_substep
+					this % C(ix,iy) = this % C(ix,iy) + cfg % fat * this % tvPart(iPart) % Qp / &
+						(this % Dx * this % Dy * (this % zmax - this % zmin))
 				
 				end if
 			end do
