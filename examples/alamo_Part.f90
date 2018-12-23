@@ -48,6 +48,8 @@ module Particles
 		real										:: rTimeDiffusion
 		real										:: rTimeExpansion
 		! Particle dynamics related counts
+		integer										:: iNanEmit
+		integer										:: iOutEmit
 		integer										:: iNanDrift
 		integer										:: iOutDrift
 		integer										:: iNanDiffusion
@@ -170,6 +172,8 @@ contains
 		iRetCode = 0
 		
 		! Static point sources
+		this % iNanEmit = 0
+		this % iOutEmit = 0
 		do iSource = 1, size(cfg % tvPointStatic)
 		
 			! Get source height, and use it to get the new particles' atmospheric parameters
@@ -213,10 +217,17 @@ contains
 				if( &
 					isnan(this % tvPart(this % partIdx) % up) .or. &
 					isnan(this % tvPart(this % partIdx) % vp) .or. &
-					isnan(this % tvPart(this % partIdx) % wp) .or. &
+					isnan(this % tvPart(this % partIdx) % wp) &
+				) then
+					this % iNanEmit = this % iNanEmit + 1
+				end if
+				if( &
 					abs(this % tvPart(this % partIdx) % up) > 1.d2 .or. &
 					abs(this % tvPart(this % partIdx) % vp) > 1.d2 .or. &
-					abs(this % tvPart(this % partIdx) % wp) > 1.d2) cycle
+					abs(this % tvPart(this % partIdx) % wp) > 1.d2 &
+				) then
+					this % iOutEmit = this % iOutEmit + 1
+				end if
 				
 				! Assign mass, creation time and age
 				this % tvPart(this % partIdx) % Qp = &
@@ -287,6 +298,8 @@ contains
 		this % iOutDiffusion  = 0
 		this % iNanExpansion  = 0
 		this % iOutExpansion  = 0
+		this % iNanLangevin   = 0
+		this % iOutLangevin   = 0
 		
 		! Extra-domain boundaries
 		ampliX = this % xmax - this % xmin
@@ -439,6 +452,23 @@ contains
 				this % tvPart(iPart) % wp = met % A  * this % tvPart(iPart) % wp + met % delta * rootDeltat * rnor()
 			end if
 			
+				
+			! Check whether come speed initialization went not right
+			if( &
+				isnan(this % tvPart(this % partIdx) % up) .or. &
+				isnan(this % tvPart(this % partIdx) % vp) .or. &
+				isnan(this % tvPart(this % partIdx) % wp) &
+			) then
+				this % iNanLangevin = this % iNanLangevin + 1
+			end if
+			if( &
+				abs(this % tvPart(this % partIdx) % up) > 1.d2 .or. &
+				abs(this % tvPart(this % partIdx) % vp) > 1.d2 .or. &
+				abs(this % tvPart(this % partIdx) % wp) > 1.d2 &
+			) then
+				this % iOutLangevin = this % iOutLangevin + 1
+			end if
+				
 			! Update particle age
 			this % tvPart(iPart) % Tp = this % tvPart(iPart) % Tp + deltat
 			
