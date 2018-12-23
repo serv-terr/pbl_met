@@ -78,10 +78,11 @@ program Alamo
 		open(100, file=cfg % metDiaFile, status='unknown', action='write')
 		write(100, "(a)") &
 			"Date.Time,               Num.Part,  C.Med,          C.Max,          " // &
-			"Time.Step,      Time.Meteo,     Time.Emission   Time.Movement,  " // &
+			"Time.Step,      Time.Meteo,     Time.Emission   Nan.Emission,   " // &
+			"Out.Emission,   Time.Movement,  " // &
 			"Time.Drift,     Nan.Drift,      Out.Drift,      Time.Diffusion, " // &
-			"Nan.Diffusion,  Out.Diffusion,  Time.Expansion, nan.Expansion,  " // &
-			"out.Expansion,  Time.Concentr,  Time.Writing"
+			"Nan.Diffusion,  Out.Diffusion,  Time.Expansion, Nan.Expansion,  " // &
+			"Out.Expansion,  Nan.Langevin,   Out.Langevin,   Time.Concentr,  Time.Writing"
 	end if
 	i = 0	! Actual time index
 	iRetCode = part % SnapInit(10)
@@ -196,7 +197,10 @@ program Alamo
 		timeSpentOnStep = timeTo1 - timeFrom1
 	
 		if(cfg % metDiaFile /= "") then
-			write(100, "(a,',',i10,6(',',e15.7),3(',',e15.7,',',i15,',',i15),2(',',e15.7))") &
+			write(100, &
+				"(a,',',i10,5(',',e15.7),2(',',i15),',',e15.7,2(',',e15.7,',',i15,',',i15)," // &
+				"2(',',i15),',',e15.7,',',i15,',',i15,2(',',e15.7))" &
+			) &
 				curTime % toISO(), &
 				part % count(), &
 				real(sum(part % C) / (part % nx * part % ny), kind=4), &
@@ -204,6 +208,8 @@ program Alamo
 				timeSpentOnStep, &
 				timeSpentOnMeteo, &
 				timeSpentOnParticleEmission, &
+				part % iNanEmit, &
+				part % iOutEmit, &
 				timeSpentOnParticleMovement, &
 				part % rTimeDrift, &
 				part % iNanDrift, &
@@ -211,6 +217,8 @@ program Alamo
 				part % rTimeDiffusion, &
 				part % iNanDiffusion, &
 				part % iOutDiffusion, &
+				part % iNanLangevin, &
+				part % iOutLangevin, &
 				part % rTimeExpansion, &
 				part % iNanExpansion, &
 				part % iOutExpansion, &
