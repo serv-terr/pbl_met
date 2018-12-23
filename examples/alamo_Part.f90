@@ -52,6 +52,8 @@ module Particles
 		integer										:: iOutDrift
 		integer										:: iNanDiffusion
 		integer										:: iOutDiffusion
+		integer										:: iNanLangevin
+		integer										:: iOutLangevin
 		integer										:: iNanExpansion
 		integer										:: iOutExpansion
 	contains
@@ -207,6 +209,15 @@ contains
 				this % tvPart(this % partIdx) % vp = rnor() * sqrt(met % sv2)
 				this % tvPart(this % partIdx) % wp = rnor() * sqrt(met % sw2)
 				
+				! Check whether come speed initialization went not right
+				if( &
+					isnan(this % tvPart(this % partIdx) % up) .or. &
+					isnan(this % tvPart(this % partIdx) % vp) .or. &
+					isnan(this % tvPart(this % partIdx) % wp) .or. &
+					abs(this % tvPart(this % partIdx) % up) > 1.d2 .or. &
+					abs(this % tvPart(this % partIdx) % vp) > 1.d2 .or. &
+					abs(this % tvPart(this % partIdx) % wp) > 1.d2) cycle
+				
 				! Assign mass, creation time and age
 				this % tvPart(this % partIdx) % Qp = &
 					cfg % tvPointStatic(iSource) % q * &
@@ -361,6 +372,7 @@ contains
 		!	end if
 		!end do
 		do iPart = 1, this % partNum
+			if(.not. this % tvPart(iPart) % filled) cycle
 			if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
 				this % tvPart(iPart) % filled = .false.
 				this % iNanDrift              = this % iNanDrift + 1
@@ -446,6 +458,7 @@ contains
 		!	end if
 		!end do
 		do iPart = 1, this % partNum
+			if(.not. this % tvPart(iPart) % filled) cycle
 			if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
 				this % tvPart(iPart) % filled = .false.
 				this % iNanDiffusion          = this % iNanDiffusion + 1
@@ -529,6 +542,7 @@ contains
 			!	end if
 			!end do
 			do iPart = 1, this % partNum
+				if(.not. this % tvPart(iPart) % filled) cycle
 				if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
 					this % tvPart(iPart) % filled = .false.
 					this % iNanExpansion          = this % iNanExpansion + 1
