@@ -281,6 +281,7 @@ contains
 		integer				:: NaN_Idx
 		real				:: rTime0
 		real				:: rTime1
+		real(8)				:: tota
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -337,8 +338,26 @@ contains
 			! Get wind direction through its directing cosines
 			! (no need of trig function calls)
 			vel  = sqrt(met % u**2 + met % v**2)
-			sina = met % v/vel
-			cosa = met % u/vel
+			if(vel > 1.d-2) then
+				sina = met % v/vel
+				cosa = met % u/vel
+			else
+				! In this case the Langevin dynamics would not strictly apply...
+				sina = 0.d0
+				cosa = 0.d0
+				do
+					call random_number(sina)
+					call random_number(cosa)
+					sina = 2.d0 * sina - 1.d0
+					cosa = 2.d0 * cosa - 1.d0
+					if(abs(sina) > 0.d0 .or. abs(cosa) > 0.d0) then
+						tota = sqrt(sina**2 + cosa**2)
+						sina = sina / tota
+						cosa = cosa / tota
+						exit
+					end if
+				end do
+			end if
 			
 			! Get other useful data
 			zi = cfg % tMeteo % rvExtZi(iSubStep)
@@ -347,10 +366,19 @@ contains
 			! Update particle position
 			this % tvPart(iPart) % Xp = this % tvPart(iPart) % Xp + &
 				(met % u + this % tvPart(iPart) % up * cosa - this % tvPart(iPart) % vp * sina) * deltat
+			if(isnan(this % tvPart(iPart) % Xp)) then
+				print *, 'Xp.NaN>', this % tvPart(iPart) % up, this % tvPart(iPart) % vp, sina, cosa, vel
+			end if
 			this % tvPart(iPart) % Yp = this % tvPart(iPart) % Yp + &
 				(met % v + this % tvPart(iPart) % up * sina + this % tvPart(iPart) % vp * cosa) * deltat
+			if(isnan(this % tvPart(iPart) % Xp)) then
+				print *, 'Yp.NaN>', this % tvPart(iPart) % up, this % tvPart(iPart) % vp, sina, cosa, vel
+			end if
 			this % tvPart(iPart) % Zp = this % tvPart(iPart) % Zp + &
 				this % tvPart(iPart) % wp * deltat
+			if(isnan(this % tvPart(iPart) % Xp)) then
+				print *, 'Zp.NaN>', this % tvPart(iPart) % wp, vel
+			end if
 				
 			! Check if reflections occurred at ground or Zi
 			if(this % tvPart(iPart) % Zp < 0.d0) then
@@ -462,9 +490,9 @@ contains
 				this % iNanLangevin = this % iNanLangevin + 1
 			end if
 			if( &
-				abs(this % tvPart(this % partIdx) % up) > 1.d2 .or. &
-				abs(this % tvPart(this % partIdx) % vp) > 1.d2 .or. &
-				abs(this % tvPart(this % partIdx) % wp) > 1.d2 &
+				abs(this % tvPart(this % partIdx) % up) > 1.d1 .or. &
+				abs(this % tvPart(this % partIdx) % vp) > 1.d1 .or. &
+				abs(this % tvPart(this % partIdx) % wp) > 1.d1 &
 			) then
 				this % iOutLangevin = this % iOutLangevin + 1
 			end if
