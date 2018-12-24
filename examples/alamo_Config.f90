@@ -707,6 +707,8 @@ contains
 		real(8)	:: C0ww
 		real(8)	:: ssw2_2
 		real(8)	:: dt
+		type(DateTime)	:: tStamp
+		character(len=23)	:: sTimeStamp
 		
 		! Constants
 		real(8), parameter	:: K    = 0.4d0		! von Karman constant
@@ -918,7 +920,36 @@ contains
 		this % Av = exp(this % alfa_v * dt)
 		this % A  = exp(this % alfa * dt)
 		this % B  = exp(this % beta * dt)
-	
+		
+		! Diagnostic printouts (provisional)
+		if(cfg % debug >= 3) then
+			iErrCode = tStamp % fromEpoch(cfg % tMeteo % rvExtEpoch(i))
+			sTimeStamp = tStamp % ToISO()
+			print *, "Meteo profiles range report for step at ", sTimeStamp
+			print *, "U>      ", minval(this % u), maxval(this % u)
+			print *, "V>      ", minval(this % v), maxval(this % v)
+			print *, "Vel>    ", minval(sqrt(this % u**2 + this % v**2)), maxval(sqrt(this % u**2 + this % v**2))
+			print *, "T>      ", minval(this % T), maxval(this % T)
+			print *, "sU2>    ", minval(this % su2), maxval(this % su2)
+			print *, "sV2>    ", minval(this % sv2), maxval(this % sv2)
+			print *, "sW2>    ", minval(this % sw2), maxval(this % sw2)
+			print *, "dsW2>   ", minval(this % dsW2), maxval(this % dsW2)
+			print *, "eps>    ", minval(this % eps), maxval(this % eps)
+			print *, "alpha>  ", minval(this % alfa), maxval(this % alfa)
+			print *, "alphau> ", minval(this % alfa_u), maxval(this % alfa_u)
+			print *, "alphav> ", minval(this % alfa_v), maxval(this % alfa_v)
+			print *, "beta>   ", minval(this % beta), maxval(this % beta)
+			print *, "gamma>  ", minval(this % gamma), maxval(this % gamma)
+			print *, "delta>  ", minval(this % delta), maxval(this % delta)
+			print *, "deltau> ", minval(this % deltau), maxval(this % deltau)
+			print *, "deltav> ", minval(this % deltav), maxval(this % deltav)
+			print *, "A>      ", minval(this % A), maxval(this % A)
+			print *, "Au>     ", minval(this % Au), maxval(this % Au)
+			print *, "Av>     ", minval(this % Av), maxval(this % Av)
+			print *, "B>      ", minval(this % B), maxval(this % B)
+			print *
+		end if
+		
 	end function metpCreate
 
 
