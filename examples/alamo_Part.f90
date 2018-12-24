@@ -366,19 +366,10 @@ contains
 			! Update particle position
 			this % tvPart(iPart) % Xp = this % tvPart(iPart) % Xp + &
 				(met % u + this % tvPart(iPart) % up * cosa - this % tvPart(iPart) % vp * sina) * deltat
-			if(isnan(this % tvPart(iPart) % Xp)) then
-				print *, 'Xp.NaN>', this % tvPart(iPart) % up, this % tvPart(iPart) % vp, sina, cosa, vel
-			end if
 			this % tvPart(iPart) % Yp = this % tvPart(iPart) % Yp + &
 				(met % v + this % tvPart(iPart) % up * sina + this % tvPart(iPart) % vp * cosa) * deltat
-			if(isnan(this % tvPart(iPart) % Xp)) then
-				print *, 'Yp.NaN>', this % tvPart(iPart) % up, this % tvPart(iPart) % vp, sina, cosa, vel
-			end if
 			this % tvPart(iPart) % Zp = this % tvPart(iPart) % Zp + &
 				this % tvPart(iPart) % wp * deltat
-			if(isnan(this % tvPart(iPart) % Xp)) then
-				print *, 'Zp.NaN>', this % tvPart(iPart) % wp, vel
-			end if
 				
 			! Check if reflections occurred at ground or Zi
 			if(this % tvPart(iPart) % Zp < 0.d0) then
