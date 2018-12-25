@@ -278,10 +278,15 @@ contains
 		real(8)				:: ampliX
 		real(8)				:: ampliY
 		real(8)				:: ampliZ
-		integer				:: NaN_Idx
 		real				:: rTime0
 		real				:: rTime1
 		real(8)				:: tota
+		real(8)				:: minXp
+		real(8)				:: maxXp
+		real(8)				:: minYp
+		real(8)				:: maxYp
+		real(8)				:: minZp
+		real(8)				:: maxZp
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -313,9 +318,9 @@ contains
 		zbot = this % zmin - ampliZ / 2.d0
 		ztop = this % zmax + ampliZ / 2.d0
 			
-		! *************************
-		! * Drift along mean wind *
-		! *************************
+		! ***********************
+		! * Movement along wind *
+		! ***********************
 		
 		call cpu_time(rTime0)
 		do iPart = 1, this % partNum
@@ -392,17 +397,29 @@ contains
 			
 		end do
 		
-		!NaN_Idx = 0
-		!do iPart = 1, this % partNum
-		!	if(isnan(this % tvPart(iPart) % Zp) .or. isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Zp)) then
-		!		NaN_Idx = iPart
-		!		print *, 'Drift, NaN'
-		!		print *
-		!		print *, '  Index = ', NaN_Idx
-		!		print *, '  zi    = ', zi
-		!		print *, '  H0    = ', H0
-		!	end if
-		!end do
+		if(cfg % debug >= 3) then
+			minXp =  huge(minXp)
+			maxXp = -huge(maxXp)
+			minYp =  huge(minYp)
+			maxYp = -huge(maxYp)
+			minZp =  huge(minZp)
+			maxZp = -huge(maxZp)
+			do iPart = 1, this % partNum
+				if(this % tvPart(iPart) % filled) then
+					minXp = min(minXp, this % tvPart(iPart) % Xp)
+					maxXp = max(maxXp, this % tvPart(iPart) % Xp)
+					minYp = min(minYp, this % tvPart(iPart) % Yp)
+					maxYp = max(maxYp, this % tvPart(iPart) % Yp)
+					minZp = min(minZp, this % tvPart(iPart) % Zp)
+					maxZp = max(maxZp, this % tvPart(iPart) % Zp)
+				end if
+			end do
+			print *, 'Particles positions report'
+			print *, 'Xp> ', minXp, maxXp
+			print *, 'Yp> ', minYp, maxYp
+			print *, 'Zp> ', minZp, maxZp
+			print *
+		end if
 		do iPart = 1, this % partNum
 			if(.not. this % tvPart(iPart) % filled) cycle
 			if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
@@ -470,7 +487,6 @@ contains
 			else
 				this % tvPart(iPart) % wp = met % A  * this % tvPart(iPart) % wp + met % delta * rootDeltat * rnor()
 			end if
-			
 				
 			! Check whether come speed initialization went not right
 			if( &
