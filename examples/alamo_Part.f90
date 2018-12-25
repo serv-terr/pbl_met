@@ -287,6 +287,12 @@ contains
 		real(8)				:: maxYp
 		real(8)				:: minZp
 		real(8)				:: maxZp
+		real(8)				:: minUp
+		real(8)				:: maxUp
+		real(8)				:: minVp
+		real(8)				:: maxVp
+		real(8)				:: minWp
+		real(8)				:: maxWp
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -509,19 +515,29 @@ contains
 			
 		end do
 				
-		!NaN_Idx = 0
-		!do iPart = 1, this % partNum
-		!	if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
-		!		NaN_Idx = iPart
-		!		print *, 'Diffusion, NaN'
-		!		print *
-		!		print *, '  Index = ', NaN_Idx
-		!		print *, '  zi    = ', zi
-		!		print *, '  H0    = ', H0
-		!		print *, '  Postn = ', this % tvPart(iPart) % Xp, this % tvPart(iPart) % Yp, this % tvPart(iPart) % Zp
-		!		print *, '  Age   = ', this % tvPart(iPart) % Tp
-		!	end if
-		!end do
+		if(cfg % debug >= 3) then
+			minUp =  huge(minUp)
+			maxUp = -huge(maxUp)
+			minVp =  huge(minVp)
+			maxVp = -huge(maxVp)
+			minWp =  huge(minWp)
+			maxWp = -huge(maxWp)
+			do iPart = 1, this % partNum
+				if(this % tvPart(iPart) % filled) then
+					minUp = min(minUp, this % tvPart(iPart) % up)
+					maxUp = max(maxUp, this % tvPart(iPart) % up)
+					minVp = min(minVp, this % tvPart(iPart) % vp)
+					maxVp = max(maxVp, this % tvPart(iPart) % vp)
+					minWp = min(minWp, this % tvPart(iPart) % wp)
+					maxWp = max(maxWp, this % tvPart(iPart) % wp)
+				end if
+			end do
+			print *, 'Velocity report'
+			print *, 'Up> ', minUp, maxUp
+			print *, 'Vp> ', minVp, maxVp
+			print *, 'Wp> ', minWp, maxWp
+			print *
+		end if
 		do iPart = 1, this % partNum
 			if(.not. this % tvPart(iPart) % filled) cycle
 			if(isnan(this % tvPart(iPart) % Xp) .or. isnan(this % tvPart(iPart) % Yp) .or. isnan(this % tvPart(iPart) % Zp)) then
