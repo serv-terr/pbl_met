@@ -494,7 +494,7 @@ contains
 				this % tvPart(iPart) % wp = met % A  * this % tvPart(iPart) % wp + met % delta * rootDeltat * rnor()
 			end if
 				
-			! Check whether come speed initialization went not right
+			! Check whether some speed initialization went not right
 			if( &
 				isnan(this % tvPart(this % partIdx) % up) .or. &
 				isnan(this % tvPart(this % partIdx) % vp) .or. &
@@ -900,10 +900,13 @@ contains
 					this % ymin <= this % tvPart(iPart) % Yp .and. this % tvPart(iPart) % Yp <= this % ymax .and. &
 					this % zmin <= this % tvPart(iPart) % Zp .and. this % tvPart(iPart) % Zp <= this % zmax &
 				) then
-					write(iLUN, "(f10.2, 2(',',f10.2),',',f15.7,',',f10.2)") &
+					write(iLUN, "(f10.2, 5(',',f10.2),',',f15.7,',',f10.2)") &
 						this % tvPart(iPart) % Xp, &
 						this % tvPart(iPart) % Yp, &
 						this % tvPart(iPart) % Zp, &
+						this % tvPart(iPart) % up, &
+						this % tvPart(iPart) % vp, &
+						this % tvPart(iPart) % wp, &
 						this % tvPart(iPart) % Qp, &
 						this % tvPart(iPart) % Tp
 				end if
