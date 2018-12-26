@@ -591,67 +591,6 @@ contains
 	end function cfgGetTimeSubSteps
 	
 	
-	function metpDump(this, iLUN, sProfilePath) result(iRetCode)
-	
-		! Routine arguments
-		class(MetProfiles), intent(in)	:: this
-		integer, intent(in)				:: iLUN
-		character(len=*), intent(in)	:: sProfilePath
-		integer							:: iRetCode
-		
-		! Locals
-		integer				:: iErrCode
-		character(len=256)	:: sFileName
-		character(len=23)	:: sDateTime
-		type(DateTime)		:: tTimeStamp
-		integer				:: i
-		
-		! Assume success (will falsify on failure)
-		iRetCode = 0
-		
-		! Check something should really be done
-		if(sProfilePath == " ") return
-			
-		! Generate file name
-		iErrCode = tTimeStamp % fromEpoch(this % rEpoch)
-		if(iErrCode /= 0) then
-			iRetCode = 1
-			return
-		end if
-		sDateTime = tTimeStamp % toISO()
-		do i = 1, len_trim(sDateTime)
-			if(sDateTime(i:i) == ' ') then
-				sDateTime(i:i) = '_'
-			end if
-		end do
-		write(sFileName, "(a,a,'.csv')") trim(sProfilePath), sDateTime
-		
-		! Write profiles
-		open(iLUN, file=sFileName, status='unknown', action='write', iostat=iErrCode)
-		if(iErrCode /= 0) then
-			iRetCode = 2
-			return
-		end if
-		write(iLUN, "('z,     u,         v,         T,         su2,       sv2,       sw2,       dsw2,     ' // &
-					         'eps,       alpha,     beta,      gamma,     delta,     alpha.u,   alpha.v,  ' // &
-					         'delta.u,   delta.v,   delta.t,   A.u,       A.v,       A,         B')")
-		do i = 1, size(this % z)
-			write(iLUN, "(f6.1, 21(',',f10.5))") &
-				this % z(i), &
-				this % u(i), this % v(i), &
-				this % T(i), &
-				this % su2(i), this % sv2(i), this % sw2(i), this % dsw2(i), &
-				this % eps(i), &
-				this % alfa(i), this % beta(i), this % gamma(i), this % delta(i), &
-				this % alfa_u(i), this % alfa_v(i), &
-				this % deltau(i), this % deltav(i), this % deltat(i), &
-				this % Au(i), this % Av(i), this % A(i), this % B(i)
-		end do
-		close(iLUN)
-		
-	end function metpDump
-	
-	
 	function metpClean(this) result(iRetCode)
 	
 		! Routine arguments
@@ -1153,6 +1092,68 @@ contains
 		report % deltatMax  = maxval(this % deltat)
 		
 	end function metpSummarize
+	
+	
+	function metpDump(this, iLUN, sProfilePath) result(iRetCode)
+	
+		! Routine arguments
+		class(MetProfiles), intent(in)	:: this
+		integer, intent(in)				:: iLUN
+		character(len=*), intent(in)	:: sProfilePath
+		integer							:: iRetCode
+		
+		! Locals
+		integer				:: iErrCode
+		character(len=256)	:: sFileName
+		character(len=23)	:: sDateTime
+		type(DateTime)		:: tTimeStamp
+		integer				:: i
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+		! Check something should really be done
+		if(sProfilePath == " ") return
+			
+		! Generate file name
+		iErrCode = tTimeStamp % fromEpoch(this % rEpoch)
+		if(iErrCode /= 0) then
+			iRetCode = 1
+			return
+		end if
+		sDateTime = tTimeStamp % toISO()
+		do i = 1, len_trim(sDateTime)
+			if(sDateTime(i:i) == ' ') then
+				sDateTime(i:i) = '_'
+			end if
+		end do
+		write(sFileName, "(a,'/',a,'.csv')") trim(sProfilePath), sDateTime
+		
+		! Write profiles
+		open(iLUN, file=sFileName, status='unknown', action='write', iostat=iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			return
+		end if
+		write(iLUN, "(a6, 21(',',a11))") &
+			'z', 'u', 'v', 'T', 'su2', 'sv2', 'sw2', 'dsw2', &
+			'eps', 'alpha', 'beta', 'gamma', 'delta', 'alpha.u', 'alpha.v', &
+			'delta.u', 'delta.v', 'delta.t', 'A.u', 'A.v', 'A', 'B'
+		do i = 1, size(this % z)
+			write(iLUN, "(f6.1, 21(',',f11.6))") &
+				this % z(i), &
+				this % u(i), this % v(i), &
+				this % T(i), &
+				this % su2(i), this % sv2(i), this % sw2(i), this % dsw2(i), &
+				this % eps(i), &
+				this % alfa(i), this % beta(i), this % gamma(i), this % delta(i), &
+				this % alfa_u(i), this % alfa_v(i), &
+				this % deltau(i), this % deltav(i), this % deltat(i), &
+				this % Au(i), this % Av(i), this % A(i), this % B(i)
+		end do
+		close(iLUN)
+		
+	end function metpDump
 	
 	
 	function sumHeader(this, iLUN) result(iRetCode)
