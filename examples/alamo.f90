@@ -115,11 +115,16 @@ program Alamo
 		do iSubStep = 1, cfg % getNumTimeSubSteps()
 			i = i + 1
 			
-			! Gather meteo profiles for current time step
+			! Gather meteo profiles for current time step, and dump them if requested
 			call cpu_time(timeFrom2)
 			iRetCode = prf % create(cfg, i)
 			if(iRetCode /= 0) then
 				print *, 'alamo:: error: Profile not created - Return code = ', iRetCode
+				stop
+			end if
+			iRetCode = prf % dump(110, cfg % profilePath)
+			if(iRetCode /= 0) then
+				print *, 'alamo:: error: Profile not dumped - Return code = ', iRetCode
 				stop
 			end if
 			call cpu_time(timeTo2)
