@@ -14,6 +14,7 @@ module Configuration
 		character(len=256)	:: diag
 		integer				:: frameInterval
 		character(len=256)	:: framePath
+		character(len=256)	:: profilePath
 		integer				:: iExecutionMode	! 0: Gaussian kernel; 1:Direct count "at ground"; 2:Direct count regardless of Z value
 		! Grid data
 		real(8)				:: x0
@@ -200,6 +201,12 @@ contains
 		if(iErrCode /= 0) then
 			iRetCode = 2
 			if(this % debug > 0) print *, "alamo:: error: Invalid 'frame_path' in [General]"
+			return
+		end if
+		iErrCode = cfg % getString("General", "profile_path", this % profilePath, "")
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			if(this % debug > 0) print *, "alamo:: error: Invalid 'profile_path' in [General]"
 			return
 		end if
 		iErrCode = cfg % getInteger("General", "exec_mode", this % iExecutionMode, 0)
