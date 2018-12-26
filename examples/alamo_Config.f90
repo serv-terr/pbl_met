@@ -1,6 +1,7 @@
 module Configuration
 	
 	use pbl_met
+	use pbl_simil
 	use Emission
 	use Meteo
 	
@@ -833,6 +834,7 @@ contains
 			this % z, &
 			cfg % tMeteo % rvExtUstar(i), &
 			ws, &
+			cfg % z0, &
 			cfg % tMeteo % rvExtZi(i), &
 			this % eps &
 		)
