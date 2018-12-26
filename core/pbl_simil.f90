@@ -841,12 +841,13 @@ contains
 	! Estimation of vertical wind component variance and its first derivative
 	! Reference: Rotach, Gryning, Tassone (1996).
 	! This is a very extensive refactoring of code by prof. Roberto Sozzi
-	function VerticalWindVarProfile(z,us,ws,zi,sw2,d_sw2) result(iRetCode)
+	function VerticalWindVarProfile(z,us,ws,z0,zi,sw2,d_sw2) result(iRetCode)
 	
 		! Routine arguments
 		real(8), dimension(:), intent(in)	:: z
 		real(8), intent(in)					:: us
 		real(8), intent(in)					:: ws
+		real(8), intent(in)					:: z0
 		real(8), intent(in)					:: zi
 		real(8), dimension(:), intent(out)	:: sw2
 		real(8), dimension(:), intent(out)	:: d_sw2
@@ -923,7 +924,11 @@ contains
 				sw2(i) = max(sw2m + sw2c, Sw2_min)
 
 				! First derivative of variance
-				d_sw2(i) = ((1.d0-3.d0*zz)/(zz**es2) *ezz*ws2 - us2) / zi
+				if(z(i) > z0) then
+					d_sw2(i) = ((1.d0-3.d0*zz)/(zz**es2) *ezz*ws2 - us2) / zi
+				else
+					d_sw2(i) = 0.d0
+				end if
 				
 			else
 				! Beyond PBL
