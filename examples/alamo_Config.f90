@@ -808,6 +808,7 @@ contains
 			this % z, &
 			cfg % tMeteo % rvExtUstar(i), &
 			ws, &
+			cfg % z0, &
 			cfg % tMeteo % rvExtZi(i), &
 			this % sw2, &
 			this % dsw2 &
