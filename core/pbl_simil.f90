@@ -937,12 +937,13 @@ contains
 	
 	! References: Rotach, Gryning, Tassone (1996) e Ryall e Maryon (1998)
 	! This is a very extensive refactoring of code by prof. Roberto Sozzi
-	function TKEDissipationProfile(z,us,ws,zi,eps) result(iRetCode)
+	function TKEDissipationProfile(z,us,ws,z0,zi,eps) result(iRetCode)
 	
 		! Routine arguments
 		real(8), dimension(:), intent(in)	:: z
 		real(8), intent(in)					:: us
 		real(8), intent(in)					:: ws
+		real(8), intent(in)					:: z0
 		real(8), intent(in)					:: zi
 		real(8), dimension(:), intent(out)	:: eps
 		integer								:: iRetCode
@@ -996,7 +997,11 @@ contains
 			zz = z(i)/zi
 			if(zz <= 1.d0) then
 				! Within pbl
-				epsm   = us3 / (K*z(i)) * (1.d0 - 0.8d0*zz)
+				if(z(i) <= z0) then
+					epsm = eps_min
+				else
+					epsm = us3 / (K*z(i)) * (1.d0 - 0.8d0*zz)
+				end if
 				if(ws > 0.d0) then
 					epsc   = (1.5d0 - 1.2d0*zz**es1) * ws3 / zi
 					eps(i) = max(epsm + epsc, eps_min)
