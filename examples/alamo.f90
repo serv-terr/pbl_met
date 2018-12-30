@@ -29,7 +29,6 @@ program Alamo
 	
 	type(Config)		:: cfg
 	type(MetProfiles)	:: prf
-	type(Summary)		:: prfSummary
 	type(DateTime)		:: curTime
 	type(ParticlePool)	:: part
 	
@@ -129,16 +128,6 @@ program Alamo
 			end if
 			call cpu_time(timeTo2)
 			timeSpentOnMeteo = timeSpentOnMeteo + (timeTo2 - timeFrom2)
-			
-			! Add summary to summary file, if requested
-			if(cfg % metDiaFile /= "") then
-				iRetCode = prf % summarize(prfSummary)
-				if(iRetCode /= 0) then
-					print *, 'alamo:: error: Meteo profile summary not built - Return code = ', iRetCode
-					stop
-				end if
-				iRetCode = prfSummary % printLine(10)
-			end if
 			
 			! Emit new particles
 			call cpu_time(timeFrom2)
