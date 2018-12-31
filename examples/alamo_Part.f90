@@ -843,7 +843,11 @@ contains
 			iRetCode = 1
 			return
 		end if
-		write(iLUN, "('Snapshot guide file')", iostat=iErrCode)
+		write(iLUN, "(8(1x,e15.7))", iostat=iErrCode) &
+			this % xmin, this % xmax, &
+			this % ymin, this % ymax, &
+			this % zmin, this % zmax, &
+			this % dx,   this % dy
 		if(iErrCode /= 0) then
 			close(iLUN)
 			iRetCode = 1
@@ -892,7 +896,7 @@ contains
 		! Write active in-grid particles to file
 		write(sSnapFile, "(a, '/snap_', i7.7, '.csv')") trim(this % sSnapPath), iSnap
 		open(iLUN, file = sSnapFile, status='unknown', action='write')
-		write(iLUN, "('X, Y, Z, Q, Age')")
+		write(iLUN, "('X, Y, Z, U, V, W, Q, Age')")
 		do iPart = 1, size(this % tvPart)
 			if(this % tvPart(iPart) % filled) then
 				if( &
