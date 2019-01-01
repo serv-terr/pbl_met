@@ -713,12 +713,13 @@ contains
 			end if
 			return
 		else
+		
 			! Convective
 			psi  =  2.d0*log((1.d0+sqrt(1.d0-16.d0*z0*hm))/2.d0)	! Businger, convective
 			Cfun =  C_fun(smu)
 			AA   = -Ts/K * (log(hmix/z0) + psi - Cfun)
 			Ttop =  Tr + AA
-			DelT =  Ttop-T(NZHM)
+			DelT =  max(Ttop-T(NZHM), 0.01d0)
 			we   =  hmix**2/(1.4*hmix-2./hm)
 			we   =  (-Ts*us)/gamma/we
 			RiE  = 9.81/Tr * DelT*hmix/we**2
@@ -733,7 +734,7 @@ contains
 				if(z(i) > ztop) exit
 			end do
 			itop = i
-
+			
 			! Entrainment Layer Profile
 			Tbase = T(NZHM)
 			zbot  = z(NZHM)
