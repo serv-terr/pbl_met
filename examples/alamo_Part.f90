@@ -25,6 +25,7 @@ module Particles
 		real(8)										:: zmax
 		real(8)										:: dx
 		real(8)										:: dy
+		real(8)										:: maxAge
 		! Timing
 		real(8)										:: T_substep
 		! Gridded receptor coordinates
@@ -85,14 +86,15 @@ contains
 		iRetCode = 0
 		
 		! Assign domain
-		this % xmin = cfg % x0
-		this % xmax = cfg % x1
-		this % ymin = cfg % y0
-		this % ymax = cfg % y1
-		this % zmin = 0.d0
-		this % zmax = cfg % zmax
-		this % dx   = cfg % dx
-		this % dy   = cfg % dy
+		this % xmin   = cfg % x0
+		this % xmax   = cfg % x1
+		this % ymin   = cfg % y0
+		this % ymax   = cfg % y1
+		this % zmin   = 0.d0
+		this % zmax   = cfg % zmax
+		this % dx     = cfg % dx
+		this % dy     = cfg % dy
+		this % maxAge = cfg % MaxAge
 		
 		! Assign snapshot path and related data files
 		this % sSnapPath     = cfg % framePath
@@ -843,11 +845,12 @@ contains
 			iRetCode = 1
 			return
 		end if
-		write(iLUN, "(8(1x,e15.7))", iostat=iErrCode) &
+		write(iLUN, "(9(1x,e15.7))", iostat=iErrCode) &
 			this % xmin, this % xmax, &
 			this % ymin, this % ymax, &
 			this % zmin, this % zmax, &
-			this % dx,   this % dy
+			this % dx,   this % dy, &
+			this % maxAge
 		if(iErrCode /= 0) then
 			close(iLUN)
 			iRetCode = 1
