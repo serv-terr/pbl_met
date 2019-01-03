@@ -4,7 +4,8 @@ import os
 import sys
 import glob
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
+
 
 if __name__ == "__main__":
 
@@ -27,7 +28,8 @@ if __name__ == "__main__":
 		print("alamo_snapsPlot.py:: error: Snaps path contains no snaps")
 		sys.exit(2)
 	try:
-		f = open(os.path.join(snapsPath, "guide.txt"), "r")
+		guideFile = os.path.join(snapsPath, "guide.txt")
+		f = open(guideFile, "r")
 		lines = f.readlines()
 		f.close()
 	except:
@@ -36,3 +38,39 @@ if __name__ == "__main__":
 	if len(lines) <= 0:
 		print("alamo_snapsPlot.py:: error: No or invalid guide file")
 		sys.exit(3)
+		
+	# Get plotting extrema from the guide file
+	data = np.loadtxt(guideFile)
+	xmin = data[0]
+	xmax = data[1]
+	ymin = data[2]
+	ymax = data[3]
+	zmin = data[4]
+	zmax = data[5]
+	dx   = data[6]
+	dy   = data[7]
+	amax = data[8]
+	
+	# Process snapshot files
+	for snap in sorted(snaps):
+	
+		# Form output image name
+		snapName  = os.path.basename(snap).replace('csv', 'png')
+		imageName = os.path.join(imagesPath, snapName)
+		print("Processing " + snap)
+		
+		# Get data from snapshot, and retrieve particles coordinates from it
+		snapData = np.loadtxt(snap, skiprows=1, delimiter=",")
+		xp       = snapData[:,0]
+		yp       = snapData[:,1]
+		ap       = snapData[:,7] / amax
+		
+		# Plot data
+		fig = plt.figure()
+		ax = fig.add_subplot(111, aspect='equal')
+		ax.scatter(xp, yp, s=0.1)
+		plt.xlim(xmin,xmax)
+		plt.ylim(ymin,ymax)
+		plt.savefig(imageName)
+		plt.close()
+		
