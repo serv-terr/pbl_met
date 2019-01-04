@@ -61,14 +61,26 @@ if __name__ == "__main__":
 		
 		# Get data from snapshot, and retrieve particles coordinates from it
 		snapData = np.loadtxt(snap, skiprows=1, delimiter=",")
-		xp       = snapData[:,0]
-		yp       = snapData[:,1]
-		ap       = snapData[:,7] / amax
+		shp = snapData.shape
+		if snapData.size > 0:
+			if len(shp) > 1:
+				xp       = snapData[:,0]
+				yp       = snapData[:,1]
+				ap       = snapData[:,7] / amax
+			else:
+				xp       = []
+				yp       = []
+				ap       = []
+		else:
+			xp       = []
+			yp       = []
+			ap       = []
 		
 		# Plot data
 		fig = plt.figure()
 		ax = fig.add_subplot(111, aspect='equal')
-		ax.scatter(xp, yp, s=0.1)
+		levels = np.array([(0,0,0,a) for a in ap])
+		ax.scatter(xp, yp, s=0.1, color=levels)
 		plt.xlim(xmin,xmax)
 		plt.ylim(ymin,ymax)
 		plt.savefig(imageName)
