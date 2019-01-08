@@ -47,6 +47,7 @@ module Configuration
 		integer				:: hemisphere	! 0:Southern, 1:Northern
 		! Output
 		character(len=256)	:: Fileout
+		character(len=256)	:: FileMean
 		real(8)				:: fat
 		! Computed parameters
 		real(8)				:: x1
@@ -293,6 +294,12 @@ contains
 			if(this % debug > 0) print *, "alamo:: error: Invalid 'conc' in [Output]"
 			return
 		end if
+		iErrCode = cfg % getString("Output", "mean", this % FileMean, "")
+		if(iErrCode /= 0) then
+			iRetCode = 2
+			if(this % debug > 0) print *, "alamo:: error: Invalid 'mean' in [Output]"
+			return
+		end if
 		iErrCode = cfg % getReal8("Output", "x0", this % x0, -9999.9d0)
 		if(iErrCode /= 0) then
 			iRetCode = 2
@@ -375,6 +382,11 @@ contains
 		if(this % Fileout == "") then
 			iRetCode = 3
 			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'conc' in [Output]"
+			return
+		end if
+		if(this % Fileout == this % FileMean) then
+			iRetCode = 3
+			if(this % debug > 0) print *, "alamo:: error: 'mean' file name cannot be the same as 'conc' in [Output]"
 			return
 		end if
 		if(this % x0 < -9990.d0 .or. this % y0 < -9990.d0) then
