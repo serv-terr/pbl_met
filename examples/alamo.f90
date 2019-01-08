@@ -26,6 +26,8 @@ program Alamo
 	integer				:: iStep
 	integer				:: iSubStep
 	integer				:: i
+	integer				:: ix
+	integer				:: iy
 	
 	type(Config)		:: cfg
 	type(MetProfiles)	:: prf
@@ -42,6 +44,8 @@ program Alamo
 	real				:: timeSpentOnParticleMovement
 	real				:: timeSpentOnConcentrations
 	real				:: timeSpentOnWriting
+	real(8)				:: east
+	real(8)				:: north
 	
 	! Get parameters
 	if(command_argument_count() /= 1) then
@@ -166,15 +170,23 @@ program Alamo
 			
 		end do
 		
-		! Compute mean concentration
+		! Compute mean concentration and, if required, add to accumulators
 		part % C = part % C / cfg % getNumTimeSubSteps()
+		if(cfg % FileMean /= ' ') then
+			part % Csum = part % Csum + part % C
+			do ix = 1, cfg % nx
+				do iy = 1, cfg % ny
+					part % Cmax(ix,iy) = max(part % Cmax(ix,iy), part % C(ix,iy))
+				end do
+			end do
+		end if
 		
 		! Write concentration to file (in 01 form)
 		iRetCode = curTime % fromEpoch(cfg % tMeteo % rvEpoch(iStep))
 		write(11) &
 			curTime % iYear, curTime % iMonth, curTime % iDay, &
 			curTime % iHour*100 + curTime % iMinute
-		write(11) part % C
+		write(11) real(part % C, kind=4)
 		
 		! Inform of progress, if requested
 		if(cfg % debug > 0) then
@@ -225,6 +237,21 @@ program Alamo
 	close(11)
 	if(cfg % metDiaFile /= "") then
 		close(100)
+	end if
+	
+	! Compute and print means, if requested
+	if(cfg % FileMean /= ' ') then
+		open(11, file = cfg % FileMean, status='unknown', action='write')
+		part % Csum = part % Csum / i
+		write(11,"('E, N, C.Mean, C.Max')")
+		do ix = 1, cfg % nx
+			east = cfg % x0 + (ix-1) * cfg % dx
+			do iy = 1, cfg % ny
+				north = cfg % y0 + (iy-1) * cfg % dy
+				write(11, "(f10.2,',',f10.2,2(',',e15.7))") east, north, part % Csum(ix,iy), part % Cmax(ix,iy)
+			end do
+		end do
+		close(11)
 	end if
 	
 end program Alamo
