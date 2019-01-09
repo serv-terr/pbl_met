@@ -393,26 +393,6 @@ contains
 		end if
 		if(this % debug > 1) print *, "alamo:: info: [Timing] section check done"
 		! -1- Output
-		if(this % Fileout == "") then
-			iRetCode = 3
-			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'conc' in [Output]"
-			return
-		end if
-		if(this % Fileout == this % FileMean) then
-			iRetCode = 3
-			if(this % debug > 0) print *, "alamo:: error: 'mean' file name cannot be the same as 'conc' in [Output]"
-			return
-		end if
-		if(this % Fileout == this % FileGridAvg) then
-			iRetCode = 3
-			if(this % debug > 0) print *, "alamo:: error: 'gridAvg' file name cannot be the same as 'conc' in [Output]"
-			return
-		end if
-		if(this % Fileout == this % FileGridMax) then
-			iRetCode = 3
-			if(this % debug > 0) print *, "alamo:: error: 'gridMax' file name cannot be the same as 'conc' in [Output]"
-			return
-		end if
 		if(this % x0 < -9990.d0 .or. this % y0 < -9990.d0) then
 			iRetCode = 3
 			if(this % debug > 0) print *, "alamo:: error: Invalid value of 'x0' or 'y0' in [Output]"
