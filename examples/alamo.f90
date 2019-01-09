@@ -46,6 +46,7 @@ program Alamo
 	real				:: timeSpentOnWriting
 	real(8)				:: east
 	real(8)				:: north
+	character(len=256)	:: sFmt
 	
 	! Get parameters
 	if(command_argument_count() /= 1) then
@@ -238,11 +239,13 @@ program Alamo
 	if(cfg % metDiaFile /= "") then
 		close(100)
 	end if
-	
-	! Compute and print means, if requested
+
+	! Finalize calculation of means	
+	part % Csum = part % Csum / i
+		
+	! Print means in XYZ form, if requested
 	if(cfg % FileMean /= ' ') then
 		open(11, file = cfg % FileMean, status='unknown', action='write')
-		part % Csum = part % Csum / i
 		write(11,"('E, N, C.Mean, C.Max')")
 		do ix = 1, cfg % nx
 			east = cfg % x0 + (ix-1) * cfg % dx
@@ -250,6 +253,34 @@ program Alamo
 				north = cfg % y0 + (iy-1) * cfg % dy
 				write(11, "(f10.2,',',f10.2,2(',',e15.7))") east, north, part % Csum(ix,iy), part % Cmax(ix,iy)
 			end do
+		end do
+		close(11)
+	end if
+	
+	! Print gridded means, if requested
+	if(cfg % FileGridAvg /= "") then
+		if(cfg % nx > 1) then
+			write(sFmt, "('(e15.7,',i5,'(',',e15.7))')") cfg % nx - 1
+		else
+			write(sFmt, "('(e15.7)')")
+		end if
+		open(11, file = cfg % FileGridAvg, status='unknown', action='write')
+		do iy = 1, cfg % ny
+			write(11, fmt=sFmt) (part % Csum(ix,iy), ix = 1, cfg % ny)
+		end do
+		close(11)
+	end if
+	
+	! Print gridded maxima, if requested
+	if(cfg % FileGridMax /= "") then
+		if(cfg % nx > 1) then
+			write(sFmt, "('(e15.7,',i5,'(',',e15.7))')") cfg % nx - 1
+		else
+			write(sFmt, "('(e15.7)')")
+		end if
+		open(11, file = cfg % FileGridMax, status='unknown', action='write')
+		do iy = 1, cfg % ny
+			write(11, fmt=sFmt) (part % Cmax(ix,iy), ix = 1, cfg % ny)
 		end do
 		close(11)
 	end if
