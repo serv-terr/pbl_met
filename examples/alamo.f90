@@ -266,7 +266,7 @@ program Alamo
 	! Print gridded means, if requested
 	if(cfg % FileGridAvg /= "") then
 		if(cfg % nx > 1) then
-			write(sFmt, "('(e15.7,',i5,'(',',e15.7))')") cfg % nx - 1
+			write(sFmt, "('(e15.7,',i5,'(1h,,e15.7))')") cfg % nx - 1
 		else
 			write(sFmt, "('(e15.7)')")
 		end if
@@ -280,7 +280,7 @@ program Alamo
 	! Print gridded maxima, if requested
 	if(cfg % FileGridMax /= "") then
 		if(cfg % nx > 1) then
-			write(sFmt, "('(e15.7,',i5,'(',',e15.7))')") cfg % nx - 1
+			write(sFmt, "('(e15.7,',i5,'(1h,,e15.7))')") cfg % nx - 1
 		else
 			write(sFmt, "('(e15.7)')")
 		end if
