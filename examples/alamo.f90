@@ -94,7 +94,9 @@ program Alamo
 		print *, "alamo:: error: Impossible to generate snapshot data files - Return code = ", iRetCode
 		stop
 	end if
-	open(11, file=cfg % Fileout, access='stream', action='write', status='unknown')
+	if(cfg % Fileout /= ' ') then
+		open(11, file=cfg % Fileout, access='stream', action='write', status='unknown')
+	end if
 	do iStep = 1, cfg % getNumTimeSteps()
 	
 		call cpu_time(timeFrom1)
@@ -184,10 +186,12 @@ program Alamo
 		
 		! Write concentration to file (in 01 form)
 		iRetCode = curTime % fromEpoch(cfg % tMeteo % rvEpoch(iStep))
-		write(11) &
-			curTime % iYear, curTime % iMonth, curTime % iDay, &
-			curTime % iHour*100 + curTime % iMinute
-		write(11) real(part % C, kind=4)
+		if(cfg % Fileout /= ' ') then
+			write(11) &
+				curTime % iYear, curTime % iMonth, curTime % iDay, &
+				curTime % iHour*100 + curTime % iMinute
+			write(11) real(part % C, kind=4)
+		end if
 		
 		! Inform of progress, if requested
 		if(cfg % debug > 0) then
@@ -235,7 +239,9 @@ program Alamo
 		end if
 	
 	end do
-	close(11)
+	if(cfg % Fileout /= ' ') then
+		close(11)
+	end if
 	if(cfg % metDiaFile /= "") then
 		close(100)
 	end if
