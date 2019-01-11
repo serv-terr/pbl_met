@@ -28,6 +28,8 @@ dove **<File_Configurazione_Studio>** è il file di input principale, descritto 
 
 #### Il file di ingresso principale
 
+##### Forma e contenuto del file di ingresso principale
+
 Il *file di ingresso principale* è un archivio di testo di tipo INI, contenente le seguenti sezioni:
 
 * Sezione [General]
@@ -35,6 +37,19 @@ Il *file di ingresso principale* è un archivio di testo di tipo INI, contenente
 * Sezione [Emission]
 * Sezione [Meteo]
 * Sezione [Output]
+
+Le diverse sezioni contengono le chiavi di configurazione, descritte qui di seguito
+
+##### Sezione [General]
+
+##### Sezione [Timing]
+
+##### Sezione [Emission]
+
+##### Sezione [Meteo]
+
+##### Sezione [Output]
+
 
 
 #### Il file meteorologico
