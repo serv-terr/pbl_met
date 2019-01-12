@@ -42,6 +42,16 @@ Le diverse sezioni contengono le chiavi di configurazione, descritte qui di segu
 
 ##### Sezione [General]
 
+La sezione [General] contiene alcune impostazioni di carattere generale, che comprendono le seguenti chiavi:
+
+* debug_level: Intero tra 0 e 3 che stabilisce il "livello di debug".
+* exec_mode: Intero, che contiene il modo di esecuzione
+diafile     = diag.dat
+frame_interval = 0
+frame_path     = 
+profile_path   = 
+
+
 ##### Sezione [Timing]
 
 ##### Sezione [Emission]
