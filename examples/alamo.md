@@ -28,6 +28,12 @@ dove **<File_Configurazione_Studio>** è il file di input principale, descritto 
 
 #### Il file di ingresso principale
 
+##### Alcune cose da sapere
+
+Il file di ingresso principale contiene direttamente, o tramite riferimenti, tutte le informazioni che servono per una girata ALAMO. Esistono, però, "girate" di tipo diverso (scelto appunto tramite opportune grandezze nel file di input principale), delle quali è necessario sapere prima di procedere.
+
+La prima cosa da sapere è, che il modello ALAMO può produrre output di vari tipi, ma anche, volendo, _nessun_ output. E' infatti ammessa la possibilità di predisporre una girata "di prova", nella quale l'elaborazione procede "come se" si desiderasse produrre dei risultati, e che va a buon fine se e solo se tutti i file di input sono corretti e non vuoti.
+
 ##### Forma e contenuto del file di ingresso principale
 
 Il *file di ingresso principale* è un archivio di testo di tipo INI, contenente le seguenti sezioni:
