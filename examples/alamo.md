@@ -50,9 +50,12 @@ Le diverse sezioni contengono le chiavi di configurazione, descritte qui di segu
 
 La sezione [General] contiene alcune impostazioni di carattere generale, che comprendono le seguenti chiavi:
 
-* debug_level: Intero tra 0 e 3 che stabilisce il "livello di debug".
-* exec_mode: Intero, che contiene il modo di esecuzione
-diafile     = diag.dat
+* debug_level: Intero tra 0 e 3 che stabilisce il "livello di debug". Il valore 0 compete a "nessun debug", nel qual caso il modello non stampa alcun messaggio diagnostico, né di avanzamento. Valori crescenti comportano la stampa di sempre più informazioni.
+
+* exec_mode: Intero tra 0 e 2, che contiene il modo di conteggiodelle concentrazioni. Il valore 0 corrisponde all'uso di un _kernel_ Gaussiano. I valori 1 e 2 corrispondono rispettivamente al conteggio assoluto delle particelle nelle celle di griglia "ad altezza naso" ed "a tutta la colonna".
+
+* diafile: Stringa, contenente il nome del file diagnostico
+
 frame_interval = 0
 frame_path     = 
 profile_path   = 
