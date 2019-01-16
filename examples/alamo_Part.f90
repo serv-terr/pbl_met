@@ -780,9 +780,10 @@ contains
 					if(this % tvPart(iPart) % Zp < 2.d0) then
 						ix = nint((this % tvPart(iPart) % Xp - this % xmin) / this % Dx) + 1
 						iy = nint((this % tvPart(iPart) % Yp - this % ymin) / this % Dy) + 1
-						ix = max(min(ix, this % nx), 1)
-						iy = max(min(iy, this % ny), 1)
-						this % C(ix,iy) = this % C(ix,iy) + cfg % fat * this % tvPart(iPart) % Qp / (2.d0 * this % Dx * this % Dy)
+						if(ix >= 1 .and. ix <= this % nx .and. iy >= 1 .and. iy <= this % ny) then
+							this % C(ix,iy) = this % C(ix,iy) + &
+												cfg % fat * this % tvPart(iPart) % Qp / (2.d0 * this % Dx * this % Dy)
+						end if
 					end if
 				
 				end if
@@ -796,10 +797,10 @@ contains
 					! Particles are always interesting in this mode
 					ix = nint((this % tvPart(iPart) % Xp - this % xmin) / this % Dx) + 1
 					iy = nint((this % tvPart(iPart) % Yp - this % ymin) / this % Dy) + 1
-					ix = max(min(ix, this % nx), 1)
-					iy = max(min(iy, this % ny), 1)
-					this % C(ix,iy) = this % C(ix,iy) + cfg % fat * this % tvPart(iPart) % Qp / &
-						(this % Dx * this % Dy * (this % zmax - this % zmin))
+					if(ix >= 1 .and. ix <= this % nx .and. iy >= 1 .and. iy <= this % ny) then
+						this % C(ix,iy) = this % C(ix,iy) + cfg % fat * this % tvPart(iPart) % Qp / &
+							(this % Dx * this % Dy * (this % zmax - this % zmin))
+					end if
 				
 				end if
 			end do
