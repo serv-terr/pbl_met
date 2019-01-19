@@ -89,7 +89,7 @@ program Alamo
 			"Out.Expansion,  Nan.Langevin,   Out.Langevin,   Time.Concentr,  Time.Writing"
 	end if
 	i = 0	! Actual time index
-	iRetCode = part % SnapInit(10)
+	iRetCode = part % SnapInit(10, cfg % tMeteo % rvEpoch(1))
 	if(iRetCode /= 0) then
 		print *, "alamo:: error: Impossible to generate snapshot data files - Return code = ", iRetCode
 		stop
