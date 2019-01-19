@@ -830,22 +830,31 @@ contains
 	end function pplCount
 	
 	
-	function pplSnapInit(this, iLUN) result(iRetCode)
+	function pplSnapInit(this, iLUN, rEpoch) result(iRetCode)
 	
 		! Routine arguments
 		class(ParticlePool), intent(in)	:: this
 		integer, intent(in)				:: iLUN
+		real(8)							:: rEpoch	! Date and time of simulation beginning
 		integer							:: iRetCode
 		
 		! Locals
 		integer				:: iErrCode
 		character(len=256)	:: sSnapGuideFile
+		type(DateTime)		:: tDateTime
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
 		! Check something is to be made
 		if(this % sSnapPath == " ") return
+		
+		! Set date and time
+		iErrCode = tDateTime % fromEpoch(rEpoch)
+		if(iErrCode /= 0) then
+			iRetCode = 1
+			return
+		end if
 		
 		! Check movie directory really exists
 		sSnapGuideFile = trim(this % sSnapPath) // "/guide.txt"
@@ -854,12 +863,14 @@ contains
 			iRetCode = 1
 			return
 		end if
-		write(iLUN, "(9(1x,e15.7))", iostat=iErrCode) &
+		write(iLUN, "(10(1x,e15.7),5(1x,i4),1x,f6.3)", iostat=iErrCode) &
 			this % xmin, this % xmax, &
 			this % ymin, this % ymax, &
 			this % zmin, this % zmax, &
 			this % dx,   this % dy, &
-			this % maxAge
+			this % maxAge, this % T_substep, &
+			tDateTime % iYear, tDateTime % iMonth, tDateTime % iDay, &
+			tDateTime % iHour, tDateTime % iMinute, tDateTime % rSecond
 		if(iErrCode /= 0) then
 			close(iLUN)
 			iRetCode = 1
