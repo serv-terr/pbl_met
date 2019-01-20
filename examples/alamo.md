@@ -95,4 +95,4 @@ Le marche temporali delle righe successive devono essere ordinate in senso cresc
 
 #### Il file delle sorgenti statiche
 
-To apply any text formatting you can see on this page with just a tap, in the Home tab of the ribbon, take a look at Styles.
+
