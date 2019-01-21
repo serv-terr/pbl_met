@@ -22,7 +22,7 @@ Per avviare ALAMO è sufficiente aprire una sessione terminale e digitare il com
 
 ​            **alamo <File_Configurazione_Studio>**
 
-dove **<File_Configurazione_Studio>** è il file di input principale, descritto nel seguito.
+dove **<File_Configurazione_Studio>** è il file di input principale, di tipo testuale, ed il cui formato è descritto nel seguito.
 
 ### Dati di ingresso
 
