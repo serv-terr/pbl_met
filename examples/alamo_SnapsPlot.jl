@@ -1,5 +1,6 @@
 #!/usr/bin/env julia
 
+# Get parameters
 if length(ARGS) != 2
 
 	println("alamo_SnapPlot.jl - Program generating particles scatter plots for movie production")
@@ -12,7 +13,13 @@ if length(ARGS) != 2
 	exit(1)
 	
 end
-
 sSnapPath = ARGS[1]
 sOutPath  = ARGS[2]
 
+# Get boundary information
+
+# Iterate over input path contents, and process them
+files = readdir(sSnapPath)
+for file in files
+	sFileName = sSnapPath * "/" * file
+end
