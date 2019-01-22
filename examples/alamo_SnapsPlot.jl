@@ -1,5 +1,9 @@
 #!/usr/bin/env julia
 
+#import Pkg
+#Pkg.add("CSV")
+using CSV
+
 # Get parameters
 if length(ARGS) != 2
 
@@ -22,4 +26,6 @@ sOutPath  = ARGS[2]
 files = readdir(sSnapPath)
 for file in files
 	sFileName = sSnapPath * "/" * file
+	data = CSV.read(sFileName)
+	println(sFileName)
 end
