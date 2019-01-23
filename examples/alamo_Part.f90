@@ -917,9 +917,8 @@ contains
 		if(this % sSnapPath == " ") return
 		
 		! Write active in-grid particles to file
-		write(sSnapFile, "(a, '/snap_', i7.7, '.csv')") trim(this % sSnapPath), iSnap
-		open(iLUN, file = sSnapFile, status='unknown', action='write')
-		write(iLUN, "('X, Y, Z, U, V, W, Q, Age')")
+		write(sSnapFile, "(a, '/snap_', i7.7, '.bin')") trim(this % sSnapPath), iSnap
+		open(iLUN, file = sSnapFile, status='unknown', action='write', access='stream')
 		do iPart = 1, size(this % tvPart)
 			if(this % tvPart(iPart) % filled) then
 				if( &
@@ -927,15 +926,12 @@ contains
 					this % ymin <= this % tvPart(iPart) % Yp .and. this % tvPart(iPart) % Yp <= this % ymax .and. &
 					this % zmin <= this % tvPart(iPart) % Zp .and. this % tvPart(iPart) % Zp <= this % zmax &
 				) then
-					write(iLUN, "(f10.2, 5(',',f10.2),',',f15.7,',',f10.2)") &
-						this % tvPart(iPart) % Xp, &
-						this % tvPart(iPart) % Yp, &
-						this % tvPart(iPart) % Zp, &
-						this % tvPart(iPart) % up, &
-						this % tvPart(iPart) % vp, &
-						this % tvPart(iPart) % wp, &
-						this % tvPart(iPart) % Qp, &
-						this % tvPart(iPart) % Tp
+					write(iLUN) &
+						real(this % tvPart(iPart) % Xp, kind=4), &
+						real(this % tvPart(iPart) % Yp, kind=4), &
+						real(this % tvPart(iPart) % Zp, kind=4), &
+						real(this % tvPart(iPart) % Qp, kind=4), &
+						real(this % tvPart(iPart) % Tp, kind=4)
 				end if
 			end if
 		end do
