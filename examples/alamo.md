@@ -95,4 +95,5 @@ Le marche temporali delle righe successive devono essere ordinate in senso cresc
 
 #### Il file delle sorgenti statiche
 
+# File di uscita
 
