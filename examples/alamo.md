@@ -98,6 +98,11 @@ Le marche temporali delle righe successive devono essere ordinate in senso cresc
 # File di uscita
 
 ## Archivi delle posizioni istantanee delle particelle
+### Il file 'guide.txt'
+
+### I file 'snap_*.bin'
+
+
 
 
 
