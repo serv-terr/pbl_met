@@ -102,7 +102,8 @@ Le marche temporali delle righe successive devono essere ordinate in senso cresc
 
 ### I file 'snap_*.bin'
 
-
+I file 'snap_*.bin' sono di tipo _binario_, e costituiti da zero o più quintuple di real(kind=4), contenenti nell'ordine:
+* Le coordinate _x_, _y_ e _z_ della posizione della particella.
 
 
 
