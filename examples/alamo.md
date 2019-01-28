@@ -107,5 +107,5 @@ I file 'snap_*.bin' sono di tipo _binario_, e costituiti da zero o più quintupl
 * La massa della particella.
 * L'età della particella (in secondi).
 
-
+Il numero di righe nei file binari non è noto a priori: la lettura deve proseguire sino a che non ci sono righe.
 
