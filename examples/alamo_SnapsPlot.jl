@@ -1,8 +1,22 @@
 #!/usr/bin/env julia
 
-#import Pkg
-#Pkg.add("CSV")
-using CSV
+import Pkg
+#Pkg.add("Plots")
+using Plots
+
+struct Particle
+
+	x::Float32
+	y::Float32
+	z::Float32
+	q::Float32
+	t::Float32
+	
+	# Constructor (uninitialized)
+	Particle() = new()
+	
+end
+
 
 # Get parameters
 if length(ARGS) != 2
@@ -46,7 +60,15 @@ second = parse(Float64, blocks[16])
 # Iterate over input path contents, and process them
 files = readdir(sSnapPath)
 for file in files
+
+	# Get file as it is
 	sFileName = sSnapPath * "/" * file
-	data = CSV.read(sFileName)
-	println(sFileName)
+	nData = filesize(sFileName) / (5*4)
+	data = read(sFileName, Particle, nData)
+	
+	# Build scatter plot of all points within boundary, which result in "active" state
+	
+	# Inform users about advancement
+	println("Just processed:" * sFileName)
+	
 end
