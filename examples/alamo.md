@@ -14,6 +14,8 @@ A differenza dei modelli a particelle di maggior diffusione, alimentati con un c
 
 La ragione dietro a questa differenza è l’enfasi, in ALAMO, data alla comprensione *locale* del trasporto e diffusione di traccianti passivi (gas, particolati sottili, l’atmosfera stessa, batteri, spore). Questa meteorologia uni-dimensionale si suppone misurata direttamente tramite ad esempio un SODAR (con o senza estensione RASS), oppure stimata a partire da misure dirette di turbolenza compiute vicino al suolo usando un anemometro ultrasonico tri-assiale come ad esempio l’**uSonic-3** di Metek GmbH ed un sistema di acquisizione ed elaborazione dedicato come ad esempio il **MeteoFlux® Core V2** di Servizi Territorio srl.
 
+### A cosa _non_ serve
+
 ALAMO non è progettato per applicazioni *regulatory*, e come tale *non* deve essere utilizzato. Il suo impiego è principalmente *tecnico*, di supporto al monitoraggio (per esempio, a supporto di campagne olfattometriche, misure di concentrazione al camino, formulazione di piani di monitoraggio su basi razionali).
 
 #### Come si avvia
