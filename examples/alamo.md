@@ -113,4 +113,6 @@ Il numero di righe nei file binari non è noto a priori: la lettura deve prosegu
 
 # Cenni tecnici
 
+Il modello ALAMO 
+
 
