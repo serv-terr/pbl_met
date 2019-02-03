@@ -113,6 +113,6 @@ Il numero di righe nei file binari non è noto a priori: la lettura deve prosegu
 
 # Cenni tecnici
 
-Il modello ALAMO 
+ALAMO è un modello a partcelle con meteorologia uni-dimensionale, basato su un'equazione di Langevin di tipo "classico", 
 
 
