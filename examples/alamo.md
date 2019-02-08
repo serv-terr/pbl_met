@@ -115,6 +115,8 @@ Il numero di righe nei file binari non è noto a priori: la lettura deve prosegu
 
 ALAMO è un modello a partcelle con meteorologia uni-dimensionale, basato su un'equazione di Langevin di tipo "classico", concepito in modo specifico per l'utilizzo in aree di dimensioni limitate, accompagnato da misure di precisione di vento in superficie e, se disponibile, lungo la direzione verticale.
 
+Per costruzione, il 
+
 
 
 
