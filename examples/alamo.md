@@ -117,7 +117,7 @@ ALAMO è un modello a partcelle con meteorologia uni-dimensionale, basato su un'
 
 Per costruzione, il modello ALAMO è in grado di accettare input prodotti usando strumenti di precisione presenti in sito: anemometro ultrasonico tri-assiale (accoppiato ad un sistema _eddy-covariance_ come ad esempio MeteoFlux Core V2), o un SODAR (eventualmente con estensione RASS).
 
-ALAMO 
+ALAMO è, ad ogni modo, capace di operare anche in assenza di SODAR: nel caso, il profilo verticale è stimato a partire dai dati di superficie.
 
 
 
