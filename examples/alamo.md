@@ -113,11 +113,11 @@ Il numero di righe nei file binari non è noto a priori: la lettura deve prosegu
 
 # Cenni tecnici
 
-ALAMO è un modello a partcelle con meteorologia uni-dimensionale, basato su un'equazione di Langevin di tipo "classico", concepito in modo specifico per l'utilizzo in aree di dimensioni limitate, accompagnato da misure di precisione di vento in superficie e, se disponibile, lungo la direzione verticale.
+ALAMO è un modello a particelle con meteorologia uni-dimensionale, basato su un'equazione di Langevin di tipo "classico", concepito in modo specifico per l'utilizzo in aree di dimensioni limitate, accompagnato da misure di precisione di vento in superficie e, se disponibile, lungo la direzione verticale.
 
 Per costruzione, il modello ALAMO è in grado di accettare input prodotti usando strumenti di precisione presenti in sito: anemometro ultrasonico tri-assiale (accoppiato ad un sistema _eddy-covariance_ come ad esempio MeteoFlux Core V2), o un SODAR (eventualmente con estensione RASS).
 
-ALAMO è, ad ogni modo, capace di operare anche in assenza di SODAR: nel caso, il profilo verticale è stimato a partire dai dati di superficie.
+ALAMO è, ad ogni modo, capace di operare anche in assenza di SODAR: nel caso, il profilo verticale è stimato a partire dai dati di superficie, usando relazioni di similarità.
 
 
 
