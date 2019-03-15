@@ -3435,6 +3435,10 @@ contains
 			iRetCode = 2
 			return
 		end if
+		if(rDx <= 0.d0 .or. rDy <= 0.d0) then
+			iRetCode = 2
+			return
+		end if
 
 		! Reserve workspace
 		allocate(this % rmValue(iNx, iNy))
