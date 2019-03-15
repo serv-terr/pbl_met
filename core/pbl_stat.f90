@@ -117,7 +117,7 @@ module pbl_stat
 	contains
 		procedure, public	:: clean				=> dfClean
 		procedure, public	:: initialize			=> dfInitialize
-		!procedure, public	:: evaluate				=> dfEvaluate
+		procedure, public	:: evaluate				=> dfEvaluate
 	end type TwoDimensionalField
     
     ! Constants
@@ -3451,6 +3451,37 @@ contains
 		this % rvY     = [(rYsw + rDy * (i-1), i=1,iNy)]
 
 	end function dfInitialize
+
+
+	function dfEvaluate(this, rvX, rvY, rvValue) result(iRetCode)
+
+		! Routine arguments
+		class(TwoDimensionalField), intent(inout)	:: this
+		real, dimension(:), intent(in)				:: rvX
+		real, dimension(:), intent(in)				:: rvY
+		real, dimension(:), intent(in)				:: rvValue
+		integer										:: iRetCode
+
+		! Locals
+		integer		:: iErrCode
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check the 2D field to make some sense
+		if(.not.allocated(this % rmValue) .or. .not.allocated(this % rvX) .or. .not.allocated(this % rvY)) then
+			iRetCode = 1
+			return
+		end if
+		if(size(this % rvX) <= 0 .or. size(this % rvY) <= 0) then
+			iRetCode = 2
+			return
+		end if
+
+		! Check the input data make some sense
+
+
+	end function dfEvaluate
 
 	! *********************
 	! * Internal routines *
