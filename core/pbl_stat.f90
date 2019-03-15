@@ -116,7 +116,7 @@ module pbl_stat
 		real(8), dimension(:), allocatable		:: rvY
 	contains
 		procedure, public	:: clean				=> dfClean
-		!procedure, public	:: initialize			=> dfInitialize
+		procedure, public	:: initialize			=> dfInitialize
 		!procedure, public	:: evaluate				=> dfEvaluate
 	end type TwoDimensionalField
     
@@ -3387,6 +3387,7 @@ contains
 		integer									:: iRetCode
 
 		! Locals
+		! --none--
 
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -3397,7 +3398,56 @@ contains
 		if(allocated(this % rvY))     deallocate(this % rvY)
 
 	end function dfClean
-	
+
+
+	function dfInitialize(this, rXsw, rYsw, rDx, rDy, iNx, iNy) result(iRetCode)
+
+		! Routine arguments
+		class(TwoDimensionalField), intent(inout)	:: this
+		real(8), intent(in)							:: rXsw
+		real(8), intent(in)							:: rYsw
+		real(8), intent(in)							:: rDx
+		real(8), intent(in)							:: rDy
+		integer, intent(in)							:: iNx
+		integer, intent(in)							:: iNy
+		integer										:: iRetCode
+
+		! Locals
+		integer		:: iErrCode
+		integer		:: i
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Clean workspace
+		iErrCode = this % clean()
+		if(iErrCode /= 0) then
+			iRetCode = 1
+			return
+		end if
+
+		! Check parameters
+		if(.not..valid.rXsw .or. .not..valid.rYsw) then
+			iRetCode = 2
+			return
+		end if
+		if(iNx <= 0 .or. iNy <= 0) then
+			iRetCode = 2
+			return
+		end if
+
+		! Reserve workspace
+		allocate(this % rmValue(iNx, iNy))
+		allocate(this % rvX(iNx))
+		allocate(this % rvY(iNy))
+
+		! Fill workspace
+		this % rmValue = 0.d0
+		this % rvX     = [(rXsw + rDx * (i-1), i=1,iNx)]
+		this % rvY     = [(rYsw + rDy * (i-1), i=1,iNy)]
+
+	end function dfInitialize
+
 	! *********************
 	! * Internal routines *
 	! *********************
