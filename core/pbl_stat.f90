@@ -108,6 +108,17 @@ module pbl_stat
     	procedure, public	:: movingAverage					=> tsMovingAverage
     	procedure, public	:: movingStdDev						=> tsMovingStdDev
     end type TimeSeries
+
+
+	type TwoDimensionalField
+		real(8), dimension(:,:), allocatable	:: rmValue
+		real(8), dimension(:), allocatable		:: rvX
+		real(8), dimension(:), allocatable		:: rvY
+	contains
+		procedure, public	:: clean				=> dfClean
+		!procedure, public	:: initialize			=> dfInitialize
+		!procedure, public	:: evaluate				=> dfEvaluate
+	end type TwoDimensionalField
     
     ! Constants
     
@@ -3367,6 +3378,25 @@ contains
 		this % rvValue     = sqrt(rvMeanSquaredValue - rvMeanValue**2)
 
 	end function tsMovingStdDev
+
+
+	function dfClean(this) result(iRetCode)
+
+		! Routine arguments
+		class(TwoDimensionalField), intent(out)	:: this
+		integer									:: iRetCode
+
+		! Locals
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Reclaim workspace, if any
+		if(allocated(this % rmValue)) deallocate(this % rmValue)
+		if(allocated(this % rvX))     deallocate(this % rvX)
+		if(allocated(this % rvY))     deallocate(this % rvY)
+
+	end function dfClean
 	
 	! *********************
 	! * Internal routines *
