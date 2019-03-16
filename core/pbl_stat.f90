@@ -3464,6 +3464,8 @@ contains
 
 		! Locals
 		integer		:: iErrCode
+		integer		:: iNx
+		integer		:: iNy
 
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -3479,7 +3481,30 @@ contains
 		end if
 
 		! Check the input data make some sense
+		if(size(rvX) <= 0 .or. size(rvY) <= 0) then
+			iRetCode = 3
+			return
+		end if
+		if(size(rvX) /= size(rvY)) then
+			iRetCode = 4
+			return
+		end if
+		if(any(.invalid.rvX) .or. any(.invalid.rvY)) then
+			iRetCode = 5
+			return
+		end if
 
+		! Check the input data belong to the grid's region
+		iNx = size(this % rvX)
+		iNy = size(this % rvY)
+		if(any(rvX < this % rvX(1)) .or. any(rvX > this % rvX(iNx))) then
+			iRetCode = 6
+			return
+		end if
+		if(any(rvY < this % rvY(1)) .or. any(rvY > this % rvY(iNy))) then
+			iRetCode = 7
+			return
+		end if
 
 	end function dfEvaluate
 
