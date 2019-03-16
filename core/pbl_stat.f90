@@ -114,6 +114,9 @@ module pbl_stat
 		real(8), dimension(:,:), allocatable	:: rmValue
 		real(8), dimension(:), allocatable		:: rvX
 		real(8), dimension(:), allocatable		:: rvY
+		integer, dimension(:), allocatable		:: ivNumAdjacent
+		integer, dimension(:,:), allocatable	:: imAdjacentX
+		integer, dimension(:,:), allocatable	:: imAdjacentY
 	contains
 		procedure, public	:: clean				=> dfClean
 		procedure, public	:: initialize			=> dfInitialize
@@ -3393,14 +3396,17 @@ contains
 		iRetCode = 0
 
 		! Reclaim workspace, if any
-		if(allocated(this % rmValue)) deallocate(this % rmValue)
-		if(allocated(this % rvX))     deallocate(this % rvX)
-		if(allocated(this % rvY))     deallocate(this % rvY)
+		if(allocated(this % rmValue))       deallocate(this % rmValue)
+		if(allocated(this % rvX))           deallocate(this % rvX)
+		if(allocated(this % rvY))           deallocate(this % rvY)
+		if(allocated(this % ivNumAdjacent)) deallocate(this % ivNumAdjacent)
+		if(allocated(this % imAdjacentX))   deallocate(this % imAdjacentX)
+		if(allocated(this % imAdjacentY))   deallocate(this % imAdjacentY)
 
 	end function dfClean
 
 
-	function dfInitialize(this, rXsw, rYsw, rDx, rDy, iNx, iNy) result(iRetCode)
+	function dfInitialize(this, rXsw, rYsw, rDx, rDy, iNx, iNy, rvX, rvY) result(iRetCode)
 
 		! Routine arguments
 		class(TwoDimensionalField), intent(inout)	:: this
@@ -3410,11 +3416,14 @@ contains
 		real(8), intent(in)							:: rDy
 		integer, intent(in)							:: iNx
 		integer, intent(in)							:: iNy
+		real, dimension(:), intent(in)				:: rvX
+		real, dimension(:), intent(in)				:: rvY
 		integer										:: iRetCode
 
 		! Locals
 		integer		:: iErrCode
 		integer		:: i
+		integer		:: n
 
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -3440,25 +3449,43 @@ contains
 			return
 		end if
 
+		! Check the input data make some sense
+		if(size(rvX) <= 0 .or. size(rvY) <= 0) then
+			iRetCode = 3
+			return
+		end if
+		if(size(rvX) /= size(rvY)) then
+			iRetCode = 4
+			return
+		end if
+		if(any(.invalid.rvX) .or. any(.invalid.rvY)) then
+			iRetCode = 5
+			return
+		end if
+		n = size(rvX)	! Which is, by the preceding tests, the same as size(rvY)
+
 		! Reserve workspace
 		allocate(this % rmValue(iNx, iNy))
 		allocate(this % rvX(iNx))
 		allocate(this % rvY(iNy))
+		allocate(this % ivNumAdjacent(n))
+		allocate(this % imAdjacentX(n, iNx*iNy))
+		allocate(this % imAdjacentY(n, iNx*iNy))
 
 		! Fill workspace
 		this % rmValue = 0.d0
 		this % rvX     = [(rXsw + rDx * (i-1), i=1,iNx)]
 		this % rvY     = [(rYsw + rDy * (i-1), i=1,iNy)]
 
+		! Build the distance matrix
+
 	end function dfInitialize
 
 
-	function dfEvaluate(this, rvX, rvY, rvValue) result(iRetCode)
+	function dfEvaluate(this, rvValue) result(iRetCode)
 
 		! Routine arguments
 		class(TwoDimensionalField), intent(inout)	:: this
-		real, dimension(:), intent(in)				:: rvX
-		real, dimension(:), intent(in)				:: rvY
 		real, dimension(:), intent(in)				:: rvValue
 		integer										:: iRetCode
 
@@ -3477,32 +3504,6 @@ contains
 		end if
 		if(size(this % rvX) <= 0 .or. size(this % rvY) <= 0) then
 			iRetCode = 2
-			return
-		end if
-
-		! Check the input data make some sense
-		if(size(rvX) <= 0 .or. size(rvY) <= 0) then
-			iRetCode = 3
-			return
-		end if
-		if(size(rvX) /= size(rvY)) then
-			iRetCode = 4
-			return
-		end if
-		if(any(.invalid.rvX) .or. any(.invalid.rvY)) then
-			iRetCode = 5
-			return
-		end if
-
-		! Check the input data belong to the grid's region
-		iNx = size(this % rvX)
-		iNy = size(this % rvY)
-		if(any(rvX < this % rvX(1)) .or. any(rvX > this % rvX(iNx))) then
-			iRetCode = 6
-			return
-		end if
-		if(any(rvY < this % rvY(1)) .or. any(rvY > this % rvY(iNy))) then
-			iRetCode = 7
 			return
 		end if
 
