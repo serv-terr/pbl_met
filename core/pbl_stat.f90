@@ -114,9 +114,9 @@ module pbl_stat
 		real(8), dimension(:,:), allocatable	:: rmValue
 		real(8), dimension(:), allocatable		:: rvX
 		real(8), dimension(:), allocatable		:: rvY
-		integer, dimension(:), allocatable		:: ivNumAdjacent
-		integer, dimension(:,:), allocatable	:: imAdjacentX
-		integer, dimension(:,:), allocatable	:: imAdjacentY
+		integer, dimension(:,:), allocatable	:: imNumAdjacent
+		integer, dimension(:,:,:), allocatable	:: iaAdjacent
+		real(8), dimension(:,:,:), allocatable	:: raDistance
 	contains
 		procedure, public	:: clean				=> dfClean
 		procedure, public	:: initialize			=> dfInitialize
@@ -3399,14 +3399,14 @@ contains
 		if(allocated(this % rmValue))       deallocate(this % rmValue)
 		if(allocated(this % rvX))           deallocate(this % rvX)
 		if(allocated(this % rvY))           deallocate(this % rvY)
-		if(allocated(this % ivNumAdjacent)) deallocate(this % ivNumAdjacent)
-		if(allocated(this % imAdjacentX))   deallocate(this % imAdjacentX)
-		if(allocated(this % imAdjacentY))   deallocate(this % imAdjacentY)
+		if(allocated(this % imNumAdjacent)) deallocate(this % imNumAdjacent)
+		if(allocated(this % iaAdjacent))    deallocate(this % iaAdjacent)
+		if(allocated(this % raDistance))    deallocate(this % raDistance)
 
 	end function dfClean
 
 
-	function dfInitialize(this, rXsw, rYsw, rDx, rDy, iNx, iNy, rvX, rvY) result(iRetCode)
+	function dfInitialize(this, rXsw, rYsw, rDx, rDy, iNx, iNy, rvX, rvY, rThreshold) result(iRetCode)
 
 		! Routine arguments
 		class(TwoDimensionalField), intent(inout)	:: this
@@ -3418,12 +3418,13 @@ contains
 		integer, intent(in)							:: iNy
 		real, dimension(:), intent(in)				:: rvX
 		real, dimension(:), intent(in)				:: rvY
+		real(8), intent(in)							:: rThreshold
 		integer										:: iRetCode
 
 		! Locals
 		integer		:: iErrCode
-		integer		:: i
-		integer		:: n
+		integer		:: i, j, k
+		integer		:: n, m
 
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -3463,14 +3464,18 @@ contains
 			return
 		end if
 		n = size(rvX)	! Which is, by the preceding tests, the same as size(rvY)
+		if(rThreshold <= 0.d0) then
+			iRetCode = 6
+			return
+		end if
 
 		! Reserve workspace
 		allocate(this % rmValue(iNx, iNy))
 		allocate(this % rvX(iNx))
 		allocate(this % rvY(iNy))
-		allocate(this % ivNumAdjacent(n))
-		allocate(this % imAdjacentX(n, iNx*iNy))
-		allocate(this % imAdjacentY(n, iNx*iNy))
+		allocate(this % imNumAdjacent(iNx, iNy))
+		allocate(this % iaAdjacent(n, iNx, iNy))
+		allocate(this % raDistance(n, iNx, iNy))
 
 		! Fill workspace
 		this % rmValue = 0.d0
@@ -3478,6 +3483,35 @@ contains
 		this % rvY     = [(rYsw + rDy * (i-1), i=1,iNy)]
 
 		! Build the distance matrix
+		allocate(this % raDistance(n, iNx, iNy))
+		do k = 1, iNy
+			do j = 1, iNx
+				do i = 1, n
+					this % raDistance(i,j,k) = sqrt((rvX(i) - this % rvX(j))**2 + (rvY(i) - this % rvY(k))**2)
+				end do
+			end do
+		end do
+
+		! Compare to distance threshold and build the adjacency lists
+		do k = 1, iNy
+			do j = 1, iNx
+				m = 0
+				do i = 1, n
+					if(this % raDistance(i,j,k) >= rThreshold) then
+						m = m + 1
+						this % imNumAdjacent(j,k)  = m
+						this % iaAdjacent(m, j, k) = i
+					end if
+				end do
+			end do
+		end do
+
+		! Check some grid point is not covered by at least one experimental point
+		if(any(this % imNumAdjacent <= 0)) then
+			iRetCode = 7
+			return
+		end if
+		! Post-condition: we have distances, and adjacency lists: success
 
 	end function dfInitialize
 
