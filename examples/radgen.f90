@@ -201,6 +201,13 @@ program RadGen
 		stop
 	end if
 	
+	! Adjust time stamp to anticipated
+	if(iTimeStampOption == 1) then
+		rvTimeStamp = rvTimeStamp - iTimeStep / 2.0d0
+	elseif(iTimeStampOption == 2) then
+		rvTimeStamp = rvTimeStamp - iTimeStep
+	end if
+	
 	! Reserve space for radiation (result) vectors
 	allocate(rvRgMin(size(rvTimeStamp)))
 	allocate(rvRgMax(size(rvTimeStamp)))
@@ -287,7 +294,7 @@ program RadGen
 		end if
 	end do
 	
-	! Adjust time stamp if not anticipated
+	! Set time stamp back, if needed
 	if(iTimeStampOption == 1) then
 		rvTimeStamp = rvTimeStamp + iTimeStep / 2.0d0
 	elseif(iTimeStampOption == 2) then
