@@ -151,7 +151,7 @@ contains
 		integer	:: iErrCode
 
 		! Constants
-		real, parameter	:: SOLAR_CONSTANT = 1.e5*49.2/3600.0		! W/m2
+		real, parameter	:: SOLAR_CONSTANT = 1.e6*49.2/3600.0		! W/m2
 		real, parameter	:: PI             = 3.1415927
 
 		! Get optional parameter (assign default if missing)
@@ -300,7 +300,7 @@ contains
 		real	:: solarDeclination, centralMeridianLongitude, localLongitude
 
 		! Constants
-		real, parameter	:: SOLAR_CONSTANT = 1.e5*49.2/3600.0		! W/m2
+		real, parameter	:: SOLAR_CONSTANT = 1.e6*49.2/3600.0		! W/m2
 		real, parameter	:: PI             = 3.1415927
 
 		! Get date and time
