@@ -369,6 +369,9 @@ contains
 				(omega2-omega1)*SIN(lat*PI/180.0)*SIN(solarDeclination) + &
 				COS(lat*PI/180.0)*COS(solarDeclination)*(SIN(omega2) - SIN(omega1)) &
 			)
+			
+		! Clip to interval [0,+infinity), as radiation cannot be negative
+		ra = max(ra, 0.)
 
 	end function ExtraterrestrialRadiation
 
