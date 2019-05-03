@@ -148,6 +148,7 @@ contains
 		real	:: omega, omega1, omega2, omegaS
 		real	:: timenow, JD, t, Sc, b, t1
 		real	:: solarDeclination, centralMeridianLongitude, localLongitude
+		real	:: delta_lon, intermediate, sign
 		integer	:: iErrCode
 
 		! Constants
@@ -198,7 +199,19 @@ contains
 		Sc = 0.1645*SIN(2.0*b) - 0.1255*COS(b) - 0.025*SIN(b)
 
 		! Solar time angle at midpoint of averaging time
-		omega = (PI/12.0) * ((t + 0.06667*(centralMeridianLongitude - localLongitude) + Sc) - 12.0)
+		delta_lon = MOD(ABS(centralMeridianLongitude - localLongitude), 360.0)
+		if(delta_lon > 180.0) then
+			intermediate = 360.0 - delta_lon
+		else
+			intermediate = delta_lon
+		end if
+		if(((delta_lon > 0.0) .and. (delta_lon <= 180.0)) .or. ((delta_lon <= -180.0) .and. (delta_lon >= -360.0))) then
+			sign =  1.0
+		else
+			sign = -1.0
+		end if
+		delta_lon = sign * intermediate
+		omega = (PI/12.0) * ((t + 0.06667*(delta_lon) + Sc) - 12.0)
 
 		! Solar time angle at beginning and end of averaging period
 		omega1 = omega - PI*t1/24.0
@@ -298,6 +311,7 @@ contains
 		real	:: omega, omega1, omega2, omegaS
 		real	:: timenow, JD, t, Sc, b, t1
 		real	:: solarDeclination, centralMeridianLongitude, localLongitude
+		real	:: delta_lon, intermediate, sign
 
 		! Constants
 		real, parameter	:: SOLAR_CONSTANT = 1.e6*49.2/3600.0		! W/m2
@@ -340,7 +354,19 @@ contains
 		Sc = 0.1645*SIN(2.0*b) - 0.1255*COS(b) - 0.025*SIN(b)
 
 		! Solar time angle at midpoint of averaging time
-		omega = (PI/12.0) * ((t + 0.06667*(centralMeridianLongitude - localLongitude) + Sc) - 12.0)
+		delta_lon = MOD(ABS(centralMeridianLongitude - localLongitude), 360.0)
+		if(delta_lon > 180.0) then
+			intermediate = 360.0 - delta_lon
+		else
+			intermediate = delta_lon
+		end if
+		if(((delta_lon > 0.0) .and. (delta_lon <= 180.0)) .or. ((delta_lon <= -180.0) .and. (delta_lon >= -360.0))) then
+			sign =  1.0
+		else
+			sign = -1.0
+		end if
+		delta_lon = sign * intermediate
+		omega = (PI/12.0) * ((t + 0.06667*(delta_lon) + Sc) - 12.0)
 
 		! Solar time angle at beginning and end of averaging period
 		omega1 = omega - PI*t1/24.0
