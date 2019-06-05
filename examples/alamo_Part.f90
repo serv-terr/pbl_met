@@ -26,6 +26,8 @@ module Particles
 		real(8)										:: dx
 		real(8)										:: dy
 		real(8)										:: maxAge
+		! Current particle pool position in time
+		real(8)										:: rTimeStamp
 		! Timing
 		real(8)										:: T_substep
 		! Gridded receptor coordinates
@@ -43,7 +45,7 @@ module Particles
 		integer										:: partIdx
 		integer										:: partNum
 		! Snapshot generation
-		character(len=256)							:: sSnapPath
+		character(len=256)							:: sSnapFile
 		character(len=256)							:: sSnapGridFile
 		character(len=256)							:: sSnapListFile
 		! Run times
@@ -99,9 +101,9 @@ contains
 		this % maxAge = cfg % MaxAge
 		
 		! Assign snapshot path and related data files
-		this % sSnapPath     = cfg % framePath
-		this % sSnapGridFile = trim(cfg % framePath) // ".grd"
-		this % sSnapListFile = trim(cfg % framePath) // ".lst"
+		this % sSnapFile     = cfg % frameFile
+		this % sSnapGridFile = trim(cfg % frameFile) // ".grd"
+		this % sSnapListFile = trim(cfg % frameFile) // ".lst"
 		
 		! Initialise receptor coordinates
 		this % nx = cfg % nx
@@ -136,6 +138,9 @@ contains
 		end do
 		this % partIdx = 0
 		this % partNum = 0
+		
+		! Initialize time
+		this % rTimeStamp = 0.0d0
 		
 	end function pplInit
 	
@@ -180,6 +185,9 @@ contains
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
+		
+		! Assign current time stamp
+		this % rTimeStamp = prf % rEpoch
 		
 		! Static point sources
 		this % iNanEmit = 0
@@ -847,7 +855,7 @@ contains
 		iRetCode = 0
 		
 		! Check something is to be made
-		if(this % sSnapPath == " ") return
+		if(this % sSnapFile == " ") return
 		
 		! Set date and time
 		iErrCode = tDateTime % fromEpoch(rEpoch)
@@ -857,7 +865,7 @@ contains
 		end if
 		
 		! Check movie directory really exists
-		sSnapGuideFile = trim(this % sSnapPath) // "/guide.txt"
+		sSnapGuideFile = trim(this % sSnapFile) // ".guide.txt"
 		open(iLUN, file=sSnapGuideFile, status='unknown', action='write', iostat=iErrCode)
 		if(iErrCode /= 0) then
 			iRetCode = 1
@@ -894,6 +902,11 @@ contains
 			this % zmax
 		close(iLUN)
 		
+		! Create particle pool snap file, and fill its header
+		open(iLUN, file = this % sSnapFile, status='unknown', action='write', access='stream')
+		write(iLUN) this % xmin, this % xmax, this % ymin, this % ymax, this % zmin, this % zmax
+		close(iLUN)
+		
 	end function pplSnapInit
 	
 	
@@ -908,17 +921,32 @@ contains
 		! Locals
 		integer				:: iErrCode
 		integer				:: iPart
+		integer				:: iNumPart
 		character(len=256)	:: sSnapFile
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
 		! Check if something is to be made
-		if(this % sSnapPath == " ") return
+		if(this % sSnapFile == " ") return
+		
+		! Count in-grid particles
+		iNumPart = 0
+		do iPart = 1, size(this % tvPart)
+			if(this % tvPart(iPart) % filled) then
+				if( &
+					this % xmin <= this % tvPart(iPart) % Xp .and. this % tvPart(iPart) % Xp <= this % xmax .and. &
+					this % ymin <= this % tvPart(iPart) % Yp .and. this % tvPart(iPart) % Yp <= this % ymax .and. &
+					this % zmin <= this % tvPart(iPart) % Zp .and. this % tvPart(iPart) % Zp <= this % zmax &
+				) then
+					iNumPart = iNumPart + 1
+				end if
+			end if
+		end do
 		
 		! Write active in-grid particles to file
-		write(sSnapFile, "(a, '/snap_', i7.7, '.bin')") trim(this % sSnapPath), iSnap
-		open(iLUN, file = sSnapFile, status='unknown', action='write', access='stream')
+		open(iLUN, file = this % sSnapFile, status='unknown', action='write', access='stream', position='append')
+		write(iLUN) this % rTimeStamp, iNumPart
 		do iPart = 1, size(this % tvPart)
 			if(this % tvPart(iPart) % filled) then
 				if( &
