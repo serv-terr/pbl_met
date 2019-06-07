@@ -889,6 +889,7 @@ contains
 		
 		! Create snap list with empty contents
 		open(iLUN, file = this % sSnapListFile, status='unknown', action='write')
+		write(iLUN, "('Date, Total.Particles, In.Domain.Particles')")
 		close(iLUN)
 		
 		! Create snap grid file
