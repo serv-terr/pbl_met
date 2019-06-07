@@ -922,7 +922,6 @@ contains
 		integer				:: iErrCode
 		integer				:: iPart
 		integer				:: iNumPart
-		character(len=256)	:: sSnapFile
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
