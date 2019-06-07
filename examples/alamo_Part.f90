@@ -921,6 +921,7 @@ contains
 		! Locals
 		integer				:: iErrCode
 		integer				:: iPart
+		integer				:: iNumFilledPart
 		integer				:: iNumPart
 		
 		! Assume success (will falsify on failure)
@@ -930,9 +931,11 @@ contains
 		if(this % sSnapFile == " ") return
 		
 		! Count in-grid particles
-		iNumPart = 0
+		iNumPart       = 0
+		iNumFilledPart = 0
 		do iPart = 1, size(this % tvPart)
 			if(this % tvPart(iPart) % filled) then
+				iNumFilledPart = iNumFilledPart + 1
 				if( &
 					this % xmin <= this % tvPart(iPart) % Xp .and. this % tvPart(iPart) % Xp <= this % xmax .and. &
 					this % ymin <= this % tvPart(iPart) % Yp .and. this % tvPart(iPart) % Yp <= this % ymax .and. &
@@ -966,7 +969,7 @@ contains
 		
 		! Append row to snapshot list
 		open(iLUN, file=this % sSnapListFile, status='old', action='write', position='append')
-		write(iLUN, "(a)") trim(this % sSnapFile)
+		write(iLUN, *) this % rTimeStamp, iNumFilledPart, iNumPart
 		close(iLUN)
 		
 	end function pplSnapTake
