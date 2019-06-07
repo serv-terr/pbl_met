@@ -108,10 +108,11 @@ if __name__ == "__main__":
 			plt.ylim(ymin,ymax)
 			plt.title(timeString[0:13])
 			writer.grab_frame()
-			plt.close()
+			fig.delaxes(ax)
 		
 			# Inform users
 			print("Processed: %s - Min: (%f,%f)  Max: (%f,%f)" % (timeString, xpmin, ypmin, xpmax, ypmax))
 		
 	# Leave
+	plt.close()
 	f.close()
