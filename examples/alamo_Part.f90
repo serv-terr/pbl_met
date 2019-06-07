@@ -967,7 +967,7 @@ contains
 		
 		! Append row to snapshot list
 		open(iLUN, file=this % sSnapListFile, status='old', action='write', position='append')
-		write(iLUN, "(a)") trim(sSnapFile)
+		write(iLUN, "(a)") trim(this % sSnapFile)
 		close(iLUN)
 		
 	end function pplSnapTake
