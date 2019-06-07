@@ -923,6 +923,7 @@ contains
 		integer				:: iPart
 		integer				:: iNumFilledPart
 		integer				:: iNumPart
+		type(DateTime)		:: dt
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -969,7 +970,8 @@ contains
 		
 		! Append row to snapshot list
 		open(iLUN, file=this % sSnapListFile, status='old', action='write', position='append')
-		write(iLUN, *) this % rTimeStamp, iNumFilledPart, iNumPart
+		iErrCode = dt % fromEpoch(this % rTimeStamp)
+		write(iLUN, "(a23, 2(',', i10))") dt % toISO(), iNumFilledPart, iNumPart
 		close(iLUN)
 		
 	end function pplSnapTake
