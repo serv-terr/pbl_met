@@ -111,7 +111,7 @@ if __name__ == "__main__":
 			fig.delaxes(ax)
 		
 			# Inform users
-			print("Processed: %s - Min: (%f,%f)  Max: (%f,%f)" % (timeString, xpmin, ypmin, xpmax, ypmax))
+			print("Processed: %s - Parts: %d - Min: (%f,%f)  Max: (%f,%f)" % (timeString, snapData.size, xpmin, ypmin, xpmax, ypmax))
 		
 	# Leave
 	plt.close()
