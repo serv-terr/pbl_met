@@ -3396,9 +3396,21 @@ contains
 		! Locals
 		real(8)		:: rDeltaTime
 		integer		:: iNumGaps
+		integer		:: iIsWellSpaced
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
+		
+		! Reserve workspace
+		if(allocated(lvOriginal)) deallocate(lvOriginal)
+		allocate(lvOriginal(size(this % rvTimeStamp)))
+		
+		! Check parameters
+		iIsWellSpaced = this % timeIsWellSpaced(rDeltaTime, iNumGaps)
+		if(iIsWellSpaced /= 0) then
+			iRetCode = 1
+			return
+		end if
 		
 	end function tsFillGaps
 
