@@ -107,6 +107,8 @@ module pbl_stat
     	! Smoothers
     	procedure, public	:: movingAverage					=> tsMovingAverage
     	procedure, public	:: movingStdDev						=> tsMovingStdDev
+    	! Gap fillers
+    	procedure, public	:: fillGaps							=> tsFillGaps
     end type TimeSeries
 
 
@@ -3381,6 +3383,20 @@ contains
 		this % rvValue     = sqrt(rvMeanSquaredValue - rvMeanValue**2)
 
 	end function tsMovingStdDev
+	
+	
+	function tsFillGaps(this) result(iRetCode)
+	
+		! Routine arguments
+		class(TimeSeries), intent(inout)	:: this			! The time series we want to gap-fill
+		integer								:: iRetCode
+		
+		! Locals
+		
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
+	end function tsFillGaps
 
 
 	function dfClean(this) result(iRetCode)
@@ -3542,7 +3558,7 @@ contains
 		end if
 
 		! Generate weights
-		
+
 
 	end function dfEvaluate
 
