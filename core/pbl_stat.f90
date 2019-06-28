@@ -3385,13 +3385,17 @@ contains
 	end function tsMovingStdDev
 	
 	
-	function tsFillGaps(this) result(iRetCode)
+	function tsFillGaps(this, iDaysRadius, lvOriginal) result(iRetCode)
 	
 		! Routine arguments
-		class(TimeSeries), intent(inout)	:: this			! The time series we want to gap-fill
-		integer								:: iRetCode
+		class(TimeSeries), intent(inout)				:: this			! The time series we want to gap-fill
+		integer, intent(in)								:: iDaysRadius
+		logical, dimension(:), allocatable, intent(out)	:: lvOriginal
+		integer											:: iRetCode
 		
 		! Locals
+		real(8)		:: rDeltaTime
+		integer		:: iNumGaps
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
