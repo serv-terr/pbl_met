@@ -3394,9 +3394,15 @@ contains
 		integer											:: iRetCode
 		
 		! Locals
-		real(8)		:: rDeltaTime
-		integer		:: iNumGaps
-		integer		:: iIsWellSpaced
+		integer								:: iErrCode
+		integer								:: iNumItemsPerDay
+		real(8)								:: rDeltaTime
+		integer								:: iNumGaps
+		integer								:: iIsWellSpaced
+		
+		! Constants
+		integer, parameter	:: ONE_HOUR = 3600
+		integer, parameter	:: ONE_DAY  = 24*ONE_HOUR
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -3411,6 +3417,13 @@ contains
 			iRetCode = 1
 			return
 		end if
+		
+		! How many data come in a day?
+		if(rDeltaTime <= 0.d0) then
+			iRetCode = 2
+			return
+		end if
+		iNumItemsPerDay = floor(ONE_DAY / rDeltaTime)
 		
 	end function tsFillGaps
 
