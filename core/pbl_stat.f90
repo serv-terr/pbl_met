@@ -3396,13 +3396,15 @@ contains
 		! Locals
 		integer								:: iErrCode
 		integer								:: iNumItemsPerDay
+		integer								:: iNumDays
 		real(8)								:: rDeltaTime
 		integer								:: iNumGaps
 		integer								:: iIsWellSpaced
+		integer								:: iNumData
 		
 		! Constants
-		integer, parameter	:: ONE_HOUR = 3600
-		integer, parameter	:: ONE_DAY  = 24*ONE_HOUR
+		real(8), parameter	:: ONE_HOUR = 3600.d0
+		real(8), parameter	:: ONE_DAY  = 24*ONE_HOUR
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -3412,6 +3414,11 @@ contains
 		allocate(lvOriginal(size(this % rvTimeStamp)))
 		
 		! Check parameters
+		if(this % isEmpty()) then
+			iRetCode = 1
+			return
+		end if
+		iNumData = size(this % rvTimeStamp)
 		iIsWellSpaced = this % timeIsWellSpaced(rDeltaTime, iNumGaps)
 		if(iIsWellSpaced /= 0) then
 			iRetCode = 1
@@ -3424,6 +3431,13 @@ contains
 			return
 		end if
 		iNumItemsPerDay = floor(ONE_DAY / rDeltaTime)
+		
+		! How many days in data set?
+		iNumDays = floor((timeFloorDay(this % rvTimeStamp(iNumData)) - timeFloorDay(this % rvTimeStamp(1)) + ONE_DAY) / ONE_DAY) + 1
+		if(iNumDays <= 0) then
+			iRetCode = 3
+			return
+		end if
 		
 	end function tsFillGaps
 
