@@ -54,6 +54,7 @@ module pbl_time
 	public	:: timeFloorDay					! Day stamp of current time stamp
 	public	:: timeFloorHour				! Hour stamp of current time stamp
 	public	:: timeCeilingDay				! Day stamp of next time stamp
+	public	:: timeCeilingHour				! Hour stamp of next time stamp
 	
 	! Constants
 	integer, parameter	:: DELTA_1_HOUR  = 3600
@@ -143,6 +144,12 @@ module pbl_time
 		module procedure	:: timeFloorHour1
 		module procedure	:: timeFloorHour2
 	end interface timeFloorHour
+	
+	
+	interface timeCeilingHour
+		module procedure	:: timeCeilingHour1
+		module procedure	:: timeCeilingHour2
+	end interface timeCeilingHour
 	
 	
 	interface operator(.sensible.)
@@ -1548,6 +1555,47 @@ contains
 		rHourStamp = floor(rTimeStamp/ONE_HOUR) * ONE_HOUR
 		
 	end function timeFloorHour2
+	
+	
+	function timeCeilingHour1(iTimeStamp) result(iHourStamp)
+	
+		! Routine arguments
+		integer, intent(in)	:: iTimeStamp
+		integer				:: iHourStamp
+		
+		! Locals
+		integer	:: iTemporary
+		
+		! Constants
+		integer, parameter	:: ONE_HOUR = 3600
+		
+		! Compute the desired quantity
+		iTemporary = mod(iTimeStamp, ONE_HOUR)
+		if(iTemporary /= 0) then
+			iHourStamp = iTimeStamp - iTemporary
+		else
+			iHourStamp = iTimeStamp
+		end if
+		
+	end function timeCeilingHour1
+	
+	
+	function timeCeilingHour2(rTimeStamp) result(rHourStamp)
+	
+		! Routine arguments
+		real(8), intent(in)	:: rTimeStamp
+		real(8)				:: rHourStamp
+		
+		! Locals
+		! -none-
+		
+		! Constants
+		real(8), parameter	:: ONE_HOUR = 3600.d0
+		
+		! Compute the desired quantity
+		rHourStamp = ceiling(rTimeStamp/ONE_HOUR) * ONE_HOUR
+		
+	end function timeCeilingHour2
 	
 	
 	function isSensible(tDateTime) result(lIsSensible)
