@@ -50,6 +50,8 @@ module pbl_time
 	public	:: timeGetMonth					! Extract month from a time stamp vector (may be used to obtain an index)
 	public	:: timeGetYearMonth				! Extract a year-month value from a time stamp vector (may be used to obtain an index)
 	public	:: timeSequence					! Generate a sequence of time stamps between two given initial and final time stamps
+	! 5. Round time stamps to various common steps
+	public	:: timeFloorDay
 	
 	! Constants
 	integer, parameter	:: DELTA_1_HOUR  = 3600
@@ -121,6 +123,12 @@ module pbl_time
 		module procedure	:: timeSequence1
 		module procedure	:: timeSequence2
 	end interface timeSequence
+	
+	
+	interface timeFloorDay
+		module procedure	:: timeFloorDay1
+		module procedure	:: timeFloorDay2
+	end interface timeFloorDay
 	
 	
 	interface operator(.sensible.)
@@ -1413,6 +1421,42 @@ contains
 		end if
 		
 	end function timeSequence2
+	
+	
+	function timeFloorDay1(iTimeStamp) result(iDayStamp)
+	
+		! Routine arguments
+		integer, intent(in)	:: iTimeStamp
+		integer				:: iDayStamp
+		
+		! Locals
+		! -none-
+		
+		! Constants
+		integer, parameter	:: ONE_DAY = 3600*24
+		
+		! Compute the desired quantity
+		iDayStamp = iTimeStamp - mod(iTimeStamp, ONE_DAY)
+		
+	end function timeFloorDay1
+	
+	
+	function timeFloorDay2(rTimeStamp) result(rDayStamp)
+	
+		! Routine arguments
+		real(8), intent(in)	:: rTimeStamp
+		real(8)				:: rDayStamp
+		
+		! Locals
+		! -none-
+		
+		! Constants
+		real(8), parameter	:: ONE_DAY = 3600.d0*24
+		
+		! Compute the desired quantity
+		rDayStamp = floor(rTimeStamp/ONE_DAY) * rTimeStamp
+		
+	end function timeFloorDay2
 	
 	
 	function isSensible(tDateTime) result(lIsSensible)
