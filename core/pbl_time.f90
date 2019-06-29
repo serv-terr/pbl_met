@@ -51,7 +51,8 @@ module pbl_time
 	public	:: timeGetYearMonth				! Extract a year-month value from a time stamp vector (may be used to obtain an index)
 	public	:: timeSequence					! Generate a sequence of time stamps between two given initial and final time stamps
 	! 5. Round time stamps to various common steps
-	public	:: timeFloorDay
+	public	:: timeFloorDay					! Day of current time stamp
+	public	:: timeCeilingDay				! Day of next time stamp
 	
 	! Constants
 	integer, parameter	:: DELTA_1_HOUR  = 3600
@@ -129,6 +130,12 @@ module pbl_time
 		module procedure	:: timeFloorDay1
 		module procedure	:: timeFloorDay2
 	end interface timeFloorDay
+	
+	
+	interface timeCeilingDay
+		module procedure	:: timeCeilingDay1
+		module procedure	:: timeCeilingDay2
+	end interface timeCeilingDay
 	
 	
 	interface operator(.sensible.)
@@ -1457,6 +1464,47 @@ contains
 		rDayStamp = floor(rTimeStamp/ONE_DAY) * rTimeStamp
 		
 	end function timeFloorDay2
+	
+	
+	function timeCeilingDay1(iTimeStamp) result(iDayStamp)
+	
+		! Routine arguments
+		integer, intent(in)	:: iTimeStamp
+		integer				:: iDayStamp
+		
+		! Locals
+		integer	:: iTemporary
+		
+		! Constants
+		integer, parameter	:: ONE_DAY = 3600*24
+		
+		! Compute the desired quantity
+		iTemporary = mod(iTimeStamp, ONE_DAY)
+		if(iTemporary /= 0) then
+			iDayStamp = iTimeStamp - iTemporary
+		else
+			iDayStamp = iTimeStamp
+		end if
+		
+	end function timeCeilingDay1
+	
+	
+	function timeCeilingDay2(rTimeStamp) result(rDayStamp)
+	
+		! Routine arguments
+		real(8), intent(in)	:: rTimeStamp
+		real(8)				:: rDayStamp
+		
+		! Locals
+		! -none-
+		
+		! Constants
+		real(8), parameter	:: ONE_DAY = 3600.d0*24
+		
+		! Compute the desired quantity
+		rDayStamp = ceiling(rTimeStamp/ONE_DAY) * rTimeStamp
+		
+	end function timeCeilingDay2
 	
 	
 	function isSensible(tDateTime) result(lIsSensible)
