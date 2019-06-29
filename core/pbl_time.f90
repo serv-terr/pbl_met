@@ -1468,7 +1468,7 @@ contains
 		real(8), parameter	:: ONE_DAY = 3600.d0*24
 		
 		! Compute the desired quantity
-		rDayStamp = floor(rTimeStamp/ONE_DAY) * rTimeStamp
+		rDayStamp = floor(rTimeStamp/ONE_DAY) * ONE_DAY
 		
 	end function timeFloorDay2
 	
@@ -1509,7 +1509,7 @@ contains
 		real(8), parameter	:: ONE_DAY = 3600.d0*24
 		
 		! Compute the desired quantity
-		rDayStamp = ceiling(rTimeStamp/ONE_DAY) * rTimeStamp
+		rDayStamp = ceiling(rTimeStamp/ONE_DAY) * ONE_DAY
 		
 	end function timeCeilingDay2
 	
@@ -1545,7 +1545,7 @@ contains
 		real(8), parameter	:: ONE_HOUR = 3600.d0
 		
 		! Compute the desired quantity
-		rHourStamp = floor(rTimeStamp/ONE_HOUR) * rTimeStamp
+		rHourStamp = floor(rTimeStamp/ONE_HOUR) * ONE_HOUR
 		
 	end function timeFloorHour2
 	
