@@ -51,8 +51,9 @@ module pbl_time
 	public	:: timeGetYearMonth				! Extract a year-month value from a time stamp vector (may be used to obtain an index)
 	public	:: timeSequence					! Generate a sequence of time stamps between two given initial and final time stamps
 	! 5. Round time stamps to various common steps
-	public	:: timeFloorDay					! Day of current time stamp
-	public	:: timeCeilingDay				! Day of next time stamp
+	public	:: timeFloorDay					! Day stamp of current time stamp
+	public	:: timeFloorHour				! Hour stamp of current time stamp
+	public	:: timeCeilingDay				! Day stamp of next time stamp
 	
 	! Constants
 	integer, parameter	:: DELTA_1_HOUR  = 3600
@@ -136,6 +137,12 @@ module pbl_time
 		module procedure	:: timeCeilingDay1
 		module procedure	:: timeCeilingDay2
 	end interface timeCeilingDay
+	
+	
+	interface timeFloorHour
+		module procedure	:: timeFloorHour1
+		module procedure	:: timeFloorHour2
+	end interface timeFloorHour
 	
 	
 	interface operator(.sensible.)
@@ -1505,6 +1512,42 @@ contains
 		rDayStamp = ceiling(rTimeStamp/ONE_DAY) * rTimeStamp
 		
 	end function timeCeilingDay2
+	
+	
+	function timeFloorHour1(iTimeStamp) result(iHourStamp)
+	
+		! Routine arguments
+		integer, intent(in)	:: iTimeStamp
+		integer				:: iHourStamp
+		
+		! Locals
+		! -none-
+		
+		! Constants
+		integer, parameter	:: ONE_HOUR = 3600
+		
+		! Compute the desired quantity
+		iHourStamp = iTimeStamp - mod(iTimeStamp, ONE_HOUR)
+		
+	end function timeFloorHour1
+	
+	
+	function timeFloorHour2(rTimeStamp) result(rHourStamp)
+	
+		! Routine arguments
+		real(8), intent(in)	:: rTimeStamp
+		real(8)				:: rHourStamp
+		
+		! Locals
+		! -none-
+		
+		! Constants
+		real(8), parameter	:: ONE_HOUR = 3600.d0
+		
+		! Compute the desired quantity
+		rHourStamp = floor(rTimeStamp/ONE_HOUR) * rTimeStamp
+		
+	end function timeFloorHour2
 	
 	
 	function isSensible(tDateTime) result(lIsSensible)
