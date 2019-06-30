@@ -3397,10 +3397,14 @@ contains
 		integer								:: iErrCode
 		integer								:: iNumItemsPerDay
 		integer								:: iNumDays
+		integer								:: iCurDay
 		real(8)								:: rDeltaTime
 		integer								:: iNumGaps
 		integer								:: iIsWellSpaced
 		integer								:: iNumData
+		integer, dimension(:), allocatable	:: ivNumValues
+		logical, dimension(:), allocatable	:: lvWindow
+		real(8), dimension(:), allocatable	:: rvSumValues
 		
 		! Constants
 		real(8), parameter	:: ONE_HOUR = 3600.d0
@@ -3409,21 +3413,22 @@ contains
 		! Assume success (will falsify on failure)
 		iRetCode = 0
 		
-		! Reserve workspace
-		if(allocated(lvOriginal)) deallocate(lvOriginal)
-		allocate(lvOriginal(size(this % rvTimeStamp)))
-		
 		! Check parameters
 		if(this % isEmpty()) then
 			iRetCode = 1
 			return
 		end if
-		iNumData = size(this % rvTimeStamp)
 		iIsWellSpaced = this % timeIsWellSpaced(rDeltaTime, iNumGaps)
 		if(iIsWellSpaced /= 0) then
 			iRetCode = 1
 			return
 		end if
+		
+		! Reserve workspace
+		iNumData = size(this % rvTimeStamp)
+		if(allocated(lvOriginal)) deallocate(lvOriginal)
+		allocate(lvOriginal(iNumData))
+		allocate(lvWindow(iNumData))
 		
 		! How many data come in a day?
 		if(rDeltaTime <= 0.d0) then
@@ -3438,6 +3443,35 @@ contains
 			iRetCode = 3
 			return
 		end if
+		
+		! Reserve temporary workspace
+		allocate(ivNumValues(iNumItemsPerDay), rvSumValues(iNumItemsPerDay), STAT=iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 4
+			return
+		end if
+		
+		! Iterate over days
+		do iCurDay = 1, iNumDays
+		
+			! Delimit day
+			rWindowBegin = 
+			iFirstItemInDay = (iCurDay - 1)*iNumItemsPerDay + 1
+			iLastItemInDay  = iFirstItemInDay + iNumItemsPerDay - 1
+			
+			! Check whether something is to be made on this day
+			if(any(ISNAN(rvValue(iFirstItemInDay:iLastItemInDay)))) then
+			
+				! Delimit the time span over which typical day is computed
+				iFirstItem  = MAX(iFirstItemInDay - iDaysRadius * iNumItemsPerDay, 1)
+				iLastItem   = MIN(iLastItemInDay  + iDaysRadius * iNumItemsPerDay, SIZE(rvValue))
+				
+			end if
+				
+		end do
+		
+		! Leave
+		deallocate(ivNumValues, rvSumValues)
 		
 	end function tsFillGaps
 
