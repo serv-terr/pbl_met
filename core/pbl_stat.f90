@@ -3402,6 +3402,9 @@ contains
 		integer								:: iNumGaps
 		integer								:: iIsWellSpaced
 		integer								:: iNumData
+		real(8)								:: rBaseDay
+		real(8)								:: rWindowBegin
+		real(8)								:: rWindowEnd
 		integer, dimension(:), allocatable	:: ivNumValues
 		logical, dimension(:), allocatable	:: lvWindow
 		real(8), dimension(:), allocatable	:: rvSumValues
@@ -3438,7 +3441,8 @@ contains
 		iNumItemsPerDay = floor(ONE_DAY / rDeltaTime)
 		
 		! How many days in data set?
-		iNumDays = floor((timeFloorDay(this % rvTimeStamp(iNumData)) - timeFloorDay(this % rvTimeStamp(1)) + ONE_DAY) / ONE_DAY) + 1
+		rBaseDay = timeFloorDay(this % rvTimeStamp(1))
+		iNumDays = floor((timeFloorDay(this % rvTimeStamp(iNumData)) - rBaseDay + ONE_DAY) / ONE_DAY) + 1
 		if(iNumDays <= 0) then
 			iRetCode = 3
 			return
@@ -3455,7 +3459,8 @@ contains
 		do iCurDay = 1, iNumDays
 		
 			! Delimit day
-			rWindowBegin = 
+			rWindowBegin = rBaseDay - iDaysRadius*ONE_DAY
+			rWindowEnd   = rBaseDay + (iDaysRadius+1)*ONE_DAY
 			iFirstItemInDay = (iCurDay - 1)*iNumItemsPerDay + 1
 			iLastItemInDay  = iFirstItemInDay + iNumItemsPerDay - 1
 			
