@@ -3459,10 +3459,9 @@ contains
 		do iCurDay = 1, iNumDays
 		
 			! Delimit day
-			rWindowBegin = rBaseDay - iDaysRadius*ONE_DAY
-			rWindowEnd   = rBaseDay + (iDaysRadius+1)*ONE_DAY
-			iFirstItemInDay = (iCurDay - 1)*iNumItemsPerDay + 1
-			iLastItemInDay  = iFirstItemInDay + iNumItemsPerDay - 1
+			rWindowBegin = rBaseDay + (iCurDay-1)*ONE_DAY - iDaysRadius*ONE_DAY
+			rWindowEnd   = rBaseDay + (iCurDay-1)*ONE_DAY  + (iDaysRadius+1)*ONE_DAY
+			lvWindow     = this % rvTimeStamp >= rWindowBegin .and. this % rvTimeStamp <= rWindowEnd
 			
 			! Check whether something is to be made on this day
 			if(any(ISNAN(rvValue(iFirstItemInDay:iLastItemInDay)))) then
