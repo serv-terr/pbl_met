@@ -3407,6 +3407,7 @@ contains
 		real(8)								:: rWindowEnd
 		integer, dimension(:), allocatable	:: ivNumValues
 		logical, dimension(:), allocatable	:: lvWindow
+		integer, dimension(:), allocatable	:: ivTimeIndex
 		real(8), dimension(:), allocatable	:: rvSumValues
 		
 		! Constants
@@ -3455,12 +3456,19 @@ contains
 			return
 		end if
 		
+		! Encode time to typical-day index
+		iErrCode = timeEncode(this % rvTimeStamp, ONE_DAY, int(rDeltaTime, kind=4), ivTimeIndex)
+		if(iErrCode /= 0) then
+			iRetCode = 5
+			return
+		end if
+		
 		! Iterate over days
 		do iCurDay = 1, iNumDays
 		
 			! Delimit day
 			rWindowBegin = rBaseDay + (iCurDay-1)*ONE_DAY - iDaysRadius*ONE_DAY
-			rWindowEnd   = rBaseDay + (iCurDay-1)*ONE_DAY  + (iDaysRadius+1)*ONE_DAY
+			rWindowEnd   = rBaseDay + (iCurDay-1)*ONE_DAY + (iDaysRadius+1)*ONE_DAY
 			lvWindow     = this % rvTimeStamp >= rWindowBegin .and. this % rvTimeStamp <= rWindowEnd
 			
 			! Check whether something is to be made on this day
