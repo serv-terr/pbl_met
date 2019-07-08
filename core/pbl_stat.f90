@@ -3402,11 +3402,13 @@ contains
 		integer								:: iNumGaps
 		integer								:: iIsWellSpaced
 		integer								:: iNumData
+		integer								:: iNumGaps
 		real(8)								:: rBaseDay
 		real(8)								:: rWindowBegin
 		real(8)								:: rWindowEnd
 		integer, dimension(:), allocatable	:: ivNumValues
 		logical, dimension(:), allocatable	:: lvWindow
+		logical, dimension(:), allocatable	:: lvCurDay
 		integer, dimension(:), allocatable	:: ivTimeIndex
 		real(8), dimension(:), allocatable	:: rvSumValues
 		
@@ -3432,6 +3434,7 @@ contains
 		iNumData = size(this % rvTimeStamp)
 		if(allocated(lvOriginal)) deallocate(lvOriginal)
 		allocate(lvOriginal(iNumData))
+		allocate(lvCurDay(iNumData))
 		allocate(lvWindow(iNumData))
 		
 		! How many data come in a day?
@@ -3467,16 +3470,20 @@ contains
 		do iCurDay = 1, iNumDays
 		
 			! Delimit day
-			rWindowBegin = rBaseDay + (iCurDay-1)*ONE_DAY - iDaysRadius*ONE_DAY
-			rWindowEnd   = rBaseDay + (iCurDay-1)*ONE_DAY + (iDaysRadius+1)*ONE_DAY
-			lvWindow     = this % rvTimeStamp >= rWindowBegin .and. this % rvTimeStamp <= rWindowEnd
+			rWindowBegin = rBaseDay
+			rWindowEnd   = rWindowBegin + ONE_DAY
+			lvCurDay     = this % rvTimeStamp >= rWindowBegin .and. this % rvTimeStamp <= rWindowEnd
 			
 			! Check whether something is to be made on this day
-			if(any(ISNAN(rvValue(iFirstItemInDay:iLastItemInDay)))) then
-			
-				! Delimit the time span over which typical day is computed
-				iFirstItem  = MAX(iFirstItemInDay - iDaysRadius * iNumItemsPerDay, 1)
-				iLastItem   = MIN(iLastItemInDay  + iDaysRadius * iNumItemsPerDay, SIZE(rvValue))
+			iNumGaps = count(.invalid.this % rvValue, mask=lvCurDay)
+			if(iNumGaps > 0) then
+				
+				! Delimit the typical day time span
+				rWindowBegin = rBaseDay + (iCurDay-1)*ONE_DAY - iDaysRadius*ONE_DAY
+				rWindowEnd   = rBaseDay + (iCurDay-1)*ONE_DAY + (iDaysRadius+1)*ONE_DAY
+				lvWindow     = this % rvTimeStamp >= rWindowBegin .and. this % rvTimeStamp <= rWindowEnd
+				
+				! Compute the value's typical day
 				
 			end if
 				
@@ -3484,6 +3491,8 @@ contains
 		
 		! Leave
 		deallocate(ivNumValues, rvSumValues)
+		deallocate(lvWindow)
+		deallocate(lvCurDay)
 		
 	end function tsFillGaps
 
