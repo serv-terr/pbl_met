@@ -3460,7 +3460,7 @@ contains
 		ivNumValues = 0
 		
 		! Encode time to typical-day index
-		iErrCode = timeEncode(this % rvTimeStamp, ONE_DAY, int(rDeltaTime, kind=4), ivTimeIndex)
+		iErrCode = timeEncode(this % rvTimeStamp, int(ONE_DAY, kind=4), int(rDeltaTime, kind=4), ivTimeIndex)
 		if(iErrCode /= 0) then
 			iRetCode = 5
 			return
@@ -3475,7 +3475,7 @@ contains
 			lvCurDay     = this % rvTimeStamp >= rWindowBegin .and. this % rvTimeStamp <= rWindowEnd
 			
 			! Check whether something is to be made on this day
-			iNumGaps = count(.invalid.this % rvValue, mask=lvCurDay)
+			iNumGaps = count(.invalid.this % rvValue .and. lvCurDay)
 			if(iNumGaps > 0) then
 				
 				! Update counters for the typical day
@@ -3486,6 +3486,7 @@ contains
 						if(ivTimeIndex(i) > 0) then
 							ivNumValues(ivTimeIndex(i)) = ivNumValues(ivTimeIndex(i)) + 1
 							rvSumValues(ivTimeIndex(i)) = rvSumValues(ivTimeIndex(i)) + this % rvValue(i)
+						end if
 					end if
 				end do
 				
