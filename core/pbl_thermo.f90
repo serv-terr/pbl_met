@@ -10,13 +10,14 @@
 !
 module pbl_thermo
 
+	use ieee_arithmetic
 	use pbl_base
 	use pbl_time
 
 	implicit none
-	
+
 	private
-	
+
 	! Public interface
 	! 1. Thermodynamics and psychrometry
 	PUBLIC	:: WaterSaturationPressure		! Saturation vapor pressure at a given temperature
@@ -46,14 +47,14 @@ module pbl_thermo
 	public	:: NetRadiation_MPDA			! Supersedes R_NET_D and R_NET_N in ECOMET legacy code
 	! 4. Atmospheric scaling quantities
 	public	:: BruntVaisala					! Estimate of Brunt-Vaisala frequency, given temperature and height
-	
+
 	! Polymorphic (Fortran-90-art) routines
-	
+
 	interface AirPressure
 		module procedure AirPressure1
 		module procedure AirPressure2
 	end interface AirPressure
-	
+
 	interface AirDensity
 	    module procedure AirDensity_4
 	    module procedure AirDensity_8
@@ -395,7 +396,7 @@ contains
 				(omega2-omega1)*SIN(lat*PI/180.0)*SIN(solarDeclination) + &
 				COS(lat*PI/180.0)*COS(solarDeclination)*(SIN(omega2) - SIN(omega1)) &
 			)
-			
+
 		! Clip to interval [0,+infinity), as radiation cannot be negative
 		ra = max(ra, 0.)
 
@@ -513,21 +514,21 @@ contains
 				rvFcd(i) = rFcdOld
 			end if
 			if(lIsFirst) then
-				if(.not.ISNAN(rvFcd(i))) then
+				if(.not.ieee_is_nan(rvFcd(i))) then
 					rFcdFirst = rvFcd(i)
 					lIsFirst  = .false.
 				end if
 			end if
 		end do
 		! Typically, first data items cloudiness remains unassigned
-		if(ISNAN(rFcdOld)) then
+		if(ieee_is_nan(rFcdOld)) then
 			iRetCode = 1
 			return
 		end if
 
 		! Locate first NaNs, and replace them with first over-threshold Cloudiness
 		do i = 1, SIZE(rvRg)
-			if(ISNAN(rvFcd(i))) then
+			if(ieee_is_nan(rvFcd(i))) then
 				rvFcd(i) = rFcdFirst
 			end if
 		end do
@@ -537,24 +538,24 @@ contains
 
 	! Water vapor saturation pressure, given temperature
 	FUNCTION WaterSaturationPressure(Ta) RESULT(es)
-	
+
 		! Routine arguments
 		REAL, INTENT(IN)	:: Ta	! Air temperature (K)
 		REAL			:: es	! Saturation vapor pressure (hPa)
-		
+
 		! Locals
 		! -none-
-		
+
 		! Compute water saturation pressure according to the basic definition
 		IF(Ta > 273.15) THEN
 			es = EXP(-6763.6/Ta - 4.9283*LOG(Ta) + 54.23)
 		ELSE
 			es = EXP(-6141.0/Ta + 24.3)
 		END IF
-		
+
 	END FUNCTION WaterSaturationPressure
-	
-	
+
+
 	! Saturation water vapor pressure given air temperature, using
 	! ASCE formula, a variant (up to constants decimals) of
 	! Clausius-Clapeyron formula. This routine is the recommended
@@ -630,18 +631,18 @@ contains
 	! air pressure.
 	!
 	FUNCTION WaterVaporPressure(Tw, Td, Pa) RESULT(Ew)
-	
+
 		! Routine arguments
 		REAL, INTENT(IN)	:: Tw	! Wet bulb temperature (K)
 		REAL, INTENT(IN)	:: Td	! Dry bulb temperature (K)
 		REAL, INTENT(IN)	:: Pa	! Atmospheric pressure (hPa)
 		REAL			:: Ew	! Water vapor partial pressure (hPa)
-		
+
 		! Locals
 		REAL	:: TwetCelsius
 		REAL	:: ExcessTemp
 		REAL	:: FractionalDeltaP
-		
+
 		! Compute the information desired
 		TwetCelsius = Tw - 273.15
 		ExcessTemp  = Td - Tw		! In Nature dry bulb temperature is greater or equal to wet bulb temperature
@@ -653,100 +654,100 @@ contains
 		END IF
 
 	END FUNCTION WaterVaporPressure
-	
-	
+
+
 	! Relative humidity, given wet and dry bulb temperatures and
 	! air pressure.
 	!
 	FUNCTION RelativeHumidity(Tw, Td, Pa) RESULT(RelH)
-	
+
 		! Routine arguments
 		REAL, INTENT(IN)	:: Tw	! Wet bulb temperature (K)
 		REAL, INTENT(IN)	:: Td	! Dry bulb temperature (K)
 		REAL, INTENT(IN)	:: Pa	! Atmospheric pressure (hPa)
 		REAL			:: RelH	! Relative humidity (%)
-		
+
 		! Locals
 		! --none--
-		
+
 		! Compute the information desired
 		RelH = 100. * WaterVaporPressure(Tw, Td, Pa) / WaterSaturationPressure(Td)
 
 	END FUNCTION RelativeHumidity
-	
-	
+
+
 	! Absolute humidity given dry bulb temperature and water vapor pressure.
 	!
 	FUNCTION AbsoluteHumidity(Td, Ea) RESULT(RhoW)
-	
+
 		! Routine arguments
 		REAL, INTENT(IN)	:: Td	! Dry bulb temperature (K)
 		REAL, INTENT(IN)	:: Ea	! Water vapor pressure (hPa)
 		REAL			:: RhoW	! Absolute humidity (kg/m3)
-		
+
 		! Locals
 		! --none--
-		
+
 		! Compute the information desired
 		RhoW = 100.0*Ea/(461.5*Td)
-		
+
 	END FUNCTION AbsoluteHumidity
-	
-	
+
+
 	! Air density given dry bulb temperature and atmospheric pressure.
 	!
 	FUNCTION AirDensity_4(Td, Pa) RESULT(Rho)
-	
+
 		! Routine arguments
 		REAL, INTENT(IN)	:: Td	! Dry bulb temperature (K)
 		REAL, INTENT(IN)	:: Pa	! Atmospheric pressure (hPa)
 		REAL			    :: Rho	! Air density (kg/m3)
-		
+
 		! Locals
 		! --none--
-		
+
 		! Compute the information desired
 		Rho = 100.0*Pa/(287.*Td)
-		
+
 	END FUNCTION AirDensity_4
-	
-	
+
+
 	! Air density given dry bulb temperature and atmospheric pressure.
 	!
 	! Double precision version.
 	!
 	FUNCTION AirDensity_8(Td, Pa) RESULT(Rho)
-	
+
 		! Routine arguments
 		REAL(8), INTENT(IN)	:: Td	! Dry bulb temperature (K)
 		REAL(8), INTENT(IN)	:: Pa	! Atmospheric pressure (hPa)
 		REAL(8) 			:: Rho	! Air density (kg/m3)
-		
+
 		! Locals
 		! --none--
-		
+
 		! Compute the information desired
 		Rho = 100.0d0*Pa/(287.d0*Td)
-		
+
 	END FUNCTION AirDensity_8
-	
-	
+
+
 	! Product of air density and the constant-pressure atmospheric thermal capacity,
 	! given dry bulb temperature and atmospheric pressure.
 	!
 	FUNCTION RhoCp_4(Td, Pa) RESULT(rRhoCp)
-	
+
 		! Routine arguments
 		REAL, INTENT(IN)		    :: Td		! Dry bulb temperature (K)
 		REAL, INTENT(IN), OPTIONAL	:: Pa		! Air pressure (hPa)
 		REAL				        :: rRhoCp	! Product of air density and
 								                ! constant-pressure thermal
 								                ! capacity
-		
+
 		! Locals
 		REAL	:: Rho
 		REAL	:: Cp
-		
+
 		! Compute the information desired
 		IF(PRESENT(Pa)) THEN
 			! Pressure is available: use complete formula
@@ -757,28 +758,28 @@ contains
 			! Pressure not available on entry: use the simplified relation
 			rRhoCp = 1305. * 273.15/Td
 		END IF
-		
+
 	END FUNCTION RhoCp_4
-	
-	
+
+
 	! Product of air density and the constant-pressure atmospheric thermal capacity,
 	! given dry bulb temperature and atmospheric pressure.
 	!
 	! Double precision version.
 	!
 	FUNCTION RhoCp_8(Td, Pa) RESULT(rRhoCp)
-	
+
 		! Routine arguments
 		REAL(8), INTENT(IN)		        :: Td		! Dry bulb temperature (K)
 		REAL(8), INTENT(IN), OPTIONAL	:: Pa		! Air pressure (hPa)
 		REAL(8) 				        :: rRhoCp	! Product of air density and
 								                    ! constant-pressure thermal
 								                    ! capacity
-		
+
 		! Locals
 		REAL(8)	:: Rho
 		REAL(8)	:: Cp
-		
+
 		! Compute the information desired
 		IF(PRESENT(Pa)) THEN
 			! Pressure is available: use complete formula
@@ -789,10 +790,10 @@ contains
 			! Pressure not available on entry: use the simplified relation
 			rRhoCp = 1305.d0 * 273.15d0/Td
 		END IF
-		
+
 	END FUNCTION RhoCp_8
-	
-	
+
+
 	! Latent vaporization heat given temperature,
 	! computed according the ASCE Report.
 	function LatentVaporizationHeat(rTemp, iCalculationType) result(rLambda)
@@ -817,7 +818,7 @@ contains
 
 	end function LatentVaporizationHeat
 
-	
+
 	! Estimate wet bulb temperature from dry bulb temperature, relative
 	! humidity and pressure.
 	!
@@ -847,7 +848,7 @@ contains
 	! "efficient", in the sense convergence is slower).
 	!
 	FUNCTION WetBulbTemperature(Td, Ur, Pa, RoughTol, FineTol, MaxIter, Method) RESULT(Tw)
-	
+
 		! Routine arguments
 		REAL, INTENT(IN)		:: Td		! Dry bulb (that is "ordinary") temperature (K)
 		REAL, INTENT(IN)		:: Ur		! Relative humidity (%)
@@ -857,7 +858,7 @@ contains
 		INTEGER, INTENT(IN), OPTIONAL	:: MaxIter	! Maximum number of iterations (default: 100)
 		INTEGER, INTENT(IN), OPTIONAL	:: Method	! Method used for performing calculations (1:Standard (default), 2:Simplified - see R. Stull, "Wet bulb temperature from relative humidity and air temperature", Bulletin of the AMS, Nov 2011)
 		REAL				:: Tw		! Wet bulb temperature (K)
-		
+
 		! Locals
 		REAL	:: rRoughTol
 		REAL	:: rFineTol
@@ -865,7 +866,7 @@ contains
 		INTEGER	:: iMethod
 		REAL	:: a, b			! Minimum and maximum of bracketing interval
 		REAL	:: da, db		! Delta values corresponding to a and b respectively
-		
+
 		! Set default input parameters
 		IF(PRESENT(RoughTol)) THEN
 			rRoughTol = RoughTol
@@ -887,30 +888,30 @@ contains
 		ELSE
 			iMethod = 1
 		END IF
-		
+
 		! Dispatch execution based on method
 		SELECT CASE(iMethod)
-		
+
 		CASE(1)
-		
+
 			! Bracket solution using bisection method first
 			CALL Bisect(0., Td, Ur, Pa, rRoughTol, a, b, da, db)
 			Tw = Secant(a, b, da, db, Td, Ur, Pa, rFineTol, iMaxIter)
-			
+
 		CASE(2)
-		
+
 			! Stull simplified method
 			Tw = (Td-273.15) * ATAN(0.151977*SQRT(Ur + 8.313659)) + ATAN(Td-273.15 + Ur) - ATAN(Ur - 1.676331) + &
 				 0.00391838*Ur**1.5 * ATAN(0.023101 * Ur) - 4.686035 + 273.15
-		
+
 		CASE DEFAULT
-		
+
 			! Bracket solution using bisection method first
 			CALL Bisect(0., Td, Ur, Pa, rRoughTol, a, b, da, db)
 			Tw = Secant(a, b, da, db, Td, Ur, Pa, rFineTol, iMaxIter)
-			
+
 		END SELECT
-		
+
 	END FUNCTION WetBulbTemperature
 	!
 	! Motivations and whys - I've chosen a two-staged approach in which first is
@@ -933,8 +934,8 @@ contains
 	! predicted wet bulb temperature to exceed dry bulb, which cannot be for physical reasons.
 	! Investigations should be performed to check where is Stull method best suited. I guess
 	! the range will depend on pressure being close to reference value.
-	
-	
+
+
 	! Estimate atmospheric pressure given height
 	function AirPressure1(rZ) result(rPk)
 
@@ -1025,27 +1026,27 @@ contains
 
 	! Estimate dew point temperature using Magnus formula enhanced using Arden Buck equation
 	FUNCTION DewPointTemperature(Td, Ur) RESULT(Dp)
-	
+
 		! Routine arguments
 		REAL, INTENT(IN)				:: Td		! Dry bulb (that is "ordinary") temperature (K)
 		REAL, INTENT(IN)				:: Ur		! Relative humidity (%)
 		REAL						    :: Dp       ! Dew point (K)
-		
+
 		! Locals
 		REAL, PARAMETER	:: a =   6.112
 		REAL, PARAMETER	:: b =  17.62
 		REAL, PARAMETER	:: c = 243.12
 		REAL, PARAMETER	:: d = 234.5
 		REAL		:: T, G
-		
+
 		! Convert temperature to °C (all relations we use assume Celsius degrees)
 		! and then obtain dew point temperature
 		T  = Td - 273.15
 		G  = LOG(Ur/100.0*EXP((b-T/d)*(T/(c+T))))
 		Dp = c*G/(b-G) + 273.15
-		
+
 	END FUNCTION DewPointTemperature
-	
+
 
 	! Estimate sonic temperature given dry bulb ("normal") temperature, relative
 	! humidity and atmospheric pressure.
@@ -1058,7 +1059,7 @@ contains
 	! See documentation of "WetBulbTemperature" for clarifications.
 	!
 	FUNCTION SonicTemperature(Td, Ur, Pa, RoughTol, FineTol, MaxIter, Method) RESULT(Ts)
-	
+
 		! Routine arguments
 		REAL, INTENT(IN)		:: Td		! Dry bulb (that is "ordinary") temperature (K)
 		REAL, INTENT(IN)		:: Ur		! Relative humidity (%)
@@ -1068,14 +1069,14 @@ contains
 		INTEGER, INTENT(IN), OPTIONAL	:: MaxIter	! Maximum number of iterations (default: 100)
 		INTEGER, INTENT(IN), OPTIONAL	:: Method	! Method used for performing calculations (1:Standard (default), 2:Simplified - see R. Stull, "Wet bulb temperature from relative humidity and air temperature", Bulletin of the AMS, Nov 2011)
 		REAL				:: Ts		! Sonic temperature (K)
-		
+
 		! Locals
 		REAL	:: rRoughTol
 		REAL	:: rFineTol
 		INTEGER	:: iMaxIter
 		INTEGER	:: iMethod
 		REAL	:: Tw
-		
+
 		! Set default input parameters
 		IF(PRESENT(RoughTol)) THEN
 			rRoughTol = RoughTol
@@ -1097,35 +1098,35 @@ contains
 		ELSE
 			iMethod = 1
 		END IF
-		
+
 		! Compute the ultrasonic anemometer temperature estimate by
 		! applying the direct definition
 		Tw = WetBulbTemperature(Td, Ur, Pa, RoughTol, FineTol, MaxIter, Method)
 		Ts = Td*(1.+0.51*0.622*WaterVaporPressure(Tw, Td, Pa)/Pa)
-		
+
 	END FUNCTION SonicTemperature
-	
-	
+
+
 	! Estimate solar global radiation using the MPDA method
 	function GlobalRadiation_MPDA(C, sinPsi) result(Rg)
-	
+
 		! Routine arguments
 		real, intent(in)	:: C		! Cloud cover fraction (0 to 1)
 		real, intent(in)	:: sinPsi	! Sine of solar elevation angle (° above horizon; negative below)
 		real				:: Rg		! Estimate of the global solar radiation (W/m2)1-0.75
-		
+
 		! Locals
 		real	:: rSinMin
 		real	:: rCloud
-		
+
 		! Constants
 		real, parameter	:: a1 = 990.
 		real, parameter	:: a2 = -30.
 		real, parameter	:: b1 =  -0.75
 		real, parameter	:: b2 =   3.4
-		
+
 		! Check input parameter make sense
-		if(.invalid.C .or. .invalid.sinPsi) then
+		if((.invalid.C) .or. (.invalid.sinPsi)) then
 			Rg = NaN
 			return
 		end if
@@ -1133,10 +1134,10 @@ contains
 			Rg = NaN
 			return
 		end if
-		
+
 		! Constrain cloud cover to senseful interval
 		rCloud = max(min(C, 1.), 0.)
-		
+
 		! Estimate the minimum sine of solar elevation
 		rSinMin = - a2 / a1
 		if(sinPsi >= rSinMin) then
@@ -1144,28 +1145,28 @@ contains
 		else
 			Rg = 0.
 		end if
-      
+
 	end function GlobalRadiation_MPDA
-	
-	
+
+
 	! Estimate the cloud cover using MPDA method
 	function CloudCover_MPDA(Rg, sinPsi) result(C)
-	
+
 		! Routine arguments
 		real, intent(in)	:: Rg		! Global radiation (W/m2)
 		real, intent(in)	:: sinPsi	! Sine of solar elevaton angle
 		real				:: C		! Cloud cover fraction
-		
+
 		! Locals
 		real	:: rSinMin
 		real	:: maxRg
-		
+
 		! Constants
 		real, parameter	:: a1 = 990.
 		real, parameter	:: a2 = -30.
 		real, parameter	:: b1 =  -0.75
 		real, parameter	:: b2 =   3.4
-		
+
 		rSinMin = -a2/a1
 		if(sinPsi >= rSinMin) then
 			maxRg =  a1*sinPsi * exp(-0.057/sinPsi)
@@ -1177,10 +1178,10 @@ contains
 		else
 			C = 0.5
 		end if
-		
+
 	end function CloudCover_MPDA
-	
-	
+
+
 	! Estimate the net radiation by MPDA method. The relation used,
 	! based on a grey body approximation, tends to be accurate when
 	! the global radiation is greater than zero, then on daytime.
@@ -1188,7 +1189,7 @@ contains
 	! function is negative), the function NighttimeNetRadiation
 	! should be called instead
 	function NetRadiation_MPDA(land, albedo, Td, Rg, C, z0, zr, vel) result(Rn)
-	
+
 		! Routine arguments
 		integer, intent(in)	:: land			! Simplified land use code:
 											!   1: Desert
@@ -1205,7 +1206,7 @@ contains
 		real, intent(in)	:: zr			! Anemometer height above ground (m)
 		real, intent(in)	:: vel			! Wind speed (m/s)
 		real				:: Rn			! Estimated net radiation (W/m2)
-		
+
 		! Locals
 		real	:: Ta
 		real	:: a
@@ -1225,20 +1226,20 @@ contains
 		real, parameter					:: c2    = 60.
 		real, parameter					:: sigma = 5.67e-08
 		real, parameter					:: pi    = 3.14159265
-		
+
 		! Check parameters
 		if(C < 0. .or. C > 1.) then
 			Rn = NaN
 			return
 		end if
-		
+
 		! Compute a preliminary estimate of net radiation
 		Ta = Td + 273.15
 		a  = alpha(land)
 		s  = 1.05*exp((6.42-Td)/17.78)
 		c3 = 0.38*((1.-a)+1.)/(1.+s)
 		Rn = ((1.-albedo)*Rg+c1*Ta**6-sigma*Ta**4+c2*C)/(1.+c3)
-		
+
 		! If the preliminary estimate is negative apply the "nocturnal" formula
 		! to get a more refined estimate
 		if(Rn < 0.) then
@@ -1252,19 +1253,19 @@ contains
 		end if
 
 	end function NetRadiation_MPDA
-	
-	
+
+
 	! Indicative evaluation of Brunt-Vaisala frequency. Notice this function yields a valid value
 	! even under unstable situations, when in principle the Brunt-Vaisala frequency is not
 	! defined: this is intentional, and may be overcome by programmatically invalidate the values obtained under
 	! neutral and unstable conditions.
 	function BruntVaisala(Td, z) result(N)
-	
+
 		! Routine arguments
 		real, intent(in)	:: Td	! Virtual temperature (°C)
 		real, intent(in)	:: z	! Height above ground level (m)
 		real				:: N	! Brunt-Vaisala frequency (Hz)
-		
+
 		! Locals
 		real	:: Tpot	! Potential temperature (K)
 
@@ -1284,7 +1285,7 @@ contains
 	! * Auxiliary functions (not accessible *
 	! * through public interface)           *
 	! ***************************************
-	
+
 
 	! Auxiliary function used by "TWET" for estimating wet bulb temperature. Given dry
 	! bulb temperature, relative humidity and air pressure the wet bulb temperature is
@@ -1328,23 +1329,23 @@ contains
 	! becomes positive. By solving it numerically, we get the desired wet bulb temperature.
 	!
 	FUNCTION Delta(Tw, Td, Ur, Pa) RESULT(d)
-	
+
 		! Routine arguments
 		REAL, INTENT(IN)	:: Tw	! Tentative wet bulb temperature (K)
 		REAL, INTENT(IN)	:: Td	! Known dry bulb temperature (K)
 		REAL, INTENT(IN)	:: Ur	! Known relative humidity (%)
 		REAL, INTENT(IN)	:: Pa	! Known atmospheric pressure (hPa)
 		REAL			:: d	! The corresponding value of auxiliary function.
-		
+
 		! Locals
 		! -none-
-		
+
 		! Compute the information desired
 		d = WaterVaporPressure(Tw, Td, Pa) - (Ur/100.)*WaterSaturationPressure(Td)
 
 	END FUNCTION Delta
-	
-	
+
+
 	! Dedicated implementation of bisection method. It differs from the
 	! standard algorithm by:
 	!
@@ -1366,7 +1367,7 @@ contains
 	! evaluation: it *is* redundant, but this redundancy is desired.
 	!
 	SUBROUTINE Bisect(TdMin, TdMax, Ur, Pa, Tol, a, b, da, db)
-	
+
 		! Routine arguments
 		REAL, INTENT(IN)	:: TdMin	! Initial lower bound of temperature (K)
 		REAL, INTENT(IN)	:: TdMax	! Dry bulb temperature (K)
@@ -1377,17 +1378,17 @@ contains
 		REAL, INTENT(OUT)	:: b		! Upper bound on temperature (K)
 		REAL, INTENT(OUT)	:: da		! Value of "Delta" at "a"
 		REAL, INTENT(OUT)	:: db		! Value of "Delta" at "b"
-		
+
 		! Locals
 		REAL	:: p
 		REAL	:: dp
-		
+
 		! Initialize
 		a  = TdMin
 		da = Delta(a, TdMax, Ur, Pa)
 		b  = TdMax
 		db = Delta(b, TdMax, Ur, Pa)
-		
+
 		! Main loop: bisect interval until rough tolerance is met, or an error is found
 		DO
 			p  = a + (b-a)/2
@@ -1401,14 +1402,14 @@ contains
 			END IF
 			IF((b-a)/2. < Tol) EXIT
 		END DO
-		
+
 	END SUBROUTINE Bisect
-	
-	
+
+
 	! Dedicated routine for refining the estimate of wet bulb temperature
 	! obtained from Bisect.
 	FUNCTION Secant(a0, b0, da0, db0, Td, Ur, Pa, Tol, MaxIter) RESULT(Tw)
-	
+
 		! Routine arguments
 		REAL, INTENT(IN)	:: a0		! Initial lower bound of wet bulb temperature (K)
 		REAL, INTENT(IN)	:: b0		! Initial upper bound of wet bulb temperature (K)
@@ -1420,7 +1421,7 @@ contains
 		REAL, INTENT(IN)	:: Tol		! Tolerance (K)
 		INTEGER, INTENT(IN)	:: MaxIter	! Maximum number of iterations
 		REAL			:: Tw		! Wet bulb temperature (K)
-		
+
 		! Locals
 		REAL	:: p
 		REAL	:: dp
@@ -1429,14 +1430,14 @@ contains
 		REAL	:: b
 		REAL	:: db
 		INTEGER	:: Iteration
-		
+
 		! Initialization
 		a  = a0
 		da = da0
 		b  = b0
 		db = db0
 		Iteration = 1
-		
+
 		! Main loop
 		DO
 			p = b - db*(b-a)/(db-da)
@@ -1448,10 +1449,10 @@ contains
 			Iteration = Iteration + 1
 			IF(Iteration >= MaxIter) EXIT
 		END DO
-		
+
 		! Transmit result and leave
 		Tw = p
-		
+
 	END FUNCTION Secant
 
 end module pbl_thermo
