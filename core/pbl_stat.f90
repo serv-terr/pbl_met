@@ -6,13 +6,14 @@
 !
 module pbl_stat
 
+    use ieee_arithmetic
     use pbl_base
     use pbl_time
 
     implicit none
-    
+
     private
-    
+
     ! Public interface
     ! 1. Off-range and invalid data management
     public	:: RangeInvalidate
@@ -63,9 +64,9 @@ module pbl_stat
     public	:: QUANT_9			! Sample quantile type 9 (R-9, Maple-8; Defined so that the resulting quantile estimates are approximately unbiased for the expected order statistics; Valid if data are normally distributed)
     public	:: MA_ALLDATA		! Use all available data when computing centered moving averages
     public	:: MA_STRICT		! Discard incomplete upper and lower time tails when computing centered moving averages
-    
+
     ! Data types
-    
+
     type TimeSeries
     	real(8), dimension(:), allocatable, private	:: rvTimeStamp
     	real, dimension(:), allocatable, private	:: rvValue
@@ -124,9 +125,9 @@ module pbl_stat
 		procedure, public	:: initialize			=> dfInitialize
 		procedure, public	:: evaluate				=> dfEvaluate
 	end type TwoDimensionalField
-    
+
     ! Constants
-    
+
     integer, parameter	:: TDELTA_YEARMONTH  =    -3
     integer, parameter	:: TDELTA_YEAR       =    -2
     integer, parameter	:: TDELTA_MONTH      =    -1
@@ -151,27 +152,27 @@ module pbl_stat
     integer, parameter	:: QUANT_9           =     9
     integer, parameter	:: MA_ALLDATA        =     0
     integer, parameter	:: MA_STRICT         =     1
-    
+
     ! Polymorphic interfaces
-    
+
     interface Quantile
     	module procedure	:: QuantileScalar
     	module procedure	:: QuantileVector
     end interface Quantile
-    
+
 contains
 
 	! Make data outside a specified range invalid, by replacing their value with NaN
 	subroutine RangeInvalidate(rvX, rMin, rMax)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(inout)	:: rvX		! Vector of data to range-invalidate
 		real, intent(in)					:: rMin		! Minimum allowed value
 		real, intent(in)					:: rMax		! Maximum allowed value
-		
+
 		! Locals
 		integer	:: i
-		
+
 		! Validate by range
 		do i = 1, size(rvX)
 			if(rvX(i) < rMin) then
@@ -180,26 +181,26 @@ contains
 				rvX(i) = NaN
 			end if
 		end do
-		
+
 	end subroutine RangeInvalidate
-	
+
 
 	! Make invalid data in a vector invalid if those of another also are, and viceversa.
-	! After 
+	! After
 	subroutine PairInvalidate(rvX, rvY)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(inout)	:: rvX		! Vector to pair-invalidate
 		real, dimension(:), intent(inout)	:: rvY		! Vector to pair-invalidate
-		
+
 		! Locals
 		integer	:: i
 		integer	:: iMin, iMax
-		
+
 		! Compute loop limits from array dimensions
 		iMin = max(lbound(rvX,dim=1), lbound(rvY,dim=1))
 		iMax = min(ubound(rvX,dim=1), ubound(rvY,dim=1))
-		
+
 		! Ensure invalid positions in one vector are propagated to the other
 		do i = iMin, iMax
 			if(.invalid. rvX(i)) then
@@ -208,21 +209,21 @@ contains
 				rvX(i) = NaN
 			end if
 		end do
-		
+
 	end subroutine PairInvalidate
-	
+
 
 	! Force data to be within a specified range invalid, clipping to extremal values
 	subroutine RangeClip(rvX, rMin, rMax)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(inout)	:: rvX		! Vector of data to range-clip
 		real, intent(in)					:: rMin		! Minimum allowed value
 		real, intent(in)					:: rMax		! Maximum allowed value
-		
+
 		! Locals
 		integer	:: i
-		
+
 		! Validate by range
 		do i = 1, size(rvX)
 			if(rvX(i) < rMin) then
@@ -231,143 +232,143 @@ contains
 				rvX(i) = rMax
 			end if
 		end do
-		
+
 	end subroutine RangeClip
-	
-	
+
+
 	! Pack a vector to another vector containing only valid (i.e. non-NaN) data
 	function GetValidOnly(rvX) result(rvValidX)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX			! Vector of data containing zero or more NaN
 		real, dimension(:), allocatable	:: rvValidX		! The same vector, with all NaN values stripped
-		
+
 		! Locals
 		integer	:: iNumValid
 		integer	:: i, j
-		
+
 		! Count valid data, and check something is to be made
-		iNumValid = count(.not.isnan(rvX))
+		iNumValid = count(.not.ieee_is_nan(rvX))
 		if(allocated(rvValidX)) deallocate(rvValidX)
 		if(size(rvX) <= 0 .or. iNumValid <= 0) then
 			allocate(rvValidX(0))
 			return
 		end if
-		
+
 		! Loop over data, copying valids only to the new vector
 		allocate(rvValidX(iNumValid))
 		j = 0
 		do i = 1, size(rvX)
-			if(.not.isnan(rvX(i))) then
+			if(.not.ieee_is_nan(rvX(i))) then
 				j = j + 1
 				rvValidX(j) = rvX(i)
 			end if
 		end do
-		
+
 	end function GetValidOnly
-	
-	
+
+
 	! Compute the mean of a signal
 	function Mean(rvX, rValidFraction) result(rMean)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX				! Signal, whose mean is needed
 		real, intent(out), optional		:: rValidFraction	! Fraction of valid to total signal data (optional)
 		real							:: rMean			! Mean (NaN if not possible to evaluate)
-		
+
 		! Locals
 		integer	:: n
-		
+
 		! Check something is to be made
 		if(size(rvX) <= 0) then
 			rMean = NaN
 			return
 		end if
-		
+
 		! Compute the arithmetic mean
-		n = count(.not.isnan(rvX))
+		n = count(.not.ieee_is_nan(rvX))
 		if(n > 0) then
-			rMean = sum(rvX, mask=.not.isnan(rvX)) / n
+			rMean = sum(rvX, mask=.not.ieee_is_nan(rvX)) / n
 		else
 			rMean = NaN
 		end if
-		
+
 		! Compute diagnostic quantities, if present
 		if(present(rValidFraction)) then
 			rValidFraction = float(n) / size(rvX)
 		end if
-		
+
 	end function Mean
-	
+
 
 	! Compute the population standard deviation of a signal
 	function StdDev(rvX, rMeanIn, rValidFraction) result(rStdDev)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX				! Signal, whose standard deviation is needed
 		real, intent(in), optional		:: rMeanIn			! Mean value, as computed by "Mean" function (optional, recomputed if missing)
 		real, intent(out), optional		:: rValidFraction	! Fraction of valid to total signal data (optional)
 		real							:: rStdDev
-		
+
 		! Locals
 		integer	:: n
 		real	:: rMean
-		
+
 		! Check something is to be made
 		if(size(rvX) <= 0) then
 			rMean = NaN
 			return
 		end if
-		
+
 		! Compute the arithmetic mean, if missing; or, get its value
-		n = count(.not.isnan(rvX))
+		n = count(.not.ieee_is_nan(rvX))
 		if(present(rMeanIn)) then
 			rMean = rMeanIn
 		else
 			if(n > 0) then
-				rMean = sum(rvX, mask=.not.isnan(rvX)) / n
+				rMean = sum(rvX, mask=.not.ieee_is_nan(rvX)) / n
 			else
 				rMean = NaN
 			end if
 		end if
-		
+
 		! Compute the standard deviation
 		if(n > 0) then
-			rStdDev = sqrt(sum((rvX - rMean)**2, mask=.not.isnan(rvX)) / n)
+			rStdDev = sqrt(sum((rvX - rMean)**2, mask=.not.ieee_is_nan(rvX)) / n)
 		else
 			rStdDev = NaN
 		end if
-		
+
 		! Compute diagnostic quantities, if present
 		if(present(rValidFraction)) then
 			rValidFraction = float(n) / size(rvX)
 		end if
-		
+
 	end function StdDev
-	
+
 
 	! Compute the population skewness of a signal
 	function Skew(rvX, rMeanIn, rStdDevIn, rValidFraction) result(rSkewness)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX				! Signal, whose skewness is needed
 		real, intent(in), optional		:: rMeanIn			! Mean value, as computed by "Mean" function (optional, recomputed if missing)
 		real, intent(in), optional		:: rStdDevIn		! Standard deviation, as computed by "StdDev" function (optional, recomputed if missing)
 		real, intent(out), optional		:: rValidFraction	! Fraction of valid to total signal data (optional)
 		real							:: rSkewness
-		
+
 		! Locals
 		integer	:: n
 		real	:: rMean
 		real	:: rStdDev
 		real	:: m3
-		
+
 		! Check something is to be made
 		if(size(rvX) <= 0) then
 			rMean = NaN
 			return
 		end if
-		
+
 		! Compute the arithmetic mean, if missing; or, get its value
 		n = count(.valid.rvX)
 		if(present(rMeanIn)) then
@@ -388,7 +389,7 @@ contains
 				rStdDev = NaN
 			end if
 		end if
-		
+
 		! Compute the skewness
 		if(n > 0) then
 			m3        = sum((rvX - rMean)**3, mask = .valid.rvX) / n
@@ -396,37 +397,37 @@ contains
 		else
 			rSkewness = NaN
 		end if
-		
+
 		! Compute diagnostic quantities, if present
 		if(present(rValidFraction)) then
 			rValidFraction = float(n) / size(rvX)
 		end if
-		
+
 	end function Skew
-	
+
 
 	! Compute the population kurtosis of a signal
 	function Kurt(rvX, rMeanIn, rStdDevIn, rValidFraction) result(rKurtosis)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX				! Signal, whose kurtosis is needed
 		real, intent(in), optional		:: rMeanIn			! Mean value, as computed by "Mean" function (optional, recomputed if missing)
 		real, intent(in), optional		:: rStdDevIn		! Standard deviation, as computed by "StdDev" function (optional, recomputed if missing)
 		real, intent(out), optional		:: rValidFraction	! Fraction of valid to total signal data (optional)
 		real							:: rKurtosis
-		
+
 		! Locals
 		integer	:: n
 		real	:: rMean
 		real	:: rStdDev
 		real	:: m4
-		
+
 		! Check something is to be made
 		if(size(rvX) <= 0) then
 			rMean = NaN
 			return
 		end if
-		
+
 		! Compute the arithmetic mean, if missing; or, get its value
 		n = count(.valid.rvX)
 		if(present(rMeanIn)) then
@@ -447,7 +448,7 @@ contains
 				rStdDev = NaN
 			end if
 		end if
-		
+
 		! Compute the skewness
 		if(n > 0) then
 			m4        = sum((rvX - rMean)**4, mask = .valid.rvX) / n
@@ -455,32 +456,32 @@ contains
 		else
 			rKurtosis = NaN
 		end if
-		
+
 		! Compute diagnostic quantities, if present
 		if(present(rValidFraction)) then
 			rValidFraction = float(n) / size(rvX)
 		end if
-		
+
 	end function Kurt
-	
+
 
     ! Compute the sampling covariance between two signal samples; these samples should
     ! be the same size, and "error-paired", that is, whenever rvX(i) == NaN,
     ! then rvY(i) == NaN, and vice-versa.
 	function Cov(rvX, rvY) result(rCov)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX
 		real, dimension(:), intent(in)	:: rvY
 		real							:: rCov
-		
+
 		! Locals
         integer :: n
         integer :: i
 		real(8)	:: rSumX
 		real(8)	:: rSumY
 		real(8)	:: rSumXY
-        
+
         ! Check it makes sense to proceed
         if(size(rvX) /= size(rvY)) then
         	rCov = NaN
@@ -494,7 +495,7 @@ contains
             rCov = NaN
             return
         end if
-		
+
 		! Accumulate sums
 		rSumX  = 0.d0
 		rSumY  = 0.d0
@@ -506,21 +507,21 @@ contains
         		rSumXY = rSumXY + rvX(i)*rvY(i)
         	end if
         end do
-		
+
 		! Convert counts to covariance
 		rCov = rSumXY/(n-1) - (rSumX/n)*(rSumY/n)*(float(n)/(n-1))
-		
+
 	end function Cov
-	
-	
+
+
 	function QuantileScalar(rvX, rQuantile, iType) result(rQvalue)
-	
+
 		! Routine argument
 		real, dimension(:), intent(in)	:: rvX			! Data vector
 		real, intent(in)				:: rQuantile	! Quantile fraction (in [0.,1.] interval, inclusive)
 		integer, intent(in), optional	:: iType		! Quantile type (QUANT_POPULATION, QUANT_1, ..., QUANT_9; see constant declaration for meaning)
 		real							:: rQvalue		! Quantile value
-		
+
 		! Locals
 		real, dimension(:), allocatable	:: rvXsorted
 		integer							:: iQuantileType
@@ -531,7 +532,7 @@ contains
 		integer							:: j
 		real							:: g
 		real							:: gamma
-		
+
 		! Check something is to be made
 		if(size(rvX) == 1) then
 			rQvalue = rvX(1)
@@ -548,7 +549,7 @@ contains
 			rQvalue = NaN
 			return
 		end if
-		
+
 		! Answer for trivial cases
 		if(rQuantile <= 0.) then
 			rQvalue = minval(rvX, mask=.valid.rvX)
@@ -557,7 +558,7 @@ contains
 			rQvalue = maxval(rvX, mask=.valid.rvX)
 			return
 		end if
-		
+
 		! Contract data vector to valid data only, and sort it
 		rvXsorted = GetValidOnly(rvX)
 		if(size(rvXsorted) == 1) then
@@ -568,7 +569,7 @@ contains
 			return
 		end if
 		call quicksort(rvXsorted)
-		
+
 		! Assign actual quantile type
 		if(present(iType)) then
 			iQuantileType = iType
@@ -576,11 +577,11 @@ contains
 		else
 			iQuantileType = QUANT_8
 		end if
-		
+
 		! Compute the quantile value
 		n = size(rvXsorted)
 		p = rQuantile
-		
+
 		select case(iQuantileType)
 		case(QUANT_POPULATION)
 			h = n * p
@@ -731,18 +732,18 @@ contains
 		case default
 			rQvalue = NaN
 		end select
-		
+
 	end function QuantileScalar
-	
-	
+
+
 	function QuantileVector(rvX, rvQuantile, iType) result(rvQvalue)
-	
+
 		! Routine argument
 		real, dimension(:), intent(in)		:: rvX			! Data vector
 		real, dimension(:), intent(in)		:: rvQuantile	! Quantile fraction (in [0.,1.] interval, inclusive)
 		integer, intent(in), optional		:: iType		! Quantile type (QUANT_POPULATION, QUANT_1, ..., QUANT_9; see constant declaration for meaning)
 		real, dimension(size(rvQuantile))	:: rvQvalue		! Quantile value
-		
+
 		! Locals
 		real, dimension(:), allocatable	:: rvXsorted
 		integer							:: iQuantileType
@@ -754,7 +755,7 @@ contains
 		integer							:: j
 		real							:: g
 		real							:: gamma
-		
+
 		! Check something is to be made
 		if(size(rvQuantile) <= 0) then
 			return	! No defined return value can be assigned here - rvQvalue does not exist
@@ -770,7 +771,7 @@ contains
 			rvQvalue = NaN
 			return
 		end if
-		
+
 		! Contract data vector to valid data only, and sort it
 		rvXsorted = GetValidOnly(rvX)
 		if(size(rvXsorted) == 1) then
@@ -781,7 +782,7 @@ contains
 			return
 		end if
 		call quicksort(rvXsorted)
-		
+
 		! Assign actual quantile type
 		if(present(iType)) then
 			iQuantileType = iType
@@ -789,16 +790,16 @@ contains
 		else
 			iQuantileType = QUANT_8
 		end if
-		
+
 		! Main loop: iterate over quantiles
 		do iQuantile = 1, size(rvQuantile)
-		
+
 			! Check something is to be made
 			if(.invalid.rvQuantile(iQuantile)) then
 				rvQvalue(iQuantile) = NaN
 				cycle
 			end if
-		
+
 			! Answer for trivial cases
 			if(rvQuantile(iQuantile) <= 0.) then
 				rvQvalue(iQuantile) = minval(rvX, mask=.valid.rvX)
@@ -807,11 +808,11 @@ contains
 				rvQvalue(iQuantile) = maxval(rvX, mask=.valid.rvX)
 				cycle
 			end if
-		
+
 			! Compute the quantile value
 			n = size(rvXsorted)
 			p = rvQuantile(iQuantile)
-		
+
 			! Compute the value of h
 			select case(iQuantileType)
 			case(QUANT_POPULATION)
@@ -969,12 +970,12 @@ contains
 			case default
 				rvQvalue(iQuantile) = NaN
 			end select
-		
+
 		end do
-		
+
 	end function QuantileVector
-	
-	
+
+
 	! Compute the autocovariance of a signal up the specified number of lags,
 	! by using the standard and the 2nd-stationary definitions, as given
 	! respectively in R.B. Stull, "An Introduction to Boundary Layer Meteorology", Kluwer
@@ -982,13 +983,13 @@ contains
 	! W.N. Venables, B.D. Ripley, "Modern Applied Statistics with S", Springer, 2002.
 	!
 	function AutoCov(rvX, rvACov, iType) result(iRetCode)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(in)		:: rvX			! Signal (may contain NaN values)
 		real, dimension(0:), intent(out)	:: rvACov		! Vector containing the desired values
-		integer, intent(in), optional		:: iType		! Type of ACV (ACV_GENERAL, default: no stationarity assumption, ACV_2ND_ORDER:2nd order stationarity assumed (as in W. N. Venables, 
+		integer, intent(in), optional		:: iType		! Type of ACV (ACV_GENERAL, default: no stationarity assumption, ACV_2ND_ORDER:2nd order stationarity assumed (as in W. N. Venables,
 		integer								:: iRetCode		! Flag indicating success (value = 0) or failure.
-		
+
 		! Locals
 		integer	:: iLag
 		integer	:: i
@@ -999,10 +1000,10 @@ contains
 		real(8)	:: rMean
 		integer	:: iNum
 		logical	:: lGeneral
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check parameters
 		if(size(rvX) <= 0 .OR. size(rvACov) <= 0 .OR. size(rvACov) > size(rvX)) then
 			rvACov = NaN
@@ -1010,38 +1011,38 @@ contains
 			return
 		end IF
 		n = size(rvX)
-		
+
 		! Determine type of processing
 		if(present(iType)) then
 			lGeneral = (iType == ACV_GENERAL)
 		else
 			lGeneral = .TRUE.
 		end if
-		
+
 		! Compute autocovariance for each lag
 		if(lGeneral) then
-		
+
 			! Compute means and averages on each lag set independently,
 			! making no assumption on the stationarity of data set
 			do iLag = 0, size(rvACov)-1
-			
+
 				! Compute means
 				rSumA  = 0.d0
 				rSumB  = 0.d0
 				iNum = 0
 				do i = 1, n - iLag
-					if(.valid.rvX(i) .and. .valid.rvX(i+iLag)) then
+					if((.valid.rvX(i)) .and. (.valid.rvX(i+iLag))) then
 						iNum   = iNum + 1
 						rSumA  = rSumA + rvX(i)
 						rSumB  = rSumB + rvX(i+iLag)
 					end if
 				end do
-				
+
 				! Compute autocovariance
 				if(iNum > 0) then
 					rSumAB = 0.d0
 					do i = 1, n - iLag
-						if(.valid.rvX(i) .and. .valid.rvX(i+iLag)) then
+						if((.valid.rvX(i)) .and. (.valid.rvX(i+iLag))) then
 							rSumAB = rSumAB + (rvX(i) - rSumA/iNum) * (rvX(i+iLag) - rSumB/iNum)
 						end if
 					end do
@@ -1049,11 +1050,11 @@ contains
 				else
 					rvACov(iLag) = NaN
 				end if
-				
+
 			end do
-			
+
 		else
-		
+
 			! Compute overall mean, assuming 2nd-order stationarity
 			iNum  = 0
 			rMean = 0.d0
@@ -1064,12 +1065,12 @@ contains
 				end if
 			end do
 			rMean = rMean / iNum
-			
+
 			! Compute autocovariances with respect to the same overall mean
 			do iLag = 0, size(rvACov)-1
 				rSumAB = 0.d0
 				do i = 1, n - iLag
-					if(.valid.rvX(i) .and. .valid.rvX(i+iLag)) then
+					if((.valid.rvX(i)) .and. (.valid.rvX(i+iLag))) then
 						rSumAB = rSumAB + (rvX(i) - rMean) * (rvX(i+iLag) - rMean)
 					end if
 				end do
@@ -1079,12 +1080,12 @@ contains
 					rvACov(iLag) = NaN
 				end if
 			end do
-			
+
 		end if
-		
+
 	end function AutoCov
-	
-	
+
+
 	! Compute the autocorrellation of a signal up the specified number of lags,
 	! by using the standard and the 2nd-stationary definitions, as given
 	! respectively in R.B. Stull, "An Introduction to Boundary Layer Meteorology", Kluwer
@@ -1092,16 +1093,16 @@ contains
 	! W.N. Venables, B.D. Ripley, "Modern Applied Statistics with S", Springer, 2002.
 	!
 	function AutoCorr(rvX, rvACorr, iType) result(iRetCode)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(in)		:: rvX			! Signal (may contain NaN values)
 		real, dimension(0:), intent(out)	:: rvACorr		! Vector containing the desired values
-		integer, intent(in), optional		:: iType		! Type of ACV (ACV_GENERAL, default: no stationarity assumption, ACV_2ND_ORDER:2nd order stationarity assumed (as in W. N. Venables, 
+		integer, intent(in), optional		:: iType		! Type of ACV (ACV_GENERAL, default: no stationarity assumption, ACV_2ND_ORDER:2nd order stationarity assumed (as in W. N. Venables,
 		integer								:: iRetCode		! Flag indicating success (value = 0) or failure.
-		
+
 		! Locals
 		real, dimension(:), allocatable	:: rvACov
-		
+
 		! Compute the autocovariance
 		allocate(rvACov(0:(size(rvACorr)-1)))
 		iRetCode = AutoCov(rvX, rvACov, iType)
@@ -1109,7 +1110,7 @@ contains
 			deallocate(rvACov)
 			return
 		end if
-		
+
 		! Scale autocovariance to autocorrelation
 		if(abs(rvACov(0)) > 1.e-6) then
 			rvACorr(1:) = rvACov(1:) / rvACov(0)
@@ -1117,10 +1118,10 @@ contains
 		else
 			rvACorr = NaN
 		end if
-		
+
 	end function AutoCorr
-	
-	
+
+
 	! Compute the autocovariance of a signal up the specified number of lags,
 	! by using the direct summation method under the mandatory assumption of
 	! second-order statoinarity.
@@ -1132,14 +1133,14 @@ contains
 	! The R implementation is correct however: the bug is in the manual only.
 	!
 	function CrossCov(rvX, rvY, rvCCov, iType) result(iRetCode)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX			! First signal (should contain no NaN values)
 		real, dimension(:), intent(in)	:: rvY			! Second signal (should contain no NaN values)
 		real, dimension(:), intent(out)	:: rvCCov		! Vector containing the desired values, dimensioned (-iLagMax:iLagMax) where iLagMax > 0
-		integer, intent(in), optional	:: iType		! Type of ACV (ACV_GENERAL, default: no stationarity assumption, ACV_2ND_ORDER:2nd order stationarity assumed (as in W. N. Venables, 
+		integer, intent(in), optional	:: iType		! Type of ACV (ACV_GENERAL, default: no stationarity assumption, ACV_2ND_ORDER:2nd order stationarity assumed (as in W. N. Venables,
 		integer							:: iRetCode		! Flag indicating success (value = 0) or failure.
-		
+
 		! Locals
 		logical	:: lGeneral
 		integer	:: iLag
@@ -1151,10 +1152,10 @@ contains
 		real(8)	:: rMeanX
 		real(8)	:: rMeanY
 		real(8)	:: rSumAB
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check parameters
 		if(size(rvX) <= 0 .OR. size(rvY) <= 0) then
 			rvCCov = NaN
@@ -1183,17 +1184,17 @@ contains
 		end IF
 		n       = size(rvX)
 		iLagMax = (size(rvCCov) - 1) / 2
-		
+
 		! Determine type of processing
 		if(present(iType)) then
 			lGeneral = (iType == ACV_GENERAL)
 		else
 			lGeneral = .TRUE.
 		end if
-		
+
 		! Compute autocovariance for each lag
 		if(lGeneral) then
-				
+
 			! Compute autocovariances with respect to the same overall mean
 			do iLag = -iLagMax, iLagMax
 				iMin = max(1,1-iLag)
@@ -1206,13 +1207,13 @@ contains
 				end do
 				rvCCov(iLag+iLagMax+1) = rSumAB / (iMax-iMin)
 			end do
-		
+
 		else
-		
+
 			! Compute overall mean, assuming 2nd-order stationarity
 			rMeanX = sum(rvX) / n
 			rMeanY = sum(rvY) / n
-		
+
 			! Compute autocovariances with respect to the same overall mean
 			do iLag = -iLagMax, iLagMax
 				rSumAB = 0.d0
@@ -1221,23 +1222,23 @@ contains
 				end do
 				rvCCov(iLag+iLagMax+1) = rSumAB / n
 			end do
-		
+
 		end if
-		
+
 	end function CrossCov
-	
-	
+
+
 	! Compute the autocorrelation of a signal up the specified number of lags,
 	! by using the direct summation method.
 	function CrossCorr(rvX, rvY, rvCCorr, iType) result(iRetCode)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX			! First signal (may contain NaN values)
 		real, dimension(:), intent(in)	:: rvY			! Second signal (may contain NaN values)
 		real, dimension(:), intent(out)	:: rvCCorr		! Vector containing the desired values, dimensioned (-iLagMax:iLagMax) where iLagMax > 0
-		integer, intent(in), optional	:: iType		! Type of ACV (ACV_GENERAL, default: no stationarity assumption, ACV_2ND_ORDER:2nd order stationarity assumed (as in W. N. Venables, 
+		integer, intent(in), optional	:: iType		! Type of ACV (ACV_GENERAL, default: no stationarity assumption, ACV_2ND_ORDER:2nd order stationarity assumed (as in W. N. Venables,
 		integer							:: iRetCode		! Flag indicating success (value = 0) or failure.
-		
+
 		! Locals
 		logical	:: lGeneral
 		integer	:: iLag
@@ -1251,10 +1252,10 @@ contains
 		real(8)	:: rSigmaX
 		real(8)	:: rSigmaY
 		real(8)	:: rSumAB
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check parameters
 		if(size(rvX) <= 0 .OR. size(rvY) <= 0) then
 			rvCCorr = NaN
@@ -1283,17 +1284,17 @@ contains
 		end IF
 		n       = size(rvX)
 		iLagMax = (size(rvCCorr) - 1) / 2
-		
+
 		! Determine type of processing
 		if(present(iType)) then
 			lGeneral = (iType == ACV_GENERAL)
 		else
 			lGeneral = .TRUE.
 		end if
-		
+
 		! Compute autocovariance for each lag
 		if(lGeneral) then
-				
+
 			! Compute autocovariances with respect to the same overall mean
 			do iLag = -iLagMax, iLagMax
 				iMin = max(1,1-iLag)
@@ -1308,15 +1309,15 @@ contains
 				end do
 				rvCCorr(iLag+iLagMax+1) = (rSumAB / (iMax-iMin)) / (rSigmaX*rSigmaY)
 			end do
-		
+
 		else
-		
+
 			! Compute overall mean and std.dev., assuming 2nd-order stationarity
 			rMeanX  = sum(rvX) / n
 			rMeanY  = sum(rvY) / n
 			rSigmaX = sqrt(sum((rvX - rMeanX)**2) / n)
 			rSigmaY = sqrt(sum((rvY - rMeanY)**2) / n)
-		
+
 			! Compute autocovariances with respect to the same overall mean
 			do iLag = -iLagMax, iLagMax
 				rSumAB = 0.d0
@@ -1325,20 +1326,20 @@ contains
 				end do
 				rvCCorr(iLag+iLagMax+1) = (rSumAB / n) / (rSigmaX*rSigmaY)
 			end do
-		
+
 		end if
-		
+
 	end function CrossCorr
-	
-	
+
+
 	! Partial autocorrelation values, from autocorrelation. Useful, to determine
 	! the order of an autoregressive process.
 	function PartialAutoCorr(rvACov) result(rvPACorr)
-		
+
 		! Routine arguments
 		real, dimension(0:), intent(in)	:: rvACov		! Autocovariance values
 		real, dimension(size(rvACov)-1)	:: rvPACorr		! Partial autocorrelation, same indexing convention as above
-		
+
 		! Locals
 		real, dimension(:), allocatable			:: phi
 		real, dimension(:), allocatable			:: phiNew
@@ -1350,7 +1351,7 @@ contains
 		integer									:: k
 		integer									:: km1
 		integer									:: n
-		
+
 		! Check no gaps exist in autocorrelation, and they constitute a non-negative
 		! decreasing sequence (the PACF makes sense in case of autoregressive
 		! processes)
@@ -1363,19 +1364,19 @@ contains
 			rvPACorr = NaN
 			return
 		end if
-		
+
 		! Reserve workspace
 		allocate(phi(n), phiNew(n), rho(n))
 		phi = 0.d0
 		rho = 0.d0
-		
+
 		! Compute partial autocorrelation by Durbin-Levinson algorithm
 		! (see [Brockwell, 2002], section 2.5.1, for clarifications).
 		! The implementation follows prof. G.R. Ihaka's (see [Ihaka, web1])
 		rho = rvACov(1:n)/rvACov(0)
 		phi(1) = rho(1)
 		rvPACorr(1) = phi(1)
-		
+
 		do k = 2, n
 			km1 = k - 1
 			total = 0.d0
@@ -1391,17 +1392,17 @@ contains
 			phi(1:km1) = phiNew(1:km1)
 			rvPACorr(k) = phi(k)
 		end do
-		
+
 		! Leave
 		deallocate(phi, phiNew, rho)
-		
+
 	end function PartialAutoCorr
-	
-	
+
+
 	! Estimate the Euleriam decorrelation time of a signal
 	!
 	function EulerianTime(rDataRate, rvX, rMaxEulerianTime, rEulerianTime, rvACorr) result(iRetCode)
-	
+
 		! Routine arguments
 		real, intent(in)				:: rDataRate			! Data acquisition rate (Hz)
 		real, dimension(:), intent(in)	:: rvX					! Signal (any unit)
@@ -1409,16 +1410,16 @@ contains
 		real, intent(out)				:: rEulerianTime		! Estimate of Eulerian decorrelation time (s)
 		real, dimension(:), allocatable, optional	:: rvACorr	! Autocorrelation found, for diagnostic purposes
 		integer							:: iRetCode
-		
+
 		! Locals
 		real, dimension(:), allocatable	:: rvC
 		integer							:: iErrCode
 		integer							:: iMaxLag
 		integer							:: i
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check parameters
 		if(rDataRate <= 0. .or. rMaxEulerianTime <= 0. .or. size(rvX) <= 0) then
 			rEulerianTime = NaN
@@ -1430,7 +1431,7 @@ contains
 			iRetCode = 2
 			return
 		end if
-		
+
 		! Compute the maximum lag
 		iMaxLag = rMaxEulerianTime * rDataRate
 		if(iMaxLag >= size(rvX)) then
@@ -1443,7 +1444,7 @@ contains
 			iRetCode = 4
 			return
 		end if
-		
+
 		! Compute autocorrelations
 		allocate(rvC(0:iMaxLag))
 		iErrCode = AutoCorr(rvX, rvC, ACV_2ND_ORDER)
@@ -1453,7 +1454,7 @@ contains
 			deallocate(rvC)
 			return
 		end if
-		
+
 		! Estimate the Eulerian decorrelation time
 		rEulerianTime = iMaxLag / rDataRate
 		do i = 1, iMaxLag - 1
@@ -1470,23 +1471,23 @@ contains
 		end do
 		deallocate(rvC)
 		iRetCode = 6
-		
+
 	end function EulerianTime
-	
-	
+
+
 	! Remove linear trend, if any, from a signal.
 	!
 	! The signal is modified by eliminating the trend found, but
 	! leaving the riginal mean unchanged.
 	function RemoveLinearTrend(rvX, rvY, rMultiplier, rOffset) result(iRetCode)
-	
+
 		! Routine argument
 		real(8), dimension(:), intent(in)	:: rvX			! Index signal (typically time, in floating point form)
 		real, dimension(:), intent(inout)	:: rvY			! Signal to remove the trend from
 		real(8), intent(out)				:: rMultiplier	! Multiplier of trend line
 		real(8), intent(out)				:: rOffset		! Offset of trend line
 		integer								:: iRetCode
-		
+
 		! Locals
 		integer	:: n
 		real(8)	:: rSx
@@ -1496,10 +1497,10 @@ contains
 		real(8)	:: rDelta
 		real(8)	:: rMeanBeforeDetrend
 		real(8)	:: rMeanAfterDetrend
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check input parameters
 		if(size(rvX) <= 0 .or. size(rvY) <= 0) then
 			iRetCode = 1
@@ -1513,7 +1514,7 @@ contains
 			iRetCode = 3
 			return
 		end if
-		
+
 		! Compute counts and sums
 		n    = size(rvX)
 		rSx  = sum(rvX)
@@ -1521,7 +1522,7 @@ contains
 		rSxx = dot_product(rvX,rvX)
 		rSxy = dot_product(rvX,dble(rvY))
 		rMeanBeforeDetrend = rSy / n
-		
+
 		! Compute multiplier and offset
 		rDelta      = n*rSxx - rSx**2
 		if(rDelta <= 0.d0) then
@@ -1530,40 +1531,40 @@ contains
 		end if
 		rOffset     = (rSxx*rSy - rSx*rSxy)/rDelta
 		rMultiplier = (n*rSxy - rSx*rSy)/rDelta
-		
+
 		! Subtract the linear trend
 		rvY = rvY - rMultiplier*(rvX - rSx/n)
-		
+
 		! Remove residual average, and add back the original mean
 		rMeanAfterDetrend = sum(dble(rvY)) / n
 		rvY = rvY - rMeanAfterDetrend + rMeanBeforeDetrend
 		rOffset = rOffset - rMeanAfterDetrend + rMeanBeforeDetrend
-	
+
 	end function RemoveLinearTrend
-	
+
 	! ********************************
 	! * Members of Time<series class *
 	! ********************************
-	
+
 	function tsCreateEmpty(this, n) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(inout)	:: this			! Current time series
 		integer, intent(in)					:: n			! Number of elements (must be positive)
 		integer								:: iRetCode		! Return code (0 if successful completion; any non-zero in case of error(s))
-		
+
 		! Locals
 		integer	:: iErrCode
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check input parameters
 		if(n <= 0) then
 			iRetCode = 1
 			return
 		end if
-		
+
 		! Reserve workspace
 		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
 		if(allocated(this % rvValue)) deallocate(this % rvValue)
@@ -1578,23 +1579,23 @@ contains
 			iRetCode = 2
 			return
 		end if
-		
+
 		! Fill with appropriate initial values
 		this % rvTimeStamp = NaN_8
 		this % rvValue     = NaN
-		
+
 	end function tsCreateEmpty
-	
-	
+
+
 	! Copy constructor, creates a duplicate of current time series
 	function tsCreateFromTimeSeries(this, ts, lForceWellSpacedMonotonic) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(out)		:: this
 		type(TimeSeries), intent(in)		:: ts
 		logical, intent(in), optional		:: lForceWellSpacedMonotonic	! If .false. (default) just copy the series as it is. If .true., rearrange the original series so that time stamps form a type-0 well spaced sequence
 		integer								:: iRetCode
-		
+
 		! Locals
 		integer	:: i
 		integer	:: n
@@ -1608,10 +1609,10 @@ contains
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		real(4), dimension(:), allocatable	:: rvValues
 		logical								:: lTimeExpand
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Decide which type of processing to do
 		if(present(lForceWellSpacedMonotonic)) then
 			lTimeExpand = lForceWellSpacedMonotonic
@@ -1625,19 +1626,19 @@ contains
 			iRetCode = 1
 			return
 		end if
-			
+
 		! Dispatch processing according to type
 		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
 		if(allocated(this % rvValue)) deallocate(this % rvValue)
 		if(lTimeExpand) then
-		
+
 			! Check conditions on time stamp (in particular, well-spacedness) to be
 			! true enough for the expansion-while-copy to occur
 			iWellSpaced = ts % timeIsWellSpaced(rDeltaTime)
 			select case(iWellSpaced)
-			
+
 			case(0)	! Well-spaced, no gaps: just copy (reordering made)
-			
+
 				! Reserve workspace in copy, based on original
 				allocate(this % rvTimeStamp(n), stat = iErrCode)
 				if(iErrCode /= 0) then
@@ -1650,19 +1651,19 @@ contains
 					iRetCode = 2
 					return
 				end if
-				
+
 				! Fill with appropriate initial values
 				iRetCode           = ts % getTimeStamp(rvTimeStamp)
 				this % rvTimeStamp = rvTimeStamp
 				iRetCode           = ts % getValues(rvValues)
 				this % rvValue     = rvValues
-				
+
 				! Reorder with respect to time, to make sure of quasi-monotonicity (which becomes monotonicity, if
 				! well-spacing with a positive delta time is guaranteed
 				call this % timeReorder()
-				
+
 			case(1)	! Well-spaced, but with at least one gap: time-expand (incidentally, result is monotonic)
-			
+
 				! Make resulting series time-regular
 				iRetCode = ts % getTimeStamp(rvTimeStamp)
 				if(iRetCode /= 0) then
@@ -1676,11 +1677,11 @@ contains
 				end if
 				rMinTimeStamp = minval(rvTimeStamp, mask=.valid.rvTimeStamp)
 				rMaxTimeStamp = maxval(rvTimeStamp, mask=.valid.rvTimeStamp)
-				if(.invalid.rMinTimeStamp .or. .invalid.rMaxTimeStamp) then
+				if((.invalid.rMinTimeStamp) .or. (.invalid.rMaxTimeStamp)) then
 					iRetCode = 4
 					return
 				end if
-				
+
 				! Count time-expanded size, and reserve workspace based on it
 				m = nint((rMaxTimeStamp - rMinTimeStamp) / rDeltaTime) + 1
 				if(m <= 0) then
@@ -1698,31 +1699,31 @@ contains
 					iRetCode = 2
 					return
 				end if
-				
+
 				! Initialize value vector to invalid, so that any non-filled value will make self-evident as a gap
 				this % rvValue = NaN
-				
+
 				! Transfer data by their time index
 				do i = 1, n
 					idx = nint((rvTimeStamp(i) - rMinTimeStamp) / rDeltaTime) + 1
 					if(idx < 1 .or. idx > m) cycle
 					this % rvValue(idx) = rvValues(i)
 				end do
-				
+
 				! Build time stamp vector
 				this % rvTimeStamp = [(rMinTimeStamp + rDeltaTime*(i-1), i = 1, m)]
-				
+
 			case default	! -1 and 2 cases: no time regularity, abandon match
-			
+
 				iRetCode = 4
 				return
-				
+
 			end select
-			
+
 		else
-		
+
 			! Just-copy-it path
-		
+
 			! Reserve workspace in copy, based on original
 			allocate(this % rvTimeStamp(n), stat = iErrCode)
 			if(iErrCode /= 0) then
@@ -1735,27 +1736,27 @@ contains
 				iRetCode = 2
 				return
 			end if
-			
+
 			! Fill with appropriate initial values
 			iRetCode           = ts % getTimeStamp(rvTimeStamp)
 			this % rvTimeStamp = rvTimeStamp
 			iRetCode           = ts % getValues(rvValues)
 			this % rvValue     = rvValues
-			
+
 		end if
-		
+
 	end function tsCreateFromTimeSeries
-	
-	
+
+
 	function tsIsEmpty(this) result(lIsEmpty)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)	:: this			! Current time series
 		logical							:: lIsEmpty		! Flag indicating (.true.) whether a time series is still unallocated or empty, or (.true.) not
-		
+
 		! Locals
 		! --none--
-		
+
 		! Check allocation state
 		if(.not.allocated(this % rvTimeStamp) .or. .not.allocated(this % rvValue)) then
 			! Not yet allocated
@@ -1768,28 +1769,28 @@ contains
 				lIsEmpty = all(.invalid.this % rvTimeStamp) .or. all(.invalid.this % rvValue)
 			end if
 		end if
-		
+
 	end function tsIsEmpty
-	
-	
+
+
 	function tsCreateFromDataVector(this, rvValues, rTimeFrom, rDeltaTime) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(inout)	:: this			! Current time series
 		real, dimension(:), intent(in)		:: rvValues		! Data values
 		real(8), intent(in)					:: rTimeFrom	! Initial date-time (s since the Epoch)
 		real(8), intent(in), optional		:: rDeltaTime	! Time difference between two any series elements (default: 1.d0; must be positive if present)
 		integer								:: iRetCode		! Return code (0 if successful completion; any non-zero in case of error(s))
-		
+
 		! Locals
 		integer	:: iErrCode
 		integer	:: i
 		integer	:: n
 		real(8)	:: rTimeIncrement
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check input parameters
 		n = size(rvValues)
 		if(n <= 0) then
@@ -1806,7 +1807,7 @@ contains
 		else
 			rTimeIncrement = 1.d0
 		end if
-		
+
 		! Reserve workspace
 		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
 		if(allocated(this % rvValue)) deallocate(this % rvValue)
@@ -1821,30 +1822,30 @@ contains
 			iRetCode = 3
 			return
 		end if
-		
+
 		! Fill with appropriate initial values
 		this % rvTimeStamp = [(rTimeFrom + rTimeIncrement*(i-1), i = 1, n)]
 		this % rvValue     = rvValues
-		
+
 	end function tsCreateFromDataVector
-	
-	
+
+
 	function tsCreateFromTimeAndDataVectors(this, rvTimeStamp, rvValues) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(inout)	:: this			! Current time series
 		real(8), dimension(:), intent(in)	:: rvTimeStamp	! Time stamp values
 		real, dimension(:), intent(in)		:: rvValues		! Data values (rvValue(i) corresponds to rvTimeStamp(i), i=1,...)
 		integer								:: iRetCode		! Return code (0 if successful completion; any non-zero in case of error(s))
-		
+
 		! Locals
 		integer	:: iErrCode
 		integer	:: i
 		integer	:: n
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check input parameters
 		n = size(rvValues)
 		if(n <= 0) then
@@ -1855,7 +1856,7 @@ contains
 			iRetCode = 2
 			return
 		end if
-		
+
 		! Reserve workspace
 		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
 		if(allocated(this % rvValue)) deallocate(this % rvValue)
@@ -1870,48 +1871,48 @@ contains
 			iRetCode = 3
 			return
 		end if
-		
+
 		! Fill with appropriate initial values
 		do i = 1, n
 			this % rvTimeStamp(i) = rvTimeStamp(i)
 			this % rvValue(i)     = rvValues(i)
 		end do
-		
+
 	end function tsCreateFromTimeAndDataVectors
-	
-	
+
+
 	! Shift time stamp values by a given time difference (useful for example when changing a posticipated
 	! time stamp to an anticipated one
 	subroutine tsTimeShift(this, deltaTime)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(inout)	:: this
 		real(8), intent(in)					:: deltaTime
-		
+
 		! Locals
 		! --none--
-		
+
 		! Apply shift operator in place
 		this % rvTimeStamp = this % rvTimeStamp + deltaTime
-		
+
 	end subroutine tsTimeShift
-	
-	
+
+
 	! Reorder time stamp increasing, sorting values in the meanwhile
 	subroutine tsTimeReorder(this)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(inout)	:: this
-		
+
 		! Locals
 		integer								:: n, i
 		integer, dimension(:), allocatable	:: ivIdx
 		real, dimension(:), allocatable		:: rvValue2
-		
+
 		! Check something is to be made
 		n = size(this % rvTimeStamp)
 		if(n <= 1) return	! Do nothing for empty time stamp vector
-		
+
 		! Reindex time stamp vector while sorting it
 		allocate(ivIdx(n), rvValue2(n))
 		ivIdx = [(i, i=1, n)]
@@ -1921,25 +1922,25 @@ contains
 		end do
 		this % rvValue = rvValue2
 		deallocate(ivIdx, rvValue2)
-		
+
 	end subroutine tsTimeReorder
-	
-	
+
+
 	function tsGetSingleItem(this, iItemIdx, rTimeStamp, rValue) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)	:: this
 		integer, intent(in)				:: iItemIdx
 		real(8), intent(out)			:: rTimeStamp
 		real, intent(out)				:: rValue
 		integer							:: iRetCode
-		
+
 		! Locals
 		! -none-
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check parameters
 		if(size(this % rvTimeStamp) <= 0) then
 			rTimeStamp = NaN_8
@@ -1953,88 +1954,88 @@ contains
 			iRetCode   = 2
 			return
 		end if
-		
+
 		! Gather value
 		rTimeStamp = this % rvTimeStamp(iItemIdx)
 		rValue     = this % rvValue(iItemIdx)
-		
+
 	end function tsGetSingleItem
-	
-	
+
+
 	function tsGetTimeStamp(this, rvTimeStamp) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)					:: this
 		real(8), dimension(:), allocatable, intent(out)	:: rvTimeStamp
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer	:: n
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check something is to be made
 		n = size(this % rvTimeStamp)
 		if(n <= 0) then
 			iRetCode = 1
 			return
 		end if
-		
+
 		! Reserve workspace
 		if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
 		allocate(rvTimeStamp(n))
-		
+
 		! Transfer values
 		rvTimeStamp = this % rvTimeStamp
-		
+
 	end function tsGetTimeStamp
-	
-	
+
+
 	function tsGetValues(this, rvValues) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)					:: this
 		real(4), dimension(:), allocatable, intent(out)	:: rvValues
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer	:: n
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check something is to be made
 		n = size(this % rvValue)
 		if(n <= 0) then
 			iRetCode = 1
 			return
 		end if
-		
+
 		! Reserve workspace
 		if(allocated(rvValues)) deallocate(rvValues)
 		allocate(rvValues(n))
-		
+
 		! Transfer values
 		rvValues = this % rvValue
-		
+
 	end function tsGetValues
-	
-	
+
+
 	function tsGetTimeSpan(this, rMinTimeStamp, rMaxTimeStamp) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)	:: this
 		real(8), intent(out)			:: rMinTimeStamp
 		real(8), intent(out)			:: rMaxTimeStamp
 		integer							:: iRetCode
-		
+
 		! Locals
 		! - --none--
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check parameters
 		if(this % isEmpty()) then
 			rMinTimeStamp = NaN_8
@@ -2042,23 +2043,23 @@ contains
 			iRetCode   = 1
 			return
 		end if
-		
+
 		! Compute time bounds, even if some invalid time stamps exist
 		rMinTimeStamp = minval(this % rvTimeStamp, mask = .valid.this % rvTimeStamp)
 		rMaxTimeStamp = maxval(this % rvTimeStamp, mask = .valid.this % rvTimeStamp)
-		
+
 	end function tsGetTimeSpan
-	
-	
+
+
 	function tsGetTimeSubset(this, ts, timeFrom, timeTo) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(out)		:: this
 		type(TimeSeries), intent(in)		:: ts
 		real(8), intent(in)					:: timeFrom
 		real(8), intent(in)					:: timeTo
 		integer								:: iRetCode
-		
+
 		! Locals
 		integer	:: n, m
 		integer	:: i, j
@@ -2067,10 +2068,10 @@ contains
 		real(8)	:: rMaxTime
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		real(4), dimension(:), allocatable	:: rvValues
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Reserve workspace in copy, based on original
 		n = ts % size()
 		if(n <= 0) then
@@ -2083,7 +2084,7 @@ contains
 		this % rvTimeStamp = rvTimeStamp
 		iRetCode           = ts % getValues(rvValues)
 		this % rvValue     = rvValues
-		
+
 		! Count subset size, and if zero return doing nothing
 		rMinTime = min(timeFrom, timeTo)	! Just a safeguard
 		rMaxTime = max(timeFrom, timeTo)	! Just a safeguard
@@ -2092,7 +2093,7 @@ contains
 			iRetCode = 2
 			return
 		end if
-		
+
 		! Reserve workspace
 		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
 		if(allocated(this % rvValue)) deallocate(this % rvValue)
@@ -2107,7 +2108,7 @@ contains
 			iRetCode = 3
 			return
 		end if
-		
+
 		! Fill with data in time range, preserving their order
 		j = 0
 		do i = 1, n
@@ -2117,18 +2118,18 @@ contains
 				this % rvValue(j)     = rvValues(i)
 			end if
 		end do
-		
+
 	end function tsGetTimeSubset
-	
-	
+
+
 	function tsGetMonth(this, ts, iMonth) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(out)		:: this
 		type(TimeSeries), intent(in)		:: ts
 		integer, intent(in)					:: iMonth
 		integer								:: iRetCode
-		
+
 		! Locals
 		integer	:: n, m
 		integer	:: i, j
@@ -2136,17 +2137,17 @@ contains
 		real(8), dimension(:), allocatable	:: rvTimeStamp
 		real(4), dimension(:), allocatable	:: rvValues
 		integer, dimension(:), allocatable	:: ivMonth
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Reserve workspace in copy, based on original
 		n = ts % size()
 		if(n <= 0) then
 			iRetCode = 1
 			return
 		end if
-		
+
 		! Check parameters
 		if(iMonth < 1 .or. iMonth > 12) then
 			iRetCode = 2
@@ -2159,14 +2160,14 @@ contains
 		iRetCode           = ts % getValues(rvValues)
 		this % rvValue     = rvValues
 		iErrCode = timeGetMonth(rvTimeStamp, ivMonth)
-		
+
 		! Count subset size, and if zero return doing nothing
 		m = count(ivMonth == iMonth)
 		if(m <= 0) then
 			iRetCode = 3
 			return
 		end if
-		
+
 		! Reserve workspace
 		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
 		if(allocated(this % rvValue)) deallocate(this % rvValue)
@@ -2181,7 +2182,7 @@ contains
 			iRetCode = 5
 			return
 		end if
-		
+
 		! Fill with data in time range, preserving their order
 		j = 0
 		do i = 1, n
@@ -2191,25 +2192,25 @@ contains
 				this % rvValue(j)     = rvValues(i)
 			end if
 		end do
-		
+
 	end function tsGetMonth
-	
-	
+
+
 	function tsPutSingleItem(this, iItemIdx, rTimeStamp, rValue) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(inout)	:: this
 		integer, intent(in)					:: iItemIdx
 		real(8), intent(in)					:: rTimeStamp
 		real, intent(in)					:: rValue
 		integer								:: iRetCode
-		
+
 		! Locals
 		! -none-
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check parameters
 		if(size(this % rvTimeStamp) <= 0) then
 			iRetCode   = 1
@@ -2219,48 +2220,48 @@ contains
 			iRetCode   = 2
 			return
 		end if
-		
+
 		! Gather value
 		this % rvTimeStamp(iItemIdx) = rTimeStamp
 		this % rvValue(iItemIdx)     = rValue
-		
+
 	end function tsPutSingleItem
-	
-	
+
+
 	function tsSize(this) result(iNumValues)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)	:: this
 		integer							:: iNumValues
-		
+
 		! Locals
 		! --none--
-		
+
 		! Get the information desired
 		if(this % isEmpty()) then
 			iNumValues = 0
 		else
 			iNumValues = min(size(this % rvTimeStamp), size(this % rvValue))
 		end if
-		
+
 	end function tsSize
-	
-	
+
+
 	! Check the current time series has the same time stamps of another, in the very
 	! same order. If the answer is .true., the two series are non-empty, their time stamps
 	! are always valid, and may be thought as components of a larger multivariate series.
 	function tsIsSameTimes(this, ts) result(lTimesAreSame)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)	:: this
 		type(TimeSeries), intent(in)	:: ts
 		logical							:: lTimesAreSame
-		
+
 		! Locals
 		integer								:: iErrCode
 		integer								:: i
 		real(8), dimension(:), allocatable	:: rvTimeStamp
-		
+
 		! Get the information desired
 		if(this % isEmpty() .or. ts % isEmpty()) then
 			lTimesAreSame = .false.
@@ -2281,12 +2282,12 @@ contains
 		do i = 1, size(rvTimeStamp)
 			lTimesAreSame = lTimesAreSame .and. (abs(rvTimeStamp(i) - this % rvTimeStamp(i)) < 4.*epsilon(rvTimeStamp(i)))
 		end do
-		
+
 	end function tsIsSameTimes
-	
-	
+
+
 	subroutine tsSummary(this, iNumValues, rValidPercentage, rMin, rMean, rStdDev, rMax, rSkew, rKurt)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)	:: this
 		integer, intent(out)			:: iNumValues
@@ -2297,10 +2298,10 @@ contains
 		real, intent(out)				:: rMax
 		real, intent(out), optional		:: rSkew
 		real, intent(out), optional		:: rKurt
-		
+
 		! Locals
 		! -none-
-		
+
 		! Get size and valid count
 		if(.not.allocated(this % rvValue)) then
 			iNumValues       = 0.
@@ -2331,20 +2332,20 @@ contains
 				if(present(rKurt)) rKurt = NaN
 			end if
 		end if
-		
+
 	end subroutine tsSummary
-	
-	
+
+
 	subroutine tsRangeInvalidate(this, rMin, rMax)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(inout)	:: this
 		real, intent(in)					:: rMin
 		real, intent(in)					:: rMax
-		
+
 		! Locals
 		real	:: rMinVal, rMaxVal
-		
+
 		! Ensure limits ordering
 		if(rMin <= rMax) then
 			rMinVal = rMin
@@ -2353,25 +2354,25 @@ contains
 			rMinVal = rMax
 			rMaxVal = rMin
 		end if
-		
+
 		! Invalidate by Range
 		if(.not.this % isEmpty()) then
 			call RangeInvalidate(this % rvValue, rMinVal, rMaxVal)
 		end if
-		
+
 	end subroutine tsRangeInvalidate
-	
-	
+
+
 	function tsTimeMonotonic(this) result(lIsMonotonic)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)	:: this
 		logical							:: lIsMonotonic
-		
+
 		! Locals
 		integer		:: n
 		integer		:: i
-		
+
 		! Check parameters
 		if(this % isEmpty()) then
 			lIsMonotonic = .false.
@@ -2382,7 +2383,7 @@ contains
 			lIsMonotonic = .false.
 			return
 		end if
-		
+
 		! Check time stamps are strictly increasing
 		lIsMonotonic = .true.
 		do i = 2, n
@@ -2391,20 +2392,20 @@ contains
 				return
 			end if
 		end do
-	
+
 	end function tsTimeMonotonic
-	
-	
+
+
 	function tsTimeQuasiMonotonic(this) result(lIsMonotonic)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)	:: this
 		logical							:: lIsMonotonic
-		
+
 		! Locals
 		integer		:: n
 		integer		:: i
-		
+
 		! Check parameters
 		if(this % isEmpty()) then
 			lIsMonotonic = .false.
@@ -2415,7 +2416,7 @@ contains
 			lIsMonotonic = .false.
 			return
 		end if
-		
+
 		! Check time stamps are strictly increasing
 		lIsMonotonic = .true.
 		do i = 2, n
@@ -2424,20 +2425,20 @@ contains
 				return
 			end if
 		end do
-	
+
 	end function tsTimeQuasiMonotonic
-	
-	
+
+
 	function tsTimeGapless(this) result(lIsGapless)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)	:: this
 		logical							:: lIsGapless
-		
+
 		! Locals
 		integer		:: n
 		integer		:: i
-		
+
 		! Check parameters
 		if(this % isEmpty()) then
 			lIsGapless = .false.
@@ -2448,7 +2449,7 @@ contains
 			lIsGapless = .false.
 			return
 		end if
-		
+
 		! Check time stamps are strictly increasing
 		lIsGapless = .true.
 		do i = 1, n
@@ -2457,13 +2458,13 @@ contains
 				return
 			end if
 		end do
-	
+
 	end function tsTimeGapless
-	
-	
+
+
 	! Note: Time well-spacing implies strict monotonicity by construction
 	function tsTimeWellSpaced(this, rTimeStep, iNumGaps) result(iWellSpacingType)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)	:: this
 		real(8), intent(out), optional	:: rTimeStep			! NaN in case of non-well-spaced data
@@ -2479,7 +2480,7 @@ contains
 		integer		:: iQuotient
 		integer		:: iMaxQuotient
 		integer		:: iNumGapsFound
-		
+
 		! Check parameters
 		if(this % isEmpty()) then
 			iWellSpacingType = -1
@@ -2495,7 +2496,7 @@ contains
 			if(present(iNumGaps))  iNumGaps  = 0
 			return
 		end if
-		
+
 		! First pass: find the minimum positive difference between any two consecutive time stamps
 		! (zero differences are allowed to occur, due to coarse-grained resolution of some
 		! data acquisition timing systems; an example of data sets for which zero time differences
@@ -2505,7 +2506,7 @@ contains
 			rDelta = this % rvTimeStamp(i) - this % rvTimeStamp(i-1)
 			if(rDelta > 0.d0) rMinDelta = min(rDelta, rMinDelta)
 		end do
-		
+
 		! Second pass: check all the positive time differences are integer multiples of the minimum
 		! delta
 		iNumGapsFound = 0
@@ -2523,7 +2524,7 @@ contains
 				return
 			end if
 		end do
-		
+
 		! Decide the final result based on counters evaluated so far
 		if(iNumGapsFound > 0) then
 			iWellSpacingType = 1	! Well-spaced, with one gap
@@ -2534,16 +2535,16 @@ contains
 			if(present(rTimeStep)) rTimeStep = rMinDelta
 			if(present(iNumGaps))  iNumGaps  = 0
 		end if
-		
+
 	end function tsTimeWellSpaced
-	
-	
+
+
 	! Aggregate data of a time series according to a positive time difference,
 	! or a negative code indicating time divisions like month and year.
 	! Result is a time series, containing the aggregated values and time
 	! stamps spaced according to the time difference selected.
 	function tsAggregateLinear(this, iTimeDelta, iFunction, ts, ivNumDataOut) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)					:: this
 		integer, intent(in)								:: iTimeDelta	! A positive time difference, or TDELTA_YEARMONTH, or TDELTA_YEAR
@@ -2551,7 +2552,7 @@ contains
 		type(TimeSeries), intent(out)					:: ts			! The resulting time series
 		integer, dimension(:), allocatable, optional	:: ivNumDataOut	! Number of valid data contributing to classes
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer								:: iErrCode
 		integer								:: n
@@ -2572,16 +2573,16 @@ contains
 		real, dimension(:), allocatable		:: rvMax
 		real, dimension(:), allocatable		:: rvMean
 		real, dimension(:), allocatable		:: rvStDev
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check something is to be made
 		if(this % isEmpty()) then
 			iRetCode = 1
 			return
 		end if
-		
+
 		! Check delta time validity
 		if(iTimeDelta == 0) then
 			iRetCode = 2
@@ -2591,7 +2592,7 @@ contains
 			end if
 		end if
 		if(iRetCode /= 0) return
-		
+
 		! Retrieve time stamp and data vectors from original time series
 		iErrCode = this % getTimeStamp(rvTimeStamp)
 		if(iErrCode /= 0) then
@@ -2605,7 +2606,7 @@ contains
 			return
 		end if
 		n = size(rvTimeStamp)
-		
+
 		! Index time, based on the desired time delta
 		if(iTimeDelta > 0) then
 			allocate(ivTimeIndex(size(rvTimeStamp)))
@@ -2634,19 +2635,19 @@ contains
 			deallocate(rvTimeStamp)
 			return
 		end if
-		
+
 		! Count maximum index, and use it to reserve workspace
 		iMinTimeIndex = minval(ivTimeIndex, mask = ivTimeIndex > 0)
 		m = maxval(ivTimeIndex) - iMinTimeIndex + 1
 		allocate(rvTimeStamp_Reduced(m), ivNumData(m), rvMin(m), rvMax(m), rvMean(m), rvStDev(m))
-		
+
 		! Change time indicator to a true, 1-based index
 		do i = 1, n
 			if(ivTimeIndex(i) > 0) then
 				ivTimeIndex(i) = ivTimeIndex(i) - iMinTimeIndex + 1
 			end if
 		end do
-			
+
 		! Form time stamp for new time series; note: 2, not 1, is subtracted
 		! from time index. This might sound counter-intuitive, but finds its motivation
 		! in the fact that the time index is 1-based (so one 1 to subtract), and
@@ -2672,7 +2673,7 @@ contains
 				end do
 			end select
 		end if
-		
+
 		! Update counts
 		ivNumData =  0
 		rvMin     =  huge(1.)
@@ -2680,7 +2681,7 @@ contains
 		rvMean    =  0.
 		rvStDev   =  0.
 		do i = 1, n
-			if(ivTimeIndex(i) > 0 .and. .valid.rvTimeStamp(i) .and. .valid.rvValue(i)) then
+			if((ivTimeIndex(i) > 0) .and. (.valid.rvTimeStamp(i)) .and. (.valid.rvValue(i))) then
 				j = ivTimeIndex(i)
 				ivNumData(j) = ivNumData(j) + 1
 				rvMin(j)     = min(rvMin(j), rvValue(i))
@@ -2689,7 +2690,7 @@ contains
 				rvStDev(j)   = rvStDev(j) + rvValue(i)**2
 			end if
 		end do
-		
+
 		! Transform mean and standard deviation counts in nominal quantities.
 		! Here I use a little trick, based on non-signalling NaNs: rvMean is computed
 		! by specifically discriminating between norman and invalid case. But StDev,
@@ -2702,13 +2703,13 @@ contains
 			rvMean = NaN
 		end where
 		rvStDev = sqrt(rvStDev/ivNumData - rvMean**2)
-		
+
 		! Make sure minima and maxima are NaN when class is empty
 		where(ivNumData <= 0)
 			rvMin = NaN
 			rvMax = NaN
 		end where
-		
+
 		! Of all quantities computed, transmit (horrible inefficiency) the one desired
 		! to the resulting time series
 		if(present(iFunction)) then
@@ -2729,20 +2730,20 @@ contains
 		if(iErrCode /= 0) then
 			iRetCode = 7
 		end if
-		
+
 		! Transmit number of data, if desired
 		if(present(ivNumDataOut)) then
 			if(allocated(ivNumDataOut)) deallocate(ivNumDataOut)
 			allocate(ivNumDataOut(size(ivNumData)))
 			ivNumDataOut = ivNumData
 		end if
-		
+
 		! Leave
 		deallocate(rvTimeStamp_Reduced, ivNumData, rvMin, rvMax, rvMean, rvStDev)
-		
+
 	end function tsAggregateLinear
-	
-	
+
+
 	! Aggregate data of a time series according to a positive time difference,
 	! or a negative code indicating time divisions like month and year.
 	! Result is a time series, containing the aggregated values and time
@@ -2752,7 +2753,7 @@ contains
 		rvTimeStamp_Reduced, rvMean, &
 		rvStDevOut, rvMinOut, rvMaxOut, ivNumDataOut &
 	) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)					:: this
 		integer, intent(in)								:: iTimeDelta			! A positive time difference, or TDELTA_YEARMONTH, or TDELTA_YEAR
@@ -2763,7 +2764,7 @@ contains
 		real, dimension(:), allocatable, optional		:: rvMaxOut				! Maximum
 		integer, dimension(:), allocatable, optional	:: ivNumDataOut			! Number of valid data contributing to classes
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer								:: iErrCode
 		integer								:: n
@@ -2782,16 +2783,16 @@ contains
 		real, dimension(:), allocatable		:: rvMin
 		real, dimension(:), allocatable		:: rvMax
 		real, dimension(:), allocatable		:: rvStDev
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check something is to be made
 		if(this % isEmpty()) then
 			iRetCode = 1
 			return
 		end if
-		
+
 		! Check delta time validity
 		if(iTimeDelta == 0) then
 			iRetCode = 2
@@ -2801,7 +2802,7 @@ contains
 			end if
 		end if
 		if(iRetCode /= 0) return
-		
+
 		! Retrieve time stamp and data vectors from original time series
 		iErrCode = this % getTimeStamp(rvTimeStamp)
 		if(iErrCode /= 0) then
@@ -2815,7 +2816,7 @@ contains
 			return
 		end if
 		n = size(rvTimeStamp)
-		
+
 		! Index time, based on the desired time delta
 		if(iTimeDelta > 0) then
 			allocate(ivTimeIndex(size(rvTimeStamp)))
@@ -2844,7 +2845,7 @@ contains
 			deallocate(rvTimeStamp)
 			return
 		end if
-		
+
 		! Count maximum index, and use it to reserve workspace
 		iMinTimeIndex = minval(ivTimeIndex, mask = ivTimeIndex > 0)
 		m = maxval(ivTimeIndex) - iMinTimeIndex + 1
@@ -2853,14 +2854,14 @@ contains
 		if(allocated(rvMean)) deallocate(rvMean)
 		allocate(rvMean(m))
 		allocate(ivNumData(m), rvMin(m), rvMax(m), rvStDev(m))
-		
+
 		! Change time indicator to a true, 1-based index
 		do i = 1, n
 			if(ivTimeIndex(i) > 0) then
 				ivTimeIndex(i) = ivTimeIndex(i) - iMinTimeIndex + 1
 			end if
 		end do
-			
+
 		! Form time stamp for new time series; note: 2, not 1, is subtracted
 		! from time index. This might sound counter-intuitive, but finds its motivation
 		! in the fact that the time index is 1-based (so one 1 to subtract), and
@@ -2886,7 +2887,7 @@ contains
 				end do
 			end select
 		end if
-		
+
 		! Update counts
 		ivNumData =  0
 		rvMin     =  huge(1.)
@@ -2894,7 +2895,7 @@ contains
 		rvMean    =  0.
 		rvStDev   =  0.
 		do i = 1, n
-			if(ivTimeIndex(i) > 0 .and. .valid.rvTimeStamp(i) .and. .valid.rvValue(i)) then
+			if((ivTimeIndex(i) > 0) .and. (.valid.rvTimeStamp(i)) .and. (.valid.rvValue(i))) then
 				j = ivTimeIndex(i)
 				ivNumData(j) = ivNumData(j) + 1
 				rvMin(j)     = min(rvMin(j), rvValue(i))
@@ -2903,7 +2904,7 @@ contains
 				rvStDev(j)   = rvStDev(j) + rvValue(i)**2
 			end if
 		end do
-		
+
 		! Transform mean and standard deviation counts in nominal quantities.
 		! Here I use a little trick, based on non-signalling NaNs: rvMean is computed
 		! by specifically discriminating between norman and invalid case. But StDev,
@@ -2916,13 +2917,13 @@ contains
 			rvMean = NaN
 		end where
 		rvStDev = sqrt(rvStDev/ivNumData - rvMean**2)
-		
+
 		! Make sure minima and maxima are NaN when class is empty
 		where(ivNumData <= 0)
 			rvMin = NaN
 			rvMax = NaN
 		end where
-		
+
 		! Transmit desired quantities
 		if(present(rvStDevOut)) then
 			if(allocated(rvStDevOut)) deallocate(rvStDevOut)
@@ -2944,19 +2945,19 @@ contains
 			allocate(ivNumDataOut(size(ivNumData)))
 			ivNumDataOut = ivNumData
 		end if
-		
+
 		! Leave
 		deallocate(ivNumData, rvMin, rvMax, rvStDev, ivTimeIndex)
-		
+
 	end function tsAggregateLinear2
-	
+
 	! Build typical periods (days, months, ...) by applying a periodic aggregation
 	function tsAggregatePeriodic( &
 		this, iPeriodLength, iTimeDelta, &
 		rvMean, &
 		rvStDevOut, rvMinOut, rvMaxOut, ivNumDataOut &
 	) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(in)					:: this
 		integer, intent(in)								:: iPeriodLength		! The length of period considered (positive)
@@ -2967,7 +2968,7 @@ contains
 		real, dimension(:), allocatable, optional		:: rvMaxOut				! Maximum
 		integer, dimension(:), allocatable, optional	:: ivNumDataOut			! Number of valid data contributing to classes
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer								:: iErrCode
 		integer								:: n
@@ -2986,16 +2987,16 @@ contains
 		real, dimension(:), allocatable		:: rvMin
 		real, dimension(:), allocatable		:: rvMax
 		real, dimension(:), allocatable		:: rvStDev
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check something is to be made
 		if(this % isEmpty()) then
 			iRetCode = 1
 			return
 		end if
-		
+
 		! Check period and delta time validity
 		if(iPeriodLength <= 0) then
 			iRetCode = 2
@@ -3005,7 +3006,7 @@ contains
 			iRetCode = 3
 			return
 		end if
-		
+
 		! Retrieve time stamp and data vectors from original time series
 		iErrCode = this % getTimeStamp(rvTimeStamp)
 		if(iErrCode /= 0) then
@@ -3019,7 +3020,7 @@ contains
 			return
 		end if
 		n = size(rvTimeStamp)
-		
+
 		! Index time, based on the desired time delta
 		iErrCode = timeEncode(rvTimeStamp, iPeriodLength, iTimeDelta, ivTimeIndex)
 		if(iErrCode /= 0) then
@@ -3028,14 +3029,14 @@ contains
 			deallocate(rvTimeStamp)
 			return
 		end if
-		
+
 		! Compute minimum and maximum indices, and use the latter to reserve workspace
 		iMinTimeIndex = 1
 		m = iPeriodLength / iTimeDelta
 		if(allocated(rvMean)) deallocate(rvMean)
 		allocate(rvMean(m))
 		allocate(ivNumData(m), rvMin(m), rvMax(m), rvStDev(m))
-		
+
 		! Update counts
 		ivNumData =  0
 		rvMin     =  huge(1.)
@@ -3043,7 +3044,7 @@ contains
 		rvMean    =  0.
 		rvStDev   =  0.
 		do i = 1, n
-			if(ivTimeIndex(i) > 0 .and. .valid.rvTimeStamp(i) .and. .valid.rvValue(i)) then
+			if((ivTimeIndex(i) > 0) .and. (.valid.rvTimeStamp(i)) .and. (.valid.rvValue(i))) then
 				j = ivTimeIndex(i)
 				ivNumData(j) = ivNumData(j) + 1
 				rvMin(j)     = min(rvMin(j), rvValue(i))
@@ -3052,7 +3053,7 @@ contains
 				rvStDev(j)   = rvStDev(j) + rvValue(i)**2
 			end if
 		end do
-		
+
 		! Transform mean and standard deviation counts in nominal quantities.
 		! Here I use a little trick, based on non-signalling NaNs: rvMean is computed
 		! by specifically discriminating between norman and invalid case. But StDev,
@@ -3065,13 +3066,13 @@ contains
 			rvMean = NaN
 		end where
 		rvStDev = sqrt(rvStDev/ivNumData - rvMean**2)
-		
+
 		! Make sure minima and maxima are NaN when class is empty
 		where(ivNumData <= 0)
 			rvMin = NaN
 			rvMax = NaN
 		end where
-		
+
 		! Transmit desired quantities
 		if(present(rvStDevOut)) then
 			if(allocated(rvStDevOut)) deallocate(rvStDevOut)
@@ -3093,23 +3094,23 @@ contains
 			allocate(ivNumDataOut(size(ivNumData)))
 			ivNumDataOut = ivNumData
 		end if
-		
+
 		! Leave
 		deallocate(ivNumData, rvMin, rvMax, rvStDev, ivTimeIndex)
-		
+
 	end function tsAggregatePeriodic
-	
-	
+
+
 	! Create a new time series which is the moving-averaged version of another
 	function tsMovingAverage(this, ts, rTimeWidth, iMode) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(out)	:: this			! The time series we want to build
 		type(TimeSeries), intent(in)	:: ts			! Time series containing the original data
 		real(8), intent(in)				:: rTimeWidth	! Width of the entire time span desired (s)
 		integer, intent(in), optional	:: iMode		! MA_ALLDATA (default): use all data; MA_STRICT: use only data with whole left and right sub-intervals
 		integer							:: iRetCode
-		
+
 		! Locals
 		real(8)								:: rDeltaTime
 		real(8), dimension(:), allocatable	:: rvTimeStamp
@@ -3123,16 +3124,16 @@ contains
 		integer								:: iWellSpaced
 		integer								:: iErrCode
 		type(TimeSeries)					:: ts1
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check parameters
 		if(rTimeWidth <= 0.d0) then
 			iRetCode = 1
 			return
 		end if
-		
+
 		! First of all, check the input time series is well spaced; if it is, but with
 		! hidden gaps, make them evident
 		iWellSpaced = ts % timeIsWellSpaced(rDeltaTime)
@@ -3175,7 +3176,7 @@ contains
 		! Post-condition: rvTimeStamp and rvValue both allocated, and with at least one element;
 		!                 additionally, rvTimeStamp is well-spaced and monotonic, and the rvValue
 		! vector "may" contain gaps.
-		
+
 		! Convert time width in the number of items to take before and after the current
 		! time series element. If it is zero or less, copy the input series as it is
 		n = size(rvTimeStamp)
@@ -3190,7 +3191,7 @@ contains
 			deallocate(rvTimeStamp, rvValue)
 			return
 		end if
-		
+
 		! Set initial and final indices to consider
 		if(present(iMode)) then
 			if(iMode == MA_STRICT) then
@@ -3213,7 +3214,7 @@ contains
 			iFirst = 1
 			iLast  = n
 		end if
-		
+
 		! Compute the desired time series, taking into account
 		! the number of valid values in averaging
 		allocate(ivNumValid(iLast-iFirst+1), rvMeanValue(iLast-iFirst+1))
@@ -3229,7 +3230,7 @@ contains
 			end if
 			j = j + 1
 		end do
-		
+
 		! Fill current series with new averaged values
 		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
 		if(allocated(this % rvValue))     deallocate(this % rvValue)
@@ -3239,18 +3240,18 @@ contains
 		this % rvValue     = rvMeanValue
 
 	end function tsMovingAverage
-	
-	
+
+
 	! Create a new time series which is the moving-stddev of another
 	function tsMovingStdDev(this, ts, rTimeWidth, iMode) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(out)	:: this			! The time series we want to build
 		type(TimeSeries), intent(in)	:: ts			! Time series containing the original data
 		real(8), intent(in)				:: rTimeWidth	! Width of the entire time span desired (s)
 		integer, intent(in), optional	:: iMode		! MA_ALLDATA (default): use all data; MA_STRICT: use only data with whole left and right sub-intervals
 		integer							:: iRetCode
-		
+
 		! Locals
 		real(8)								:: rDeltaTime
 		real(8), dimension(:), allocatable	:: rvTimeStamp
@@ -3265,16 +3266,16 @@ contains
 		integer								:: iWellSpaced
 		integer								:: iErrCode
 		type(TimeSeries)					:: ts1
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check parameters
 		if(rTimeWidth <= 0.d0) then
 			iRetCode = 1
 			return
 		end if
-		
+
 		! First of all, check the input time series is well spaced; if it is, but with
 		! hidden gaps, make them evident
 		iWellSpaced = ts % timeIsWellSpaced(rDeltaTime)
@@ -3317,7 +3318,7 @@ contains
 		! Post-condition: rvTimeStamp and rvValue both allocated, and with at least one element;
 		!                 additionally, rvTimeStamp is well-spaced and monotonic, and the rvValue
 		! vector "may" contain gaps.
-		
+
 		! Convert time width in the number of items to take before and after the current
 		! time series element. If it is zero or less, copy the input series as it is
 		n = size(rvTimeStamp)
@@ -3332,7 +3333,7 @@ contains
 			deallocate(rvTimeStamp, rvValue)
 			return
 		end if
-		
+
 		! Set initial and final indices to consider
 		if(present(iMode)) then
 			if(iMode == MA_STRICT) then
@@ -3355,7 +3356,7 @@ contains
 			iFirst = 1
 			iLast  = n
 		end if
-		
+
 		! Compute the desired time series, taking into account
 		! the number of valid values in averaging
 		allocate(ivNumValid(iLast-iFirst+1), rvMeanValue(iLast-iFirst+1), rvMeanSquaredValue(iLast-iFirst+1))
@@ -3373,7 +3374,7 @@ contains
 			end if
 			j = j + 1
 		end do
-		
+
 		! Fill current series with new averaged values
 		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
 		if(allocated(this % rvValue))     deallocate(this % rvValue)
@@ -3383,16 +3384,16 @@ contains
 		this % rvValue     = sqrt(rvMeanSquaredValue - rvMeanValue**2)
 
 	end function tsMovingStdDev
-	
-	
+
+
 	function tsFillGaps(this, iDaysRadius, lvOriginal) result(iRetCode)
-	
+
 		! Routine arguments
 		class(TimeSeries), intent(inout)				:: this			! The time series we want to gap-fill
 		integer, intent(in)								:: iDaysRadius
 		logical, dimension(:), allocatable, intent(out)	:: lvOriginal
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer								:: iErrCode
 		integer								:: iNumItemsPerDay
@@ -3410,14 +3411,14 @@ contains
 		logical, dimension(:), allocatable	:: lvCurDay
 		integer, dimension(:), allocatable	:: ivTimeIndex
 		real(8), dimension(:), allocatable	:: rvSumValues
-		
+
 		! Constants
 		real(8), parameter	:: ONE_HOUR = 3600.d0
 		real(8), parameter	:: ONE_DAY  = 24*ONE_HOUR
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check parameters
 		if(this % isEmpty()) then
 			iRetCode = 1
@@ -3428,20 +3429,20 @@ contains
 			iRetCode = 1
 			return
 		end if
-		
+
 		! Reserve workspace
 		iNumData = size(this % rvTimeStamp)
 		if(allocated(lvOriginal)) deallocate(lvOriginal)
 		allocate(lvOriginal(iNumData))
 		allocate(lvCurDay(iNumData))
-		
+
 		! How many data come in a day?
 		if(rDeltaTime <= 0.d0) then
 			iRetCode = 2
 			return
 		end if
 		iNumItemsPerDay = floor(ONE_DAY / rDeltaTime)
-		
+
 		! How many days in data set?
 		rBaseDay = timeFloorDay(this % rvTimeStamp(1))
 		iNumDays = floor((timeFloorDay(this % rvTimeStamp(iNumData)) - rBaseDay + ONE_DAY) / ONE_DAY) + 1
@@ -3449,7 +3450,7 @@ contains
 			iRetCode = 3
 			return
 		end if
-		
+
 		! Reserve temporary workspace
 		allocate(ivNumValues(iNumItemsPerDay), rvSumValues(iNumItemsPerDay), STAT=iErrCode)
 		if(iErrCode /= 0) then
@@ -3458,26 +3459,26 @@ contains
 		end if
 		rvSumValues = 0.
 		ivNumValues = 0
-		
+
 		! Encode time to typical-day index
 		iErrCode = timeEncode(this % rvTimeStamp, int(ONE_DAY, kind=4), int(rDeltaTime, kind=4), ivTimeIndex)
 		if(iErrCode /= 0) then
 			iRetCode = 5
 			return
 		end if
-		
+
 		! Iterate over days
 		do iCurDay = 1, iNumDays
-		
+
 			! Delimit day
 			rWindowBegin = rBaseDay
 			rWindowEnd   = rWindowBegin + ONE_DAY
 			lvCurDay     = this % rvTimeStamp >= rWindowBegin .and. this % rvTimeStamp <= rWindowEnd
-			
+
 			! Check whether something is to be made on this day
-			iNumGaps = count(.invalid.this % rvValue .and. lvCurDay)
+			iNumGaps = count((.invalid.this % rvValue) .and. lvCurDay)
 			if(iNumGaps > 0) then
-				
+
 				! Update counters for the typical day
 				rWindowBegin = rBaseDay + (iCurDay-1)*ONE_DAY - iDaysRadius*ONE_DAY
 				rWindowEnd   = rBaseDay + (iCurDay-1)*ONE_DAY + (iDaysRadius+1)*ONE_DAY
@@ -3489,17 +3490,17 @@ contains
 						end if
 					end if
 				end do
-				
+
 				! Render the typical day
-				
+
 			end if
-				
+
 		end do
-		
+
 		! Leave
 		deallocate(ivNumValues, rvSumValues)
 		deallocate(lvCurDay)
-		
+
 	end function tsFillGaps
 
 
@@ -3557,7 +3558,7 @@ contains
 		end if
 
 		! Check parameters
-		if(.not..valid.rXsw .or. .not..valid.rYsw) then
+		if(.not.(.valid.rXsw) .or. .not.(.valid.rYsw)) then
 			iRetCode = 2
 			return
 		end if
@@ -3669,29 +3670,29 @@ contains
 	! *********************
 	! * Internal routines *
 	! *********************
-	
+
 	! quicksort.f -*-f90-*-
 	! Author: t-nissie, some tweaks by 1AdAstra1, and some others by Mauri Favaron
 	! License: GPLv3
 	! Gist: https://gist.github.com/t-nissie/479f0f16966925fa29ea
 	!
 	recursive subroutine quicksort(a)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(inout)	:: a
-		
+
 		! Locals
 		real	:: x, t
 		integer :: first = 1, last
 		integer :: i, j
-	
+
 		! Initialization
 		last = size(a)
 		if(last <= 1) return	! Nothing to do
 		x = a( (first+last) / 2 )
 		i = first
 		j = last
-		
+
 		! Exploration phase
 		do
 			do while (a(i) < x)
@@ -3705,34 +3706,34 @@ contains
 			i=i+1
 			j=j-1
 		end do
-		
+
 		! Recursion phase
 		if (first < i - 1) call quicksort(a(first : i - 1))
 		if (j + 1 < last)  call quicksort(a(j + 1 : last))
-		
+
 	end subroutine quicksort
-	
-	
+
+
 	! Computes the rank index of an array
 	recursive subroutine quicksort_idx_4(a, idx)
-	
+
 		! Routine arguments
 		real, dimension(:), intent(inout)		:: a	! On entry the vector to sort
 		integer, dimension(:), intent(inout)	:: idx	! On entry, the identity permutation denoted as [1, 2, 3, ..., n]
-		
+
 		! Locals
 		real	:: x, t
 		integer :: first = 1, last
 		integer :: i, j
 		integer	:: iHold
-	
+
 		! Initialization
 		last = size(a)
 		if(last <= 1) return	! Nothing to do
 		x = a( (first+last) / 2 )
 		i = first
 		j = last
-		
+
 		! Exploration phase
 		do
 			do while (a(i) < x)
@@ -3747,34 +3748,34 @@ contains
 			i=i+1
 			j=j-1
 		end do
-		
+
 		! Recursion phase
 		if (first < i - 1) call quicksort_idx_4(a(first : i - 1), idx(first : i - 1))
 		if (j + 1 < last)  call quicksort_idx_4(a(j + 1 : last), idx(j + 1 : last))
-		
+
 	end subroutine quicksort_idx_4
-	
-	
+
+
 	! Computes the rank index of an array
 	recursive subroutine quicksort_idx_8(a, idx)
-	
+
 		! Routine arguments
 		real(8), dimension(:), intent(inout)	:: a	! On entry the vector to sort
 		integer, dimension(:), intent(inout)	:: idx	! On entry, the identity permutation denoted as [1, 2, 3, ..., n]
-		
+
 		! Locals
 		real(8)	:: x, t
 		integer :: first = 1, last
 		integer :: i, j
 		integer	:: iHold
-	
+
 		! Initialization
 		last = size(a)
 		if(last <= 1) return	! Nothing to do
 		x = a( (first+last) / 2 )
 		i = first
 		j = last
-		
+
 		! Exploration phase
 		do
 			do while (a(i) < x)
@@ -3789,11 +3790,11 @@ contains
 			i=i+1
 			j=j-1
 		end do
-		
+
 		! Recursion phase
 		if (first < i - 1) call quicksort_idx_8(a(first : i - 1), idx(first : i - 1))
 		if (j + 1 < last)  call quicksort_idx_8(a(j + 1 : last), idx(j + 1 : last))
-		
+
 	end subroutine quicksort_idx_8
-	
+
 end module pbl_stat
