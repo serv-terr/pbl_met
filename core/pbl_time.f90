@@ -12,9 +12,9 @@ module pbl_time
 	use pbl_base
 
 	implicit none
-	
+
 	private
-	
+
 	! Public interface
 	! 0. Constants
 	public	:: DELTA_1_HOUR
@@ -55,7 +55,7 @@ module pbl_time
 	public	:: timeFloorHour				! Hour stamp of current time stamp
 	public	:: timeCeilingDay				! Day stamp of next time stamp
 	public	:: timeCeilingHour				! Hour stamp of next time stamp
-	
+
 	! Constants
 	integer, parameter	:: DELTA_1_HOUR  = 3600
 	integer, parameter	:: DELTA_8_HOURS = DELTA_1_HOUR * 8
@@ -66,7 +66,7 @@ module pbl_time
 	integer, parameter	:: CLP_HOUR      = 4
 	integer, parameter	:: CLP_MINUTE    = 5
 	integer, parameter	:: CLP_SECOND    = 6
-	
+
 	! Data types
 	type DateTime
 		integer	:: iYear
@@ -85,77 +85,77 @@ module pbl_time
 		! Calculators
 		procedure	:: sunRiseSet	=> dtSunRiseSet
 	end type DateTime
-	
+
 	! Internal constants
 	real(8), parameter	:: TIME_MIN =            0.d0
 	real(8), parameter	:: TIME_MAX = 253402300800.d0
-	
+
 	! Polymorphic interfaces
-	
+
 	interface timeEncode
 		module procedure	:: timeEncode1
 		module procedure	:: timeEncode2
 	end interface timeEncode
-	
-	
+
+
 	interface timeLinearIndex
 		module procedure	:: timeLinearIndex1
 		module procedure	:: timeLinearIndex2
 	end interface timeLinearIndex
-	
-	
+
+
 	interface timeGetYear
 		module procedure	:: timeGetYear1
 		module procedure	:: timeGetYear2
 	end interface timeGetYear
-	
-	
+
+
 	interface timeGetMonth
 		module procedure	:: timeGetMonth1
 		module procedure	:: timeGetMonth2
 	end interface timeGetMonth
-	
-	
+
+
 	interface timeGetYearMonth
 		module procedure	:: timeGetYearMonth1
 		module procedure	:: timeGetYearMonth2
 	end interface timeGetYearMonth
-	
-	
+
+
 	interface timeSequence
 		module procedure	:: timeSequence1
 		module procedure	:: timeSequence2
 	end interface timeSequence
-	
-	
+
+
 	interface timeFloorDay
 		module procedure	:: timeFloorDay1
 		module procedure	:: timeFloorDay2
 	end interface timeFloorDay
-	
-	
+
+
 	interface timeCeilingDay
 		module procedure	:: timeCeilingDay1
 		module procedure	:: timeCeilingDay2
 	end interface timeCeilingDay
-	
-	
+
+
 	interface timeFloorHour
 		module procedure	:: timeFloorHour1
 		module procedure	:: timeFloorHour2
 	end interface timeFloorHour
-	
-	
+
+
 	interface timeCeilingHour
 		module procedure	:: timeCeilingHour1
 		module procedure	:: timeCeilingHour2
 	end interface timeCeilingHour
-	
-	
+
+
 	interface operator(.sensible.)
 		module procedure	:: isSensible
 	end interface operator(.sensible.)
-	
+
 contains
 
 	function JulianDay(iYear, iMonth, iDay) result(iJulianDay)
@@ -262,14 +262,14 @@ contains
 
 	! Definition of even-leap year
 	function Leap(ia) result(isLeap)
-	
+
 		! Routine arguments
 		integer, intent(in)	:: ia
 		logical				:: isLeap
-		
+
 		! Locals
 		! --none--
-		
+
 		! Check the year is leap according to the standard definition
 		if(mod(ia,4) /= 0) then
 			! Year, not divisible by 4, is surely even
@@ -286,10 +286,10 @@ contains
 				isLeap = .true.
 			end if
 		end if
-		
+
 	end function Leap
-	
-	
+
+
     function DoW(iJulianDay) result(iDayOfWeek)
 
         ! Routine arguments
@@ -313,10 +313,10 @@ contains
 		integer, intent(in)	:: im			! Month
 		integer, intent(in)	:: id			! Day
 		integer				:: iDayOfYear	! Day in year
-		
+
 		! Locals
 		! --none--
-		
+
 		! Parameters
 		integer, dimension(13,2), parameter	:: ngm = reshape( &
 			[0,31,60,91,121,152,182,213,244,274,305,335,366, &
@@ -367,7 +367,7 @@ contains
         else
             iSecond = 0
         end if
-        
+
         ! Check input parameters for validity
         if( &
             iYear   <= 0 .OR. &
@@ -459,8 +459,8 @@ contains
 		jd = FLOOR(365.25*(yy + 4716)) + FLOOR(30.6001*(mm+1)) + day + B - 1524.5
 
 	end function calcJD
-	
-	
+
+
 	! Convert between Julian day and Julian century (unit
 	! of common use in astronomy)
 	function calcTimeJulianCent(jd) result(T)
@@ -600,7 +600,7 @@ contains
 		sunDecl = 0.409*SIN(2.*PI/365.*iDayOfYear - 1.39)
 
 	end function SolarDeclination
-		
+
 	! **************************************
 	! * Member functions of DateTime class *
 	! **************************************
@@ -660,7 +660,7 @@ contains
         ! Locals
         integer(8)	:: iJulianDay
         real(8) 	:: rTimeSeconds
-        
+
         ! Assume success (will falsify on failure)
         iRetCode = 0
 
@@ -699,7 +699,7 @@ contains
         this % iHour   = floor(rTimeSeconds, kind=8)/60_8
 
     end function dtFromEpoch
-    
+
 
     function dtToEpoch(this, iClipping) result(rEpoch)
 
@@ -712,9 +712,9 @@ contains
         integer    :: iJulianDay
         integer(8) :: iJulianSecond
         integer    :: iClip
-        
+
         ! Check input parameters for validity
-        if(.not. .sensible. this) then
+        if(.not. (.sensible. this)) then
             rEpoch = NaN_8
             return
         end if
@@ -727,7 +727,7 @@ contains
         else
         	iClip = 0
         end if
-        
+
         ! Dispatch processing
         select case(iClip)
         case(0)	! No clipping (default)
@@ -804,17 +804,17 @@ contains
 
     end function dtToEpoch
 
-    
+
     function dtToIso(this) result(sDateTime)
-    
+
 		! Routine arguments
 		class(DateTime), intent(in)	:: this
 		character(len=23)			:: sDateTime
-		
+
 		! Locals
 		integer	:: iSecond
 		real(8)	:: rSubSecond
-		
+
 		! Write the data desired
 		iSecond = floor(this % rSecond)
 		rSubSecond = this % rSecond - iSecond
@@ -825,12 +825,12 @@ contains
 			this % iHour, &
 			this % iMinute, &
 			iSecond, rSubSecond
-			
+
     end function dtToIso
-    
-    
+
+
     function dtSunRiseSet(this, rLat, rLon, iZone, rSunRise, rSunSet) result(iRetCode)
-    
+
 		! Routine arguments
 		class(DateTime), intent(in)	:: this
 		real, intent(in)			:: rLat
@@ -839,15 +839,15 @@ contains
 		real(8), intent(out)		:: rSunRise
 		real(8), intent(out)		:: rSunSet
 		integer						:: iRetCode
-		
+
 		! Locals
 		real, dimension(2)	:: rvSunRiseSet
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
         ! Check input parameters for validity
-        if(.not. .sensible. this) then
+        if(.not. (.sensible. this)) then
             rSunRise = NaN_8
             rSunSet  = NaN_8
             iRetCode = 1
@@ -856,34 +856,34 @@ contains
 
 		! Compute sunrise and sunset times
 		rvSunRiseSet = SunRiseSunSet(this % iYear, this % iMonth, this % iDay, rLat, rLon, iZone)
-		
+
 		! Dispatch results
 		rSunRise = rvSunRiseSet(1)
 		rSunSet  = rvSunRiseSet(2)
-		
+
     end function dtSunRiseSet
 
 	! *********************
 	! * Internal routines *
 	! *********************
-	
+
 	function timeEncode1(rvTimeStamp, iPeriodLength, iStepSize, ivTimeCode) result(iRetCode)
-	
+
 		! Routine arguments
 		real(8), intent(in), dimension(:)				:: rvTimeStamp
 		integer, intent(in)								:: iPeriodLength
 		integer, intent(in)								:: iStepSize
 		integer, intent(out), dimension(:), allocatable	:: ivTimeCode
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer		:: n
 		integer		:: i
 		integer(8)	:: iTimeStamp
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Reserve workspace
 		if(allocated(ivTimeCode)) deallocate(ivTimeCode)
 		n = size(rvTimeStamp)
@@ -892,7 +892,7 @@ contains
 			return
 		end if
 		allocate(ivTimeCode(n))
-		
+
 		! Iterate over time stamps, and assign codes
 		do i = 1, n
 			if(.valid.rvTimeStamp(i)) then
@@ -902,26 +902,26 @@ contains
 				ivTimeCode(i) = 0	! Special "invalid" code
 			end if
 		end do
-		
+
 	end function timeEncode1
 
-	
+
 	function timeEncode2(ivTimeStamp, iPeriodLength, iStepSize, ivTimeCode) result(iRetCode)
-	
+
 		! Routine arguments
 		integer, intent(in), dimension(:)				:: ivTimeStamp
 		integer, intent(in)								:: iPeriodLength
 		integer, intent(in)								:: iStepSize
 		integer, intent(out), dimension(:), allocatable	:: ivTimeCode
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer		:: n
 		integer		:: i
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Reserve workspace
 		if(allocated(ivTimeCode)) deallocate(ivTimeCode)
 		n = size(ivTimeStamp)
@@ -930,7 +930,7 @@ contains
 			return
 		end if
 		allocate(ivTimeCode(n))
-		
+
 		! Iterate over time stamps, and assign codes
 		do i = 1, n
 			if(ivTimeStamp(i) > 0) then
@@ -939,27 +939,27 @@ contains
 				ivTimeCode(i) = 0	! Special "invalid" code
 			end if
 		end do
-		
+
 	end function timeEncode2
 
-	
+
 	function timeLinearIndex1(rvTimeStamp, iStepSize, ivTimeCode, rvBaseTimeStamp) result(iRetCode)
-	
+
 		! Routine arguments
 		real(8), intent(in), dimension(:)							:: rvTimeStamp
 		integer, intent(in)											:: iStepSize
 		integer, intent(out), dimension(:), allocatable				:: ivTimeCode
 		real(8), intent(out), dimension(:), allocatable, optional	:: rvBaseTimeStamp
 		integer														:: iRetCode
-		
+
 		! Locals
 		integer		:: n
 		integer		:: i
 		integer(8)	:: iTimeStamp
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Reserve workspace
 		if(allocated(ivTimeCode)) deallocate(ivTimeCode)
 		n = size(rvTimeStamp)
@@ -972,7 +972,7 @@ contains
 			if(allocated(rvBaseTimeStamp)) deallocate(rvBaseTimeStamp)
 			allocate(rvBaseTimeStamp(n))
 		end if
-		
+
 		! Iterate over time stamps, and assign codes
 		do i = 1, n
 			if(.valid.rvTimeStamp(i)) then
@@ -992,26 +992,26 @@ contains
 		where(ivTimeCode > 0)
 			ivTimeCode = ivTimeCode - minval(ivTimeCode, mask=ivTimeCode > 0) + 1
 		end where
-		
+
 	end function timeLinearIndex1
 
-	
+
 	function timeLinearIndex2(ivTimeStamp, iStepSize, ivTimeCode, ivBaseTimeStamp) result(iRetCode)
-	
+
 		! Routine arguments
 		integer, intent(in), dimension(:)							:: ivTimeStamp
 		integer, intent(in)											:: iStepSize
 		integer, intent(out), dimension(:), allocatable				:: ivTimeCode
 		integer, intent(out), dimension(:), allocatable, optional	:: ivBaseTimeStamp
 		integer														:: iRetCode
-		
+
 		! Locals
 		integer		:: n
 		integer		:: i
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Reserve workspace
 		if(allocated(ivTimeCode)) deallocate(ivTimeCode)
 		n = size(ivTimeStamp)
@@ -1024,7 +1024,7 @@ contains
 			if(allocated(ivBaseTimeStamp)) deallocate(ivBaseTimeStamp)
 			allocate(ivBaseTimeStamp(n))
 		end if
-		
+
 		do i = 1, n
 			if(ivTimeStamp(i) > 0) then
 				ivTimeCode(i) = ivTimeStamp(i) / iStepSize + 1
@@ -1042,26 +1042,26 @@ contains
 		where(ivTimeCode > 0)
 			ivTimeCode = ivTimeCode - minval(ivTimeCode, mask=ivTimeCode > 0) + 1
 		end where
-		
+
 	end function timeLinearIndex2
 
-	
+
 	function timeGetYear1(rvTimeStamp, ivYear) result(iRetCode)
-	
+
 		! Routine arguments
 		real(8), intent(in), dimension(:)				:: rvTimeStamp
 		integer, intent(out), dimension(:), allocatable	:: ivYear
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer			:: n
 		integer			:: i
 		type(DateTime)	:: dt
 		integer			:: iErrCode
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Reserve workspace
 		if(allocated(ivYear)) deallocate(ivYear)
 		n = size(rvTimeStamp)
@@ -1070,7 +1070,7 @@ contains
 			return
 		end if
 		allocate(ivYear(n))
-		
+
 		! Iterate over time stamps, and assign codes
 		do i = 1, n
 			if(.valid.rvTimeStamp(i)) then
@@ -1084,25 +1084,25 @@ contains
 				ivYear(i) = -9999	! Special "invalid" code
 			end if
 		end do
-		
+
 	end function timeGetYear1
 
-	
+
 	function timeGetYear2(ivTimeStamp, ivYear) result(iRetCode)
-	
+
 		! Routine arguments
 		integer, intent(in), dimension(:)				:: ivTimeStamp
 		integer, intent(out), dimension(:), allocatable	:: ivYear
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer		:: n
 		integer		:: i
 		integer		:: iYear, iMonth, iDay, iHour, iMinute, iSecond
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Reserve workspace
 		if(allocated(ivYear)) deallocate(ivYear)
 		n = size(ivTimeStamp)
@@ -1111,7 +1111,7 @@ contains
 			return
 		end if
 		allocate(ivYear(n))
-		
+
 		! Iterate over time stamps, and assign codes
 		do i = 1, n
 			if(ivTimeStamp(i) > 0) then
@@ -1121,26 +1121,26 @@ contains
 				ivYear(i) = -9999	! Special "invalid" code
 			end if
 		end do
-		
+
 	end function timeGetYear2
 
-	
+
 	function timeGetMonth1(rvTimeStamp, ivMonth) result(iRetCode)
-	
+
 		! Routine arguments
 		real(8), intent(in), dimension(:)				:: rvTimeStamp
 		integer, intent(out), dimension(:), allocatable	:: ivMonth
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer			:: n
 		integer			:: i
 		type(DateTime)	:: dt
 		integer			:: iErrCode
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Reserve workspace
 		if(allocated(ivMonth)) deallocate(ivMonth)
 		n = size(rvTimeStamp)
@@ -1149,7 +1149,7 @@ contains
 			return
 		end if
 		allocate(ivMonth(n))
-		
+
 		! Iterate over time stamps, and assign codes
 		do i = 1, n
 			if(.valid.rvTimeStamp(i)) then
@@ -1163,25 +1163,25 @@ contains
 				ivMonth(i) = -9999	! Special "invalid" code
 			end if
 		end do
-		
+
 	end function timeGetMonth1
 
-	
+
 	function timeGetMonth2(ivTimeStamp, ivMonth) result(iRetCode)
-	
+
 		! Routine arguments
 		integer, intent(in), dimension(:)				:: ivTimeStamp
 		integer, intent(out), dimension(:), allocatable	:: ivMonth
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer		:: n
 		integer		:: i
 		integer		:: iYear, iMonth, iDay, iHour, iMinute, iSecond
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Reserve workspace
 		if(allocated(ivMonth)) deallocate(ivMonth)
 		n = size(ivTimeStamp)
@@ -1190,7 +1190,7 @@ contains
 			return
 		end if
 		allocate(ivMonth(n))
-		
+
 		! Iterate over time stamps, and assign codes
 		do i = 1, n
 			if(ivTimeStamp(i) > 0) then
@@ -1200,26 +1200,26 @@ contains
 				ivMonth(i) = -9999	! Special "invalid" code
 			end if
 		end do
-		
+
 	end function timeGetMonth2
 
-	
+
 	function timeGetYearMonth1(rvTimeStamp, ivYearMonth) result(iRetCode)
-	
+
 		! Routine arguments
 		real(8), intent(in), dimension(:)				:: rvTimeStamp
 		integer, intent(out), dimension(:), allocatable	:: ivYearMonth
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer			:: n
 		integer			:: i
 		type(DateTime)	:: dt
 		integer			:: iErrCode
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Reserve workspace
 		if(allocated(ivYearMonth)) deallocate(ivYearMonth)
 		n = size(rvTimeStamp)
@@ -1228,7 +1228,7 @@ contains
 			return
 		end if
 		allocate(ivYearMonth(n))
-		
+
 		! Iterate over time stamps, and assign codes
 		do i = 1, n
 			if(.valid.rvTimeStamp(i)) then
@@ -1242,25 +1242,25 @@ contains
 				ivYearMonth(i) = -9999	! Special "invalid" code
 			end if
 		end do
-		
+
 	end function timeGetYearMonth1
 
-	
+
 	function timeGetYearMonth2(ivTimeStamp, ivYearMonth) result(iRetCode)
-	
+
 		! Routine arguments
 		integer, intent(in), dimension(:)				:: ivTimeStamp
 		integer, intent(out), dimension(:), allocatable	:: ivYearMonth
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer		:: n
 		integer		:: i
 		integer		:: iYear, iMonth, iDay, iHour, iMinute, iSecond
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Reserve workspace
 		if(allocated(ivYearMonth)) deallocate(ivYearMonth)
 		n = size(ivTimeStamp)
@@ -1269,7 +1269,7 @@ contains
 			return
 		end if
 		allocate(ivYearMonth(n))
-		
+
 		! Iterate over time stamps, and assign codes
 		do i = 1, n
 			if(ivTimeStamp(i) > 0) then
@@ -1279,12 +1279,12 @@ contains
 				ivYearMonth(i) = -9999	! Special "invalid" code
 			end if
 		end do
-		
+
 	end function timeGetYearMonth2
-	
-	
+
+
 	function timeSequence1(rTimeFrom, rTimeTo, iTimeStep, lRightInclusive, rvTimeStamp) result(iRetCode)
-	
+
 		! Routine arguments
 		real(8), intent(in)								:: rTimeFrom
 		real(8), intent(in)								:: rTimeTo
@@ -1292,23 +1292,23 @@ contains
 		logical, intent(in), optional					:: lRightInclusive
 		real(8), intent(out), dimension(:), allocatable	:: rvTimeStamp
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer		:: n
 		real(8)		:: rCurTime
 		integer		:: j
 		logical		:: lInclude
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Set upper limit for time
 		if(present(lRightInclusive)) then
 			lInclude = lRightInclusive
 		else
 			lInclude = .false.
 		end if
-		
+
 		! Check parameters
 		if(rTimeFrom > rTimeTo .and. lInclude) then
 			iRetCode = 1
@@ -1317,7 +1317,7 @@ contains
 			iRetCode = 1
 			return
 		end if
-		
+
 		! Compute size of time stamp vector
 		n = 0
 		rCurTime = rTimeFrom
@@ -1338,11 +1338,11 @@ contains
 			iRetCode = 2
 		end if
 		! The vector of date-times is guaranteed to be non-empty from now on.
-		
+
 		! Reserve workspace
 		if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
 		allocate(rvTimeStamp(n))
-		
+
 		! Generate time stamps sequence
 		j = 0
 		rCurTime = rTimeFrom
@@ -1359,12 +1359,12 @@ contains
 				rCurTime = rCurTime + iTimeStep
 			end do
 		end if
-		
+
 	end function timeSequence1
-	
-	
+
+
 	function timeSequence2(iTimeFrom, iTimeTo, iTimeStep, lRightInclusive, ivTimeStamp) result(iRetCode)
-	
+
 		! Routine arguments
 		integer, intent(in)								:: iTimeFrom
 		integer, intent(in)								:: iTimeTo
@@ -1372,24 +1372,24 @@ contains
 		logical, intent(in), optional					:: lRightInclusive
 		integer, intent(out), dimension(:), allocatable	:: ivTimeStamp
 		integer											:: iRetCode
-		
+
 		! Locals
 		integer		:: n
 		integer		:: i
 		integer		:: j
 		logical		:: lInclude
 		integer		:: iCurTime
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Set upper limit for time
 		if(present(lRightInclusive)) then
 			lInclude = lRightInclusive
 		else
 			lInclude = .false.
 		end if
-		
+
 		! Check parameters
 		if(iTimeFrom > iTimeTo .and. lInclude) then
 			iRetCode = 1
@@ -1398,7 +1398,7 @@ contains
 			iRetCode = 1
 			return
 		end if
-		
+
 		! Compute size of time stamp vector
 		n = 0
 		iCurTime = iTimeFrom
@@ -1419,11 +1419,11 @@ contains
 			iRetCode = 2
 		end if
 		! The vector of date-times is guaranteed to be non-empty from now on.
-		
+
 		! Reserve workspace
 		if(allocated(ivTimeStamp)) deallocate(ivTimeStamp)
 		allocate(ivTimeStamp(n))
-		
+
 		! Generate time stamps sequence
 		j = 0
 		iCurTime = iTimeFrom
@@ -1440,58 +1440,58 @@ contains
 				iCurTime = iCurTime + iTimeStep
 			end do
 		end if
-		
+
 	end function timeSequence2
-	
-	
+
+
 	function timeFloorDay1(iTimeStamp) result(iDayStamp)
-	
+
 		! Routine arguments
 		integer, intent(in)	:: iTimeStamp
 		integer				:: iDayStamp
-		
+
 		! Locals
 		! -none-
-		
+
 		! Constants
 		integer, parameter	:: ONE_DAY = 3600*24
-		
+
 		! Compute the desired quantity
 		iDayStamp = iTimeStamp - mod(iTimeStamp, ONE_DAY)
-		
+
 	end function timeFloorDay1
-	
-	
+
+
 	function timeFloorDay2(rTimeStamp) result(rDayStamp)
-	
+
 		! Routine arguments
 		real(8), intent(in)	:: rTimeStamp
 		real(8)				:: rDayStamp
-		
+
 		! Locals
 		! -none-
-		
+
 		! Constants
 		real(8), parameter	:: ONE_DAY = 3600.d0*24
-		
+
 		! Compute the desired quantity
 		rDayStamp = floor(rTimeStamp/ONE_DAY) * ONE_DAY
-		
+
 	end function timeFloorDay2
-	
-	
+
+
 	function timeCeilingDay1(iTimeStamp) result(iDayStamp)
-	
+
 		! Routine arguments
 		integer, intent(in)	:: iTimeStamp
 		integer				:: iDayStamp
-		
+
 		! Locals
 		integer	:: iTemporary
-		
+
 		! Constants
 		integer, parameter	:: ONE_DAY = 3600*24
-		
+
 		! Compute the desired quantity
 		iTemporary = mod(iTimeStamp, ONE_DAY)
 		if(iTemporary /= 0) then
@@ -1499,76 +1499,76 @@ contains
 		else
 			iDayStamp = iTimeStamp
 		end if
-		
+
 	end function timeCeilingDay1
-	
-	
+
+
 	function timeCeilingDay2(rTimeStamp) result(rDayStamp)
-	
+
 		! Routine arguments
 		real(8), intent(in)	:: rTimeStamp
 		real(8)				:: rDayStamp
-		
+
 		! Locals
 		! -none-
-		
+
 		! Constants
 		real(8), parameter	:: ONE_DAY = 3600.d0*24
-		
+
 		! Compute the desired quantity
 		rDayStamp = ceiling(rTimeStamp/ONE_DAY) * ONE_DAY
-		
+
 	end function timeCeilingDay2
-	
-	
+
+
 	function timeFloorHour1(iTimeStamp) result(iHourStamp)
-	
+
 		! Routine arguments
 		integer, intent(in)	:: iTimeStamp
 		integer				:: iHourStamp
-		
+
 		! Locals
 		! -none-
-		
+
 		! Constants
 		integer, parameter	:: ONE_HOUR = 3600
-		
+
 		! Compute the desired quantity
 		iHourStamp = iTimeStamp - mod(iTimeStamp, ONE_HOUR)
-		
+
 	end function timeFloorHour1
-	
-	
+
+
 	function timeFloorHour2(rTimeStamp) result(rHourStamp)
-	
+
 		! Routine arguments
 		real(8), intent(in)	:: rTimeStamp
 		real(8)				:: rHourStamp
-		
+
 		! Locals
 		! -none-
-		
+
 		! Constants
 		real(8), parameter	:: ONE_HOUR = 3600.d0
-		
+
 		! Compute the desired quantity
 		rHourStamp = floor(rTimeStamp/ONE_HOUR) * ONE_HOUR
-		
+
 	end function timeFloorHour2
-	
-	
+
+
 	function timeCeilingHour1(iTimeStamp) result(iHourStamp)
-	
+
 		! Routine arguments
 		integer, intent(in)	:: iTimeStamp
 		integer				:: iHourStamp
-		
+
 		! Locals
 		integer	:: iTemporary
-		
+
 		! Constants
 		integer, parameter	:: ONE_HOUR = 3600
-		
+
 		! Compute the desired quantity
 		iTemporary = mod(iTimeStamp, ONE_HOUR)
 		if(iTemporary /= 0) then
@@ -1576,37 +1576,37 @@ contains
 		else
 			iHourStamp = iTimeStamp
 		end if
-		
+
 	end function timeCeilingHour1
-	
-	
+
+
 	function timeCeilingHour2(rTimeStamp) result(rHourStamp)
-	
+
 		! Routine arguments
 		real(8), intent(in)	:: rTimeStamp
 		real(8)				:: rHourStamp
-		
+
 		! Locals
 		! -none-
-		
+
 		! Constants
 		real(8), parameter	:: ONE_HOUR = 3600.d0
-		
+
 		! Compute the desired quantity
 		rHourStamp = ceiling(rTimeStamp/ONE_HOUR) * ONE_HOUR
-		
+
 	end function timeCeilingHour2
-	
-	
+
+
 	function isSensible(tDateTime) result(lIsSensible)
-	
+
 		! Routine arguments
 		type(DateTime), intent(in)	:: tDateTime
 		logical						:: lIsSensible
-		
+
 		! Locals
 		! --none--
-		
+
 		! Compute the information desired
         lIsSensible = .not.( &
             tDateTime % iYear   <= 0   .or. &
@@ -1616,7 +1616,7 @@ contains
             tDateTime % iMinute < 0    .or. tDateTime % iMinute >  59 .OR. &
             tDateTime % rSecond < 0.d0 .or. tDateTime % rSecond >= 60.d0 &
 		)
-		
+
 	end function isSensible
 
 end module pbl_time
