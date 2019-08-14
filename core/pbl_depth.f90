@@ -15,15 +15,15 @@ module pbl_depth
     use pbl_thermo
 
     implicit none
-    
+
     private
-    
+
     ! Public interface
     public	:: EstimateZi
     public	:: LapseRateSpec
-    
+
     ! Data types
-    
+
     type LapseRateSpec
     	real(8)	:: A
     	real(8)	:: B
@@ -36,7 +36,7 @@ module pbl_depth
 contains
 
 	function EstimateZi(rvTimeStamp, iZone, rLat, rLon, iDeltaTime, rvTemp, rvUstar, rvH0, rvN, nStep, tLrate, rvZi) result(iRetCode)
-	
+
 		! Routine arguments
 		real(8), dimension(:), allocatable, intent(in)				:: rvTimeStamp
 		integer, intent(in)											:: iZone
@@ -51,7 +51,7 @@ contains
 		type(LapseRateSpec), intent(in), optional					:: tLrate
 		real(8), dimension(:), allocatable, intent(out)				:: rvZi
 		integer														:: iRetCode
-		
+
 		! Locals
 		integer								:: iErrCode
 		integer								:: i
@@ -70,14 +70,14 @@ contains
 		integer								:: n_step
 		integer, dimension(5)				:: ivVectorLength
 		integer, dimension(5)				:: ivValidNum
-		
+
 		! Constants
 		real(8), parameter	:: k = 0.4d0
 		real(8), parameter	:: g = 9.81d0
-		
+
 		! Assume success (will falsify on failure)
 		iRetCode = 0
-		
+
 		! Check something can be made
 		if( &
 			.not.allocated(rvTimeStamp) .or. &
@@ -127,19 +127,19 @@ contains
 			iRetCode = 5
 			return
 		end if
-		
+
 		! Reserve workspace
 		if(allocated(rvZi)) deallocate(rvZi)
 		allocate(rvZi(size(rvTimeStamp)))
-		
+
 		! Main loop: process mixing heights
     	do i = 1, size(rvTimeStamp)
-    	
+
     		if(.invalid.rvTimeStamp(i)) then
     			rvZi(i) = NaN_8
     			cycle
     		end if
-		
+
 			! Get time stamp at official value (to help tracking events in data files;
 			! true time stamp at mid of averagin interval will be computed immediately after)
 			iErrCode = tStamp % fromEpoch(rvTimeStamp(i) + iDeltaTime / 2.d0)
@@ -147,25 +147,25 @@ contains
     			rvZi(i) = NaN_8
     			cycle
 			end if
-			if(.not..sensible. tStamp) then
+			if(.not.(.sensible. tStamp)) then
     			rvZi(i) = NaN_8
     			cycle
 			end if
-			
+
 			! Get time stamp at *mid* of averaging interval
 			rHour = tStamp % iHour + tStamp % iMinute / 60.0d0 + tStamp % rSecond / 3600.0d0
-		
+
 			! Get astronomical indicators
 			rvSunRiseSet = SunRiseSunSet(tStamp % iYear, tStamp % iMonth, tStamp % iDay, rLat, rLon, iZone)
 			rSunRise = rvSunRiseSet(1)
 			rSunSet  = rvSunRiseSet(2)
-			
+
 			! Estimate mixing height
 			rTa    = rvTemp(i) + 273.15d0
 			rRc    = RhoCp(rTa)
 			rZiMec = 1330.*rvUstar(i)
 			if(rHour > rSunRise .and. rHour < rSunSet) then
-				rZiConv = MAX(rZiConv, 0.)
+				rZiConv = MAX(rZiConv, 0.d0)
 				if(present(tLrate)) then
 					rZiConv = ConvectiveZi(dble(iDeltaTime),rvH0(i),rvUstar(i),rTa,rRc,rZiConv,n_step,tLrate)
 				else
@@ -190,9 +190,9 @@ contains
 					rN &
 				)
 			end if
-		
+
 		end do
-		
+
 	end function EstimateZi
 
 	! *********************
@@ -200,7 +200,7 @@ contains
 	! *********************
 
 	function ConvectiveZi(dtime,H0,us,Temp,rc,hold,n_step, tLrate) result(hmix)
-	
+
 		! Routine arguments
 		real(8), intent(in)							:: dtime		! Time step (s)
 		real(8), intent(in)							:: H0			! Turbulent sensible heat flux (W/m2)
@@ -211,7 +211,7 @@ contains
 		integer, intent(in)							:: n_step		! Number of sub-steps within a whole step
 		type(LapseRateSpec), intent(in), optional	:: tLrate		! If specified, lapse rate is computed from here instead of assumed as constant (default behavior)
 		real(8)										:: hmix			! Mixing height past current time step (m)
-		
+
 		! Locals
 		real(8)		:: dt
 		real(8)		:: Ta
@@ -222,13 +222,13 @@ contains
 		real(8)		:: hk3
 		real(8)		:: hk4
 		integer		:: i
-		
+
 		! Check something can be made
 		if(n_step <= 0) then
 			hmix = NaN_8
 			return
 		end if
-		
+
 		! Initialize
 		Hmix = NaN_8
 		dt   = dtime/n_step
@@ -260,7 +260,7 @@ contains
 
 
 	function GryningBatchvarovaStep(rc,Tm,gg,us,h0,hm) result(F)
-	
+
 		! Routine arguments
 		real(8), intent(in)	:: rc
 		real(8), intent(in)	:: Tm
@@ -269,13 +269,13 @@ contains
 		real(8), intent(in)	:: h0
 		real(8), intent(in)	:: hm
 		real(8)				:: F
-		
+
 		! Locals
 		real(8)	:: hL
 		real(8)	:: cost
 		real(8)	:: f1
 		real(8)	:: f2
-		
+
 		! Constants
 		real(8), parameter	:: hk = 0.4d0
 		real(8), parameter	:: g  = 9.81d0
@@ -292,7 +292,7 @@ contains
 		F    = h0/(rc*gg*F)
 
 	end function GryningBatchvarovaStep
-	
+
 
 	function StableZi(Lat, Temp, H0, Ustar, L, N) result(Zi)
 
@@ -356,41 +356,41 @@ contains
 		end if
 
 	end function StableZi
-	
-	
+
+
 	subroutine lrSetDefault(this)
-	
+
 		! Routine arguments
 		class(LapseRateSpec), intent(out)	:: this
-		
+
 		! Locals
 		! --none--
-		
+
 		! Assign default values (from, I guess, Mexico City campaign, circa 1998)
 		this % A = 3.d0
 		this % B = 1.98d-3
 		this % C = 2.27d-6
-		
+
 	end subroutine lrSetDefault
-	
-	
+
+
 	function lrGetLapseRate(this, z) result(gamma)
-	
+
 		! Routine arguments
 		class(LapseRateSpec), intent(in)	:: this
 		real(8), intent(in)					:: z
 		real(8)								:: gamma
-		
+
 		! Locals
 		! --none--
-		
+
 		! Evaluate lapse rate
 		if(z > 0.0) then
 			gamma = this % A / (z + 1.d0) - this % B + this % C * z
 		else
 			gamma = this % A - this % B
 		end if
-		
+
 	end function lrGetLapseRate
-    
+
 end module pbl_depth
