@@ -29,12 +29,13 @@ contains
 		integer											:: iRetCode
 		
 		! Locals
-		integer	:: n
+		integer	:: i, l, n
 		real	:: rNumerator
 		real	:: rDenominator
 		real	:: rMeanIdx
 		real	:: rMean
-		real, dimension(:), allocatable	:: rvTrendlessX
+		real, dimension(:), allocatable			:: rvTrendlessX
+		integer(8), dimension(:,:), allocatable	:: imLSM
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -57,20 +58,24 @@ contains
 		rAlpha = rMean - rBeta*rMeanIdx
 		rvTrendlessX = rvX - (rAlpha + rBeta*[i, (i=1, n)])
 		
+		! Generate the initial matrix
+		l = int(ceiling(n * rLimit / 2.)) - 1
+		allocate(imLSM(l, n))
+		imLSM = 1
+		
+		! Update matrix, and extract local minima
+		do k = 1, l
+			do j = 1, n
+				if() then
+					rmLSM(k,j) = 0
+				end if
+			end do
+		end do
+	
 		! Leave
+		deallocate(rmLSM)
 		deallocate(rvTrendlessX)
 	
-	# Create preprocessing linear fit	
-	sigTime = np.arange(0, len(sigInput))
-	
-	# Detrend
-	dtrSignal = (sigInput - np.polyval(np.polyfit(sigTime, sigInput, 1), sigTime)).astype(float)
-	
-	N = len(dtrSignal)
-	L = int(np.ceil(N*LSMlimit / 2.0)) - 1
-	
-	# Generate random matrix
-	LSM = np.ones([L,N], dtype='uint8')
 	
 	# Local minima extraction
 	for k in range(1, L):
