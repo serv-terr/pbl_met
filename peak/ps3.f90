@@ -29,13 +29,18 @@ contains
 		integer											:: iRetCode
 		
 		! Locals
-		integer	:: i, l, n
+		integer	:: i, j, l, n
+		integer	:: jm, jp
+		integer	:: iNumPks
 		real	:: rNumerator
 		real	:: rDenominator
 		real	:: rMeanIdx
 		real	:: rMean
 		real, dimension(:), allocatable			:: rvTrendlessX
-		integer(8), dimension(:,:), allocatable	:: imLSM
+		integer, dimension(:,:), allocatable	:: imLSM
+		integer, dimension(:), allocatable		:: ivCount
+		integer, dimension(:), allocatable		:: ivAux
+		integer, dimension(1)					:: ivPos
 		
 		! Assume success (will falsify on failure)
 		iRetCode = 0
@@ -60,30 +65,39 @@ contains
 		
 		! Generate the initial matrix
 		l = int(ceiling(n * rLimit / 2.)) - 1
-		allocate(imLSM(l, n))
+		allocate(imLSM(l, n), ivCount(l), ivAux(n))
 		imLSM = 1
 		
-		! Update matrix, and extract local minima
+		! Update matrix
 		do k = 1, l
-			do j = 1, n
-				if() then
-					rmLSM(k,j) = 0
+			do j = k+1, n-k
+				jm = j - k
+				jp = j + k
+				if(rvTrendlessX(j) > rvTrendlessX(jm) .and. rvTrendlessX(j) > rvTrendlessX(jp)) then
+					imLSM(k,j) = 0
 				end if
 			end do
 		end do
+		
+		! Find local extrema
+		ivCount = sum(imLSM, dim=2)
+		ivPos = minloc(ivCount)
+		ivAux = sum(imLSM(1:ivPos(1),:), dim=1)
+		iNumPks = count(ivAux == 0)
+		if(allocated(ivPks)) deallocate(ivPks)
+		allocate(ivPks(iNumPks))
+		j = 0
+		do i = 1, n
+			if(ivAux(i) == 0) then
+				j = j + 1
+				ivPks(j) = i
+			end if
+		end do
 	
 		! Leave
-		deallocate(rmLSM)
+		deallocate(imLSM, ivCount, ivAux)
 		deallocate(rvTrendlessX)
 	
-	
-	# Local minima extraction
-	for k in range(1, L):
-		LSM[k - 1, np.where((dtrSignal[k:N - k - 1] > dtrSignal[0: N - 2 * k - 1]) & (dtrSignal[k:N - k - 1] > dtrSignal[2 * k: N - 1]))[0]+k] = 0
-	
-	pks = np.where(np.sum(LSM[0:np.argmin(np.sum(LSM, 1)), :], 0)==0)[0]
-	return pks
-		
 	end function ampd
 	
 end module ps3
