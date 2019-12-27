@@ -29,13 +29,15 @@ contains
 		integer											:: iRetCode
 		
 		! Locals
-		integer	:: i, j, l, n
+		integer	:: i, j, k, l, n
 		integer	:: jm, jp
 		integer	:: iNumPks
 		real	:: rNumerator
 		real	:: rDenominator
 		real	:: rMeanIdx
 		real	:: rMean
+		real	:: rAlpha
+		real	:: rBeta
 		real, dimension(:), allocatable			:: rvTrendlessX
 		integer, dimension(:,:), allocatable	:: imLSM
 		integer, dimension(:), allocatable		:: ivCount
@@ -47,7 +49,7 @@ contains
 		
 		! Remove trend, by subtracting the linear regression value
 		n = size(rvX)
-		allocate(rvTrendlessX)
+		allocate(rvTrendlessX(n))
 		if(n <= 0) then
 			iRetCode = 1
 			return
@@ -61,7 +63,7 @@ contains
 		end do
 		rBeta  = rNumerator / rDenominator
 		rAlpha = rMean - rBeta*rMeanIdx
-		rvTrendlessX = rvX - (rAlpha + rBeta*[i, (i=1, n)])
+		rvTrendlessX = rvX - (rAlpha + rBeta*[(i, i=1, n)])
 		
 		! Generate the initial matrix
 		l = int(ceiling(n * rLimit / 2.)) - 1
