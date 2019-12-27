@@ -218,7 +218,7 @@ The value of `NaN` is a special case of a _non-signalling not-a-number_. Not-a-n
 
 ##### Introduction
 
-One operation common I'm meteorological (and non-meteorological) data processing is reading initialization data from a configuration file.
+One operation common in meteorological (and non-meteorological) data processing is reading initialization data from a configuration file.
 
 To date various popular formats exist for initialization files. It is worth mentioning among them the `NAMELIST` format introduced in Fortran (and indeed very easy to use). But indeed many other specifications exist, like for example JSON, YAML, XML, or LUA used as a configuration language.
 
