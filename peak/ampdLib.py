@@ -54,7 +54,9 @@ def ampd(sigInput, LSMlimit = 1):
 	for k in range(1, L):
 		LSM[k - 1, np.where((dtrSignal[k:N - k - 1] > dtrSignal[0: N - 2 * k - 1]) & (dtrSignal[k:N - k - 1] > dtrSignal[2 * k: N - 1]))[0]+k] = 0
 	
-	pks = np.where(np.sum(LSM[0:np.argmin(np.sum(LSM, 1)), :], 0)==0)[0]
-	return pks, LSM
+	sumLSM = np.sum(LSM, 1)
+	usefulLSM = LSM[0:np.argmin(sumLSM), :]
+	pks = np.where(np.sum(usefulLSM, 0)==0)[0]
+	return pks, usefulLSM, sumLSM
 
 
