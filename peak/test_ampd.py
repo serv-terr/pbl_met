@@ -16,8 +16,9 @@ if __name__ == "__main__":
 		rvX.append(float(blks[1]))
 	
 	# Run test 1: default
-	peaks = ampdLib.ampd(rvX)
-	print("Test 1")
+	peaks, LCM = ampdLib.ampd(rvX)
+	print(LCM.shape)
+	print(LCM[0:8190,6:11])
 	print(len(peaks))
 	print(peaks)
 	print(" ")
