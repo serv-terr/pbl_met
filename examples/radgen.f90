@@ -1,5 +1,9 @@
 ! Simple example program producing reference values for global radiation, given! time interval and position.
 ! Results is a CSV file, containing the desired values. The form allows comparison to e.g. measured data.
+!
+! This is open-source code, covered by the MIT license.
+!
+! Author: Patrizia Favaron
 
 program RadGen
 
@@ -81,7 +85,7 @@ program RadGen
 		print *
 		print *, "Square brackets indicate an optional part."
 		print *
-		print *, "Copyright 2018 by Mauri Favaron"
+		print *, "Copyright 2018 by Patrizia Favaron"
 		print *, "                  This is open-source software, covered by MIT license."
 		print *
 		stop
