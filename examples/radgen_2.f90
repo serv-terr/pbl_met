@@ -191,8 +191,8 @@ program RadGen
 		iRetCode = tDateTime % fromEpoch(rvTimeStamp(i))
 		write(10, "(a,2(',',f6.1))") &
 			tDateTime % toISO(), &
-			rvRa(i), &
-			rvRg(i)
+			rvRa(i) / 10., &
+			rvRg(i) / 10.
 	end do
 	close(10)
 	
@@ -201,4 +201,3 @@ program RadGen
 	deallocate(rvTimeStamp)
 	
 end program RadGen
-
