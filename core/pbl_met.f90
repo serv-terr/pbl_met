@@ -5,6 +5,8 @@
 !
 ! This is open-source code, covered by the lGPL 3.0 license.
 !
+! Author(s): Patrizia Favaron
+!
 module pbl_met
 
 	! Collect all sub-libraries
