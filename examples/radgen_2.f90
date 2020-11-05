@@ -23,6 +23,7 @@ program RadGen
 	integer								:: iTimeStep
 	integer								:: iTimeStampOption
 	character(len=256)					:: sBuffer
+	integer								:: i
 	integer								:: iYear
 	integer								:: iMonth
 	integer								:: iDay
@@ -190,8 +191,8 @@ program RadGen
 		iRetCode = tDateTime % fromEpoch(rvTimeStamp(i))
 		write(10, "(a,2(',',f6.1))") &
 			tDateTime % toISO(), &
-			rvRgMin(i), &
-			rvRgMax(i)
+			rvRa(i), &
+			rvRg(i)
 	end do
 	close(10)
 	
@@ -200,3 +201,4 @@ program RadGen
 	deallocate(rvTimeStamp)
 	
 end program RadGen
+
