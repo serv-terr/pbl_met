@@ -47,8 +47,8 @@ module pbl_base
 	public	:: Spline
 
 	! Constants
-    real, parameter		:: NaN				       = Z'7FC00000'			! Special case of non-signalling NaN (single precision)
-    real(8), parameter	:: NaN_8			       = Z'7FF8000000000000'	! Special case of non-signalling NaN (double precision)
+    real, parameter		:: NaN				       = real(Z'7FC00000', kind=4)			! Special case of non-signalling NaN (single precision)
+    real(8), parameter	:: NaN_8			       = real(Z'7FF8000000000000', kind=8)	! Special case of non-signalling NaN (double precision)
 	real, parameter		:: YEAR_DURATION	       = 365.25
 	real, parameter		:: MONTH_DURATION	       = 30.6001
 	integer, parameter	:: BASE_DAY			       = 2440588		! 01. 01. 1970
