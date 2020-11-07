@@ -1,3 +1,8 @@
+! This module is part of the ALAMO pbl_met example, and is open-source code
+! covered by the MIT license.
+!
+! Written by: Patrizia Favaron
+!
 module Emission
 
 	implicit none

@@ -5,9 +5,9 @@
 !
 !						       prof. R. Sozzi - 2006
 !
-! 2018: Nitty-gritty program engineering, and integration to the new pbl_met, by Mauri Favaron.
+! 2018: Nitty-gritty program engineering, and integration to the new pbl_met, by Patrizia Favaron.
 ! The first version of "alamo" was already in the open source, but on those very far time
-! we did not really know how to make it really visible. It is my (Mauri's) opinion "alamo"
+! we did not really know how to make it really visible. It is my (Patrizia's) opinion "alamo"
 ! value is much far beyond an "example" of pbl_met use: it's a viable, interesting and
 ! useable conventional particle model, very useful when use of directly measured data
 ! is possible. Some engineering is still in demand to make "alamo" competitive - but, really,
