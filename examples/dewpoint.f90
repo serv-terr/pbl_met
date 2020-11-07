@@ -1,6 +1,9 @@
 ! Simple example program showing how to compute the dew-point, given "regular"
 ! (dry bulb) temperature and relative humidity - just the stuff you may hope
 ! to get from a thermo-hygrometer.
+!
+! Authors: Daniele Fraternali, Patrizia Favaron
+!
 
 program DewPoint
 	
