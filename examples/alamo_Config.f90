@@ -1,3 +1,8 @@
+! This module, part of the ALAMO example, is open-source software
+! covered by the MIT license.
+!
+! Author: Patrizia Favaron
+!
 module Configuration
 	
 	use pbl_met
