@@ -1,3 +1,9 @@
+! This module is part of the ALAMO pbl_met example, and is open-source code
+! covered by the MIT license.
+!
+! Written by: Roberto Sozzi (original coding)
+! Refactoring and test: Patrizia Favaron
+!
 module Meteo
 
 	use pbl_met
