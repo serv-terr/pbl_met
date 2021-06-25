@@ -52,6 +52,11 @@ function data_read(
     sErrMsg  = ""
 
     # Get file to data frame (very curious to see it really does, with so large a file...)
+    if !isfile(file_name)
+        iRetCode = 1
+        sErrMsg  = "data_read:: error: Input file not found"
+        return (iRetCode, sErrMsg, Nothing)
+    end
     d = CSV.read(file_name, DataFrames.DataFrame)
 
     return (iRetCode, sErrMsg, d)
@@ -82,5 +87,10 @@ output_file = ARGS[2]   # Output, in CSV form
 
 # Get data
 (iRetCode, sErrMsg, d) = data_read(input_file)
+if iRetCode != 0
+    println(sErrMsg)
+    println("Terminating execution")
+    exit(2)
+end
 
-print(length(d[!, "Date.Time"]))    # Just to ckeck it read something
+println(length(d[!, "Date.Time"]))    # Just to ckeck it read something
