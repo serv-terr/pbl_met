@@ -1,3 +1,6 @@
+#!/Applications/Julia-1.6.app/Contents/Resources/julia/bin/julia
+# Sorry, this is Patti's crazy shebang; you may replace with yours, if you like
+
 # "zi.jl" - Procedure for estimating mixing height (both 10 minutes, and daily maximum)
 #
 # Copyright 2021 By ARPA Lombardia
@@ -9,10 +12,15 @@ import Dates
 import CSV
 import DataFrames
 import Printf
+import Glob
 
 # Useful declarations
 
 struct DataSet_In
+    lat::Float64
+    lon::Float64
+    zone::Int64
+    alt::Float64
     time_stamp::Vector{Dates.DateTime}
     vel::Vector{Float64}
     u_star::Vector{Float64}
@@ -37,29 +45,153 @@ end
 # Simple linear regression in idiomatic Julia (not mine... :) Surely, it "may be useful" at the price of one code line)
 linreg(x, y) = hcat(fill!(similar(x), 1), x) \ y
 
-# Read data from input ile, and compose input data set from it
-#
-# WARNING: We'll soon replace it to support reading data from the
-# =======  standard ARPA formats: my current version is just a
-#          foot-behind-door.
-#
-function data_read(
-    file_name::String
+
+# Read one single ARPA data file
+function read_arpa(
+    data_path::String,
+    data_id::Int64,
+    avg_period::String
 )
 
     # Assume success (will falsify on failure)
     iRetCode = 0
     sErrMsg  = ""
 
-    # Get file to data frame (very curious to see it really does, with so large a file...)
-    if !isfile(file_name)
+    # Form file name pattern
+    file_pattern = joinpath(data_path, "$(data_id)_$(avg_period)_*.txt")
+
+    # Search pattern
+    file_name_vector = Glob.glob(file_pattern)
+    if length(file_name_vector) != 1
         iRetCode = 1
-        sErrMsg  = "data_read:: error: Input file not found"
+        sErrMsg  = "read_arpa:: error: More files found, or none at all"
+        return (iRetCode, sErrMsg, Nothing, Nothing)
+    end
+    file_name = file_name_vector[1]
+    if !isfile(file_name)
+        iRetCode = 2
+        sErrMsg  = "read_arpa:: error: Data file not found"
+        return (iRetCode, sErrMsg, Nothing, Nothing)
+    end
+
+    # Get file to dataframe; as ARPA files are headerless, also assign names
+    data = CSV.read(file_name, DataFrames.DataFrame, header=false, delim="\t")
+    DataFrames.rename!(data, :Column1 => :Sensor_ID)
+    DataFrames.rename!(data, :Column2 => :Text_Time_Stamp)
+    DataFrames.rename!(data, :Column3 => :Value)
+    DataFrames.rename!(data, :Column4 => :Validity)
+
+    # Convert time stamps from string to DateTime
+    DataFrames.insert!(data, 1, [Dates.DateTime(data.Text_Time_Stamp[i] for i in 1:n), :Time_Stamp])
+
+    # Remove useless fields
+    DataFrames.select!(data, Not(:Sensor_ID))
+    DataFrames.select!(data, Not(:Text_Time_Stamp))
+    println(data)
+
+    exit(10)
+
+end
+
+
+# Read data from input files, and compose input data set from it
+#
+function data_read(
+    data_path::String,
+    station_name::String,
+    avg_period::String = "H"
+)
+
+    # Assume success (will falsify on failure)
+    iRetCode = 0
+    sErrMsg  = ""
+
+    # Get station cards file, if it exists
+    stations_list = "./shakeup_stations.csv"
+    if !isfile(stations_list)
+        iRetCode = 1
+        sErrMsg  = "data_read:: error: Stations cards file, 'shakeup_stations.csv', not found in current directory"
         return (iRetCode, sErrMsg, Nothing)
     end
-    d = CSV.read(file_name, DataFrames.DataFrame)
+    stn = CSV.read(stations_list, DataFrames.DataFrame)
 
-    return (iRetCode, sErrMsg, d)
+    # Lookup station in list, by name
+    stn_idx = 0
+    for i in 1:length(stn[!, "Station_Name"])
+        if stn[i, "Station_Name"] == station_name
+            stn_idx = i
+            break
+        end
+    end
+    if stn_idx <= 0
+        iRetCode = 2
+        sErrMsg  = "data_read:: error: Station name not found"
+        return (iRetCode, sErrMsg, Nothing)
+    end
+
+    # Get station position
+    lon  = stn.Lon[stn_idx]
+    lat  = stn.Lat[stn_idx]
+    zone = stn.Zone[stn_idx]
+    alt  = stn.Elevation[stn_idx]
+
+    # Get IDs of relevant data
+    vel_id   = stn.Vel_Sonic[stn_idx]
+    ustar_id = stn.Ustar[stn_idx]
+    h0_id    = stn.H0[stn_idx]
+    zlm1_id  = stn.z_over_L[stn_idx]
+
+    # Get vectors
+    (iErrCode, sErrMsg, vel, time_vel) = read_arpa(data_path, vel_id, avg_period)
+    if iErrCode != 0
+        iRetCode = 3
+        return (iRetCode, sErrMsg, Nothing)
+    end
+    (iErrCode, sErrMsg, ustar, time_ustar) = read_arpa(data_path, ustar_id, avg_period)
+    if iErrCode != 0
+        iRetCode = 4
+        return (iRetCode, sErrMsg, Nothing)
+    end
+    (iErrCode, sErrMsg, h0, time_h0) = read_arpa(data_path, h0_id, avg_period)
+    if iErrCode != 0
+        iRetCode = 5
+        return (iRetCode, sErrMsg, Nothing)
+    end
+    (iErrCode, sErrMsg, zlm1, time_zlm1) = read_arpa(data_path, zlm1_id, avg_period)
+    if iErrCode != 0
+        iRetCode = 6
+        return (iRetCode, sErrMsg, Nothing)
+    end
+
+    # Check the data vectors time stamps are identical
+    n = length(time_vel)
+    for i in 1:n
+        if (time_vel[i] != time_ustar[i]) && (time_vel[i] != time_h0[i]) && (time_vel[i] != time_zlm1[i]) && (time_ustar[i] != time_h0[i]) && (time_ustar[i] != time_zlm1[i]) && (time_h0[i] != time_zlm1[i])
+            iRetCode = 7
+            sErrMsg = "data_read:: error: Data time stamps are not compatible"
+            return (iRetCode, sErrMsg, Nothing)
+        end
+    end
+
+    # Compute Obukhov length from stability parameter; we're dealing with
+    # SHAKEUP stations, so we know the in advance the "reference height" is 10m.
+    L = 10.0 ./ zlm1
+
+    # Compose output
+    data_set = DataSet_In(
+        lat,
+        lon,
+        zone,
+        alt,
+        time_stamp,
+        vel,
+        u_star,
+        H0,
+        L
+    )
+
+    return (iRetCode, sErrMsg, stn)
+
 
 end
 
@@ -69,12 +201,16 @@ end
 ################
 
 # Get parameters
-if length(ARGS) != 2
+if length(ARGS) != 4
     println("zi.jl - Procedure for calculating basic diagnostic indices on SonicLib data files")
     println()
     println("Usage:")
     println()
-    println("  julia zi.jl <Data_File> <Results_File>")
+    println("  julia zi.jl <Data_Path> <Station_Name> <Averaging_Period> <Results_File>")
+    println()
+    println("where")
+    println()
+    println("  <Averaging_Period> = H (hourly), t (10 minutes)")
     println()
     println("Copyright 2021 by ARPA Lombardia")
     println("This is open-source software, covered by the MIT license.")
@@ -82,15 +218,17 @@ if length(ARGS) != 2
     println()
     exit(1)
 end
-input_file  = ARGS[1]   # Data, FOR THE MOMENT in MeteoFlux Core V2 "aggregate base processed" form - with wrong time stamp!
-output_file = ARGS[2]   # Output, in CSV form
+input_path   = ARGS[1]  # Data path
+station_name = ARGS[2]  # Name of desired station, as in "./shakeup_stations.csv"
+avg_period   = ARGS[3]  # Averaging period symbol (H = hourly, t = Ten minutes)
+output_file  = ARGS[4]  # Output, in CSV form
 
 # Get data
-(iRetCode, sErrMsg, d) = data_read(input_file)
+(iRetCode, sErrMsg, d) = data_read(input_path, station_name, avg_period)
 if iRetCode != 0
     println(sErrMsg)
     println("Terminating execution")
     exit(2)
 end
 
-println(length(d[!, "Date.Time"]))    # Just to ckeck it read something
+println(length(d[!, "Station_Name"]))    # Just to ckeck it read something
