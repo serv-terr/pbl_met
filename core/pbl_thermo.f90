@@ -40,6 +40,7 @@ module pbl_thermo
 	! 2. Energy balance at ground-atmosphere contact (new method, as from ASCE Evapotranspiration Equation
  	public	:: ClearSkyRg_Simple			! Simple estimate of global solar radiation under clear sky conditions
 	public	:: ClearSkyRg_Accurate			! More accurate estimate of global solar radiation under clear sky conditions
+	public	:: GlobalRadiation_MPDA			! Solar global radiation, obtained from clear sky radiation and cloud cover
 	public	:: ExtraterrestrialRadiation	! Estimate of extraterrestrial radiation (i.e., global radiation above the Earth atmosphere)
 	public	:: NetRadiation					! Estimate of solar net radiation
 	public	:: Cloudiness					! Estimate cloudiness factor (see ASCE report for definitions)
@@ -276,6 +277,39 @@ contains
 		Rso = Ra * (Kb + Kd)
 
 	end function ClearSkyRg_Accurate
+
+
+	! Estimation of global radiation given clear sky radiation and cloud cover
+	!
+	! Input:
+	!
+	!	Rcs					Clear sky radiation (W/m2)
+	!
+	!	N					Cloud cover (real, 0.0 to 1.0; values outside this interval are forced within of it)
+	!
+	! Output:
+	!
+	!	rg					Global radiation (W/m2)
+	!
+	function GlobalRadiation(Rcs, N) result(Rg)
+
+		implicit none
+
+		! Routine arguments
+		real, intent(in)	:: Rcs
+		real, intent(in)	:: N
+		real				:: Rg
+
+		! Locals
+		real	:: Cloud
+
+		! Force N within limits
+		Cloud = min(max(0.0, N), 1.0)
+
+		! Compute global radiation
+		Rg = Rcs * (1. - 0.75*Cloud**3.4)
+		
+	end function GlobalRadiation
 
 
 	! Accurate estimate of extraterrestrial solar radiation

@@ -82,12 +82,20 @@ function read_arpa(
     DataFrames.rename!(data, :Column4 => :Validity)
 
     # Convert time stamps from string to DateTime
-    DataFrames.insert!(data, 1, [Dates.DateTime(data.Text_Time_Stamp[i] for i in 1:n), :Time_Stamp])
+    n = length(data.Value)
+    time_stamp_end = [Dates.DateTime(data.Text_Time_Stamp[i], "y-m-d H:M:S.s")  for i in 1:n]
+    out_data = DataFrames.DataFrame()
+    if avg_period == "H"
+        out_data.Time_Stamp_Begin = time_stamp_end .- Dates.Hour(1)
+    else
+        out_data.Time_Stamp_Begin = time_stamp_end .- Dates.Minute(10)
+    end
+    out_data.Time_Stamp_End = time_stamp_end
 
-    # Remove useless fields
-    DataFrames.select!(data, Not(:Sensor_ID))
-    DataFrames.select!(data, Not(:Text_Time_Stamp))
-    println(data)
+    # Get all other relevant information
+    out_data.Value = data.Value
+    out_data.Validity = data.Validity
+    println(out_data)
 
     exit(10)
 
