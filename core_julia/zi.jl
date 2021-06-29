@@ -21,7 +21,8 @@ struct DataSet_In
     lon::Float64
     zone::Int64
     alt::Float64
-    time_stamp::Vector{Dates.DateTime}
+    time_stamp_begin::Vector{Dates.DateTime}
+    time_stamp_end::Vector{Dates.DateTime}
     vel::Vector{Float64}
     u_star::Vector{Float64}
     H0::Vector{Float64}
@@ -95,9 +96,9 @@ function read_arpa(
     # Get all other relevant information
     out_data.Value = data.Value
     out_data.Validity = data.Validity
-    println(out_data)
 
-    exit(10)
+    # Leave, yielding results
+    return(iRetCode, sErrMsg, out_data.Value, out_data.Time_Stamp_Begin, out_data.Time_Stamp_End)
 
 end
 
@@ -150,22 +151,22 @@ function data_read(
     zlm1_id  = stn.z_over_L[stn_idx]
 
     # Get vectors
-    (iErrCode, sErrMsg, vel, time_vel) = read_arpa(data_path, vel_id, avg_period)
+    (iErrCode, sErrMsg, vel, time_vel, time_end) = read_arpa(data_path, vel_id, avg_period)
     if iErrCode != 0
         iRetCode = 3
         return (iRetCode, sErrMsg, Nothing)
     end
-    (iErrCode, sErrMsg, ustar, time_ustar) = read_arpa(data_path, ustar_id, avg_period)
+    (iErrCode, sErrMsg, ustar, time_ustar, time_end) = read_arpa(data_path, ustar_id, avg_period)
     if iErrCode != 0
         iRetCode = 4
         return (iRetCode, sErrMsg, Nothing)
     end
-    (iErrCode, sErrMsg, h0, time_h0) = read_arpa(data_path, h0_id, avg_period)
+    (iErrCode, sErrMsg, h0, time_h0, time_end) = read_arpa(data_path, h0_id, avg_period)
     if iErrCode != 0
         iRetCode = 5
         return (iRetCode, sErrMsg, Nothing)
     end
-    (iErrCode, sErrMsg, zlm1, time_zlm1) = read_arpa(data_path, zlm1_id, avg_period)
+    (iErrCode, sErrMsg, zlm1, time_zlm1, time_end) = read_arpa(data_path, zlm1_id, avg_period)
     if iErrCode != 0
         iRetCode = 6
         return (iRetCode, sErrMsg, Nothing)
@@ -174,7 +175,12 @@ function data_read(
     # Check the data vectors time stamps are identical
     n = length(time_vel)
     for i in 1:n
-        if (time_vel[i] != time_ustar[i]) && (time_vel[i] != time_h0[i]) && (time_vel[i] != time_zlm1[i]) && (time_ustar[i] != time_h0[i]) && (time_ustar[i] != time_zlm1[i]) && (time_h0[i] != time_zlm1[i])
+        if (time_vel[i] != time_ustar[i]) && 
+            (time_vel[i] != time_h0[i]) && 
+            (time_vel[i] != time_zlm1[i]) && 
+            (time_ustar[i] != time_h0[i]) && 
+            (time_ustar[i] != time_zlm1[i]) && 
+            (time_h0[i] != time_zlm1[i])
             iRetCode = 7
             sErrMsg = "data_read:: error: Data time stamps are not compatible"
             return (iRetCode, sErrMsg, Nothing)
@@ -183,7 +189,26 @@ function data_read(
 
     # Compute Obukhov length from stability parameter; we're dealing with
     # SHAKEUP stations, so we know the in advance the "reference height" is 10m.
-    L = 10.0 ./ zlm1
+    L = Vector{Float64}(undef, n)
+    for i in 1:n
+        if abs(zlm1[i]) > 1.e-30 && zlm1[i] > -990.0
+            L[i] = 10.0 ./ zlm1[i]
+            if L[i] > 900.0
+                L[i] = 900.0
+            end
+            if L[i] < -900.0
+                L[i] = -900.0
+            end
+        elseif zlm1[i] < -990.0
+            L[i] = -999.0
+        elseif abs(zlm1[i]) <= 1.e-30
+            if zlm1[i] >= 0.0
+                L[i] =  900.0
+            else
+                L[i] = -900.0
+            end
+        end
+    end
 
     # Compose output
     data_set = DataSet_In(
@@ -191,14 +216,15 @@ function data_read(
         lon,
         zone,
         alt,
-        time_stamp,
+        time_vel,
+        time_end,
         vel,
-        u_star,
-        H0,
+        ustar,
+        h0,
         L
     )
 
-    return (iRetCode, sErrMsg, stn)
+    return (iRetCode, sErrMsg, data_set)
 
 
 end
@@ -239,4 +265,16 @@ if iRetCode != 0
     exit(2)
 end
 
-println(length(d[!, "Station_Name"]))    # Just to ckeck it read something
+println(d.lat)
+println(d.lon)
+println(d.zone)
+println(d.alt)
+
+test = DataFrames.DataFrame()
+test.begin = d.time_stamp_begin
+test.end   = d.time_stamp_end
+test.vel   = d.vel
+test.ustar = d.u_star
+test.h0    = d.H0
+test.l     = d.L
+println(test)

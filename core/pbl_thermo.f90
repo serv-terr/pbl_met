@@ -40,16 +40,18 @@ module pbl_thermo
 	! 2. Energy balance at ground-atmosphere contact (new method, as from ASCE Evapotranspiration Equation
  	public	:: ClearSkyRg_Simple			! Simple estimate of global solar radiation under clear sky conditions
 	public	:: ClearSkyRg_Accurate			! More accurate estimate of global solar radiation under clear sky conditions
-	public	:: GlobalRadiation_MPDA			! Solar global radiation, obtained from clear sky radiation and cloud cover
 	public	:: ExtraterrestrialRadiation	! Estimate of extraterrestrial radiation (i.e., global radiation above the Earth atmosphere)
 	public	:: NetRadiation					! Estimate of solar net radiation
 	public	:: Cloudiness					! Estimate cloudiness factor (see ASCE report for definitions)
+	public	:: GroundHeatFlux				! Estimates surface heat flux (W/m2)
 	! 3. Energy balance at ground atmosphere contact (old PBL_MET method)
 	public	:: GlobalRadiation_MPDA			! Supersedes SUN_RAD2 in old PBL_MET
 	public	:: CloudCover_MPDA				! Supersedes CLOUD_RG in old PBL_MET
 	public	:: NetRadiation_MPDA			! Supersedes R_NET_D and R_NET_N in ECOMET legacy code
 	! 4. Atmospheric scaling quantities
 	public	:: BruntVaisala					! Estimate of Brunt-Vaisala frequency, given temperature and height
+	! 5. PBL parameters
+	public	:: PBL_Parameters				! Estimate PBL parameters, given surface data
 
 	! Polymorphic (Fortran-90-art) routines
 
@@ -308,7 +310,7 @@ contains
 
 		! Compute global radiation
 		Rg = Rcs * (1. - 0.75*Cloud**3.4)
-		
+
 	end function GlobalRadiation
 
 
@@ -1314,6 +1316,135 @@ contains
 		N    = sqrt(abs(9.807/Tpot * 0.0098))
 
 	end function BruntVaisala
+
+
+	! Estimation of PBL parameters given net radiation, wind speed and temperature
+	!
+	! Input:
+	!
+	!	iLandUse	: Land use code (integer, 1 to 6)
+	!	z0_in		: Aerodynamic surface roughness (real, m)
+	!	zr			: Anemometer height above ground (real, m)
+	!	Vel			: Horizontal wind speed (real, m/s)
+	!	T			: Air temperature (real, °C)
+	!	Rn			: Net radiation (real, W/m2)
+	!	N			: Cloud cover fraction (real, 0.0 to 1.0)
+	!
+	! Output:
+	!
+	!	u_star		: Friction velocity (real, m/s)
+	!	T_star		: Scale temperature (real, °C)
+	!	H0			: Turbulent sensible heat flux (real, W/m2)
+	!	hlm1		: Stability parameter (= zr/L, with L the Obukhov length) (real, dimensionless)
+	!
+	! Function return value: Error code (always 0, "success", in current version)
+	!
+	function PBL_Parameters(iLandUse, z0_in, zr, Vel, T, Rn, N, u_star, T_star, H0, hlm1) result(iRetCode)
+
+		! Routine arguments
+		integer, intent(in)	:: iLandUse_in
+		real, intent(in)	:: z0_in
+		real, intent(in)	:: zr
+		real, intent(in)	:: Vel
+		real, intent(in)	:: T
+		real, intent(in)	:: Rn
+		real, intent(in)	:: N
+		real, intent(out)	:: u_star
+		real, intent(out)	:: T_star
+		real, intent(out)	:: H0
+		real, intent(out)	:: hlm1
+		integer				:: iRetCode
+
+		! Locals
+		real	:: z0
+		integer	:: iLandUse
+		real	:: rhoCp
+		real	:: r_ground
+		real	:: alu
+		real	:: aln
+		real	:: usn
+		real	:: S
+		real	:: a
+		real	:: d1
+		real	:: d2
+		real	:: uss
+		real	:: uuu
+
+		! Constants
+		real, dimension(6), parameter	:: alpha = [0.1, 0.3, 0.5, 0.7, 1.0, 1.4]
+		real, parameter					:: beta = 20.
+		real, parameter					:: k    =  0.4
+		real, parameter					:: g    =  9.807
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Force parameters in limits
+		z0 = z0_in
+		if(z0_in <= 0.) z0 = 0.023
+		iLandUse = iLandUse_in
+		if(iLandUse < 1 .or. iLandUse > 6) iLandUse = 4
+
+		! Initializations
+		rhoCp     = 1305.*273.16/(T + 273.15)
+		r_ground  = 0.8
+		alu       = ALOG(zr/z0)
+		S         = 1.05*EXP( (6.42-T)/17.78 )
+		a         = alpha(iLandUse)
+  
+		! Estimate the turbulent sensible heat flux
+		H0 = (1.0 - a + S)/(1 + S) * r_ground * Rn - beta
+  
+		if(H0 > 0.) then	! "Convective"
+
+			! Rough estimate of u* from the logarithmic profile
+			usn = k * Vel / alu
+
+			! Refine u* estimation
+			zz0 = z0/zr
+			aln = alog(z0/zr)
+			if(zz0 <= 0.01) then
+				d1 = 0.128 + 0.005 * aln
+			else
+				d1 = 0.107
+			end if
+			d2 = 1.95 + 32.6 * zz0**0.45
+			IF(h0 <= 0.) then
+				d3 = 0.
+			else
+				d3 = H0/rhoCp * (k*g*zr)/((T + 273.15) * usn**3)
+			end if
+			u_star = max(usn * (1. + d1*alog(1. + d2*d3)), 0.05)
+
+			! Compute T*
+			T_star = -H0 / rhoCp / u_star
+
+			! Compute stability parameter
+			hlm1 = k * g / (T+273.15) * T_star / u_star**2
+
+		else
+
+			! Estimate T*
+			T_star = min(0.09 * (1. - 0.5*N**2), k * (T+273.15) * Vel**2 / (18.8 * zr * g * alu))
+
+			! Estimate u*, H0, hlm1
+			ustar_min = k / alu * Vel  
+			uss       = 0.5*hk*vel/alu
+			uuu       = 1. - 4. * 4.7 * g * zr * T_star * alu / (k * (T+273.15) * Vel**2)
+			if(uuu <= 0.) then
+				hlm1   = 0.2
+				u_star = k * Vel / (alu + 4.7 * zr * hlm1)
+				u_star = max(u_star, 0.05)
+				H0     = -rhoCp * u_star * T_star
+			else
+				u_star = max(uss * (1+sqrt(uuu)), 0.05)
+				H0     = -rhoCp * u_star * T_star
+				hlm1   = k * g / (T+273.15) * T_star / u_star**2
+			end if
+
+		end if
+
+	end function PBL_Parameters
 
 
 
