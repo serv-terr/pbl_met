@@ -574,6 +574,27 @@ contains
 	end function Cloudiness
 
 
+	function GroundHeatFlux(Rn, LAI) result(G)
+
+		! Routine arguments
+		real, intent(in)	:: Rn	! Net radiation (W/m2)
+		real, intent(in)	:: LAI	! Leaf Area Index
+		real				:: G
+
+		! Locals
+		real	:: Kg
+
+		! Compute the desired quantity
+		if(Rn > 0.) then
+			Kg = 0.4
+		else
+			Kg = 2.0
+		end if
+		G = Kg * Rn * exp(-0.5*LAI)
+
+	end function GroundHeatFlux
+
+
 	! Water vapor saturation pressure, given temperature
 	FUNCTION WaterSaturationPressure(Ta) RESULT(es)
 
@@ -1339,7 +1360,7 @@ contains
 	!
 	! Function return value: Error code (always 0, "success", in current version)
 	!
-	function PBL_Parameters(iLandUse, z0_in, zr, Vel, T, Rn, N, u_star, T_star, H0, hlm1) result(iRetCode)
+	function PBL_Parameters(iLandUse_in, z0_in, zr, Vel, T, Rn, N, u_star, T_star, H0, hlm1) result(iRetCode)
 
 		! Routine arguments
 		integer, intent(in)	:: iLandUse_in
@@ -1367,8 +1388,10 @@ contains
 		real	:: a
 		real	:: d1
 		real	:: d2
+		real	:: d3
 		real	:: uss
 		real	:: uuu
+		real	:: zz0
 
 		! Constants
 		real, dimension(6), parameter	:: alpha = [0.1, 0.3, 0.5, 0.7, 1.0, 1.4]
@@ -1428,16 +1451,15 @@ contains
 			T_star = min(0.09 * (1. - 0.5*N**2), k * (T+273.15) * Vel**2 / (18.8 * zr * g * alu))
 
 			! Estimate u*, H0, hlm1
-			ustar_min = k / alu * Vel  
-			uss       = 0.5*hk*vel/alu
-			uuu       = 1. - 4. * 4.7 * g * zr * T_star * alu / (k * (T+273.15) * Vel**2)
+			uss = 0.5 * k * Vel / alu
+			uuu = 1. - 4. * 4.7 * g * zr * T_star * alu / (k * (T+273.15) * Vel**2)
 			if(uuu <= 0.) then
 				hlm1   = 0.2
 				u_star = k * Vel / (alu + 4.7 * zr * hlm1)
-				u_star = max(u_star, 0.05)
+				u_star = max(u_star, k / alu * Vel)
 				H0     = -rhoCp * u_star * T_star
 			else
-				u_star = max(uss * (1+sqrt(uuu)), 0.05)
+				u_star = max(uss * (1+sqrt(uuu)), k / alu * Vel)
 				H0     = -rhoCp * u_star * T_star
 				hlm1   = k * g / (T+273.15) * T_star / u_star**2
 			end if
