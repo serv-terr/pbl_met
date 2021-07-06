@@ -40,8 +40,10 @@ module pbl_thermo
 	! 2. Energy balance at ground-atmosphere contact (new method, as from ASCE Evapotranspiration Equation
  	public	:: ClearSkyRg_Simple			! Simple estimate of global solar radiation under clear sky conditions
 	public	:: ClearSkyRg_Accurate			! More accurate estimate of global solar radiation under clear sky conditions
+	public	:: GlobalRadiation				! Global radiation estimate, obtained by correcting the clear sky estimate by cloud cover
 	public	:: ExtraterrestrialRadiation	! Estimate of extraterrestrial radiation (i.e., global radiation above the Earth atmosphere)
 	public	:: NetRadiation					! Estimate of solar net radiation
+	public	:: CloudCover					! Estimate cloud cover using estimated and measured global radiatiobs
 	public	:: Cloudiness					! Estimate cloudiness factor (see ASCE report for definitions)
 	public	:: GroundHeatFlux				! Estimates surface heat flux (W/m2)
 	! 3. Energy balance at ground atmosphere contact (old PBL_MET method)
@@ -314,6 +316,138 @@ contains
 	end function GlobalRadiation
 
 
+	! Estimation of cloud cover given clear sky low turbidity radiation and global radiation
+	!
+	! Input:
+	!
+	!	rvTimeStamp				Time stamp, in epoch form
+	!
+	!	rvRcs					Clear sky radiation (W/m2)
+	!
+	!	rvRg					Global radiation (W/m2)
+	!
+	! Output:
+	!
+	!	rvN					Cloud cover (real, 0.0 to 1.0)
+	!
+	! A dutiful warning:
+	!
+	!	I'm not really sure this routine "works". It may provide sensible
+	!	enough answers on daytime when global radiation turned "good", but,
+	!	on night-time, it is completely blind to reality. I've tried to
+	!	overcome this by a simple trick, that is, assigning the cloud cover
+	!	daily mean to all nocturnal and valid values, and NaN elsewhere.
+	!	I'm quite sure it does not work, but if you just have a global
+	!	radiation sensor, I don't in the moment know what else could we do.
+	!
+	function CloudCover(rvTimeStamp, rvRcs, rvRg, rvN) result(iRetCode)
+
+		implicit none
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)				:: rvTimeStamp
+		real, dimension(:), intent(in)					:: rvRcs
+		real, dimension(:), intent(in)					:: rvRg
+		real, dimension(:), allocatable, intent(out)	:: rvN
+		integer											:: iRetCode
+
+		! Locals
+		integer	:: iNumData
+		integer	:: i
+		integer	:: iDay
+		integer	:: iHour
+		real	:: rAvgN
+		integer	:: iNumN
+		integer	:: iNumDays
+		integer(8), dimension(:), allocatable	:: ivDay
+		logical, dimension(:), allocatable		:: lvValid
+		integer, dimension(:), allocatable		:: ivDayBegin
+		integer, dimension(:), allocatable		:: ivDayEnd
+
+		! Check parameters
+		iNumData = size(rvTimeStamp)
+		if(size(rvRcs) /= iNumData .or. size(rvRg) /= iNumData) then
+			iRetCode = 1
+			return
+		end if
+
+		! Check time stamp increase monotonically
+		do i = 1, iNumData-1
+			if(rvTimeStamp(i) >= rvTimeStamp(i+1)) then
+				iRetCode = 2
+				return
+			end if
+		end do
+
+		! *** Anything potentially wrong excluded: we have a "go" for calculations
+
+		! Reserve workspace
+		if(allocated(rvN)) deallocate(rvN)
+		allocate(rvN(iNumData))
+
+		! Get day index
+		allocate(ivDay(iNumData))
+		ivDay = floor(rvTimeStamp / 86400.)
+		ivDay = ivDay - minval(ivDay) + 1
+
+		! Compute begin and end of each day
+		iNumDays = maxval(ivDay)
+		allocate(ivDayBegin(iNumDays), ivDayEnd(iNumDays))
+		ivDayBegin(1)      = 1
+		ivDayEnd(iNumDays) = iNumData
+		iDay = 1
+		do i = 1, iNumData - 1
+			if(ivDay(i) /= ivDay(i+1)) then
+				ivDayEnd(iDay)   = i
+				iDay             = iDay + 1
+				ivDayBegin(iDay) = i + 1
+			end if
+		end do
+
+		! Main loop: iterate over days
+		do iDay = 1, iNumDays
+
+			! Perform estimation of N over "valid" hours
+			rAvgN = 0.
+			iNumN = 0
+			do i = ivDayBegin(iDay), ivDayEnd(iDay)
+				if(rvRcs(i) == rvRcs(i) .and. rvRg(i) == rvRg(i) .and. rvRcs(i) > 0.) then
+					if(rvRg(i) >= rvRcs(i)) then
+						rvN(i) = 0.0
+					elseif(rvRg(i) <= 0.) then
+						rvN(i) = 1.0
+					else
+						rvN(i) = 1.0882951337107805*((rvRcs(i)-rvRg(i)) / rvRcs(i)) ** (1./3.4)
+					end if
+					rvN(i) = min(max(0.0, rvN(i)), 1.0)
+					rAvgN = rAvgN + rvN(i)
+					iNumN = iNumN + 1
+				end if
+			end do
+			if(iNumN > 0) then
+				rAvgN = rAvgN / iNumN
+			else
+				rAvgN = NaN
+			end if
+
+			! Propagate mean N over "invalid" hours
+			do i = ivDayBegin(iDay), ivDayEnd(iDay)
+				if(rvRcs(i) /= rvRcs(i) .or. rvRg(i) /= rvRg(i)) then
+					rvN(i) = NaN
+				elseif(rvRcs(i) <= 0.) then
+					rvN(i) = rAvgN
+				end if
+			end do
+
+		end do
+
+		! Leave
+		deallocate(ivDayBegin, ivDayEnd)
+		deallocate(ivDay)
+
+	end function CloudCover
+
+
 	! Accurate estimate of extraterrestrial solar radiation
 	!
 	! Input:
@@ -515,63 +649,127 @@ contains
 	end function NetRadiation
 
 
-	function Cloudiness(rvElAng, rvRg, rvRg3, rSunElevThreshold, rvFcd) result(iRetCode)
+	function Cloudiness(rvTimeStamp, rvRcs, rvRg, rvFcd) result(iRetCode)
 
 		implicit none
 
 		! Routine arguments
-		real, dimension(:), intent(in)	:: rvElAng
-		real, dimension(:), intent(in)	:: rvRg
-		real, dimension(:), intent(in)	:: rvRg3
-		real, intent(in)				:: rSunElevThreshold
-		real, dimension(:), intent(out)	:: rvFcd
-		integer							:: iRetCode
+		real(8), dimension(:), intent(in)				:: rvTimeStamp
+		real, dimension(:), intent(in)					:: rvRcs
+		real, dimension(:), intent(in)					:: rvRg
+		real, dimension(:), allocatable, intent(out)	:: rvFcd
+		integer											:: iRetCode
 
 		! Locals
+		integer	:: iNumData
 		integer	:: i
-		integer	:: iErrCode
-		real	:: rFcdOld
-		real	:: rFcdFirst
-		real	:: rPhi
-		real	:: rRatio
-		logical:: lIsFirst = .true.
-
-		! Assume success (will falsify on failure)
-		iRetCode = 0
-
-		! Iterate over all radiation readings, assumed valid
-		rFcdOld   = NaN
-		rFcdFirst = NaN
-		do i = 1, SIZE(rvRg)
-			rPhi = rvElAng(i)
-			if(rPhi > rSunElevThreshold) then
-				rRatio = MAX(MIN(rvRg(i) / rvRg3(i), 1.0), 0.0)
-				rvFcd(i) = 1.35 * rRatio - 0.35
-				rFcdOld  = rvFcd(i)
-			else
-				rvFcd(i) = rFcdOld
-			end if
-			if(lIsFirst) then
-				if(.not.ieee_is_nan(rvFcd(i))) then
-					rFcdFirst = rvFcd(i)
-					lIsFirst  = .false.
-				end if
-			end if
-		end do
-		! Typically, first data items cloudiness remains unassigned
-		if(ieee_is_nan(rFcdOld)) then
+		integer	:: iDay
+		integer	:: iHour
+		real	:: rMeanFcd
+		real	:: rWghtFcd
+		real	:: rWeight
+		real(8)	:: rBaseTime
+		integer	:: iNumDays
+		integer(8), dimension(:), allocatable	:: ivDay
+		logical, dimension(:), allocatable		:: lvValid
+		integer, dimension(:), allocatable		:: ivDayBegin
+		integer, dimension(:), allocatable		:: ivDayEnd
+	
+		! Check parameters
+		iNumData = size(rvTimeStamp)
+		if(size(rvRcs) /= iNumData .or. size(rvRg) /= iNumData) then
 			iRetCode = 1
 			return
 		end if
 
-		! Locate first NaNs, and replace them with first over-threshold Cloudiness
-		do i = 1, SIZE(rvRg)
-			if(ieee_is_nan(rvFcd(i))) then
-				rvFcd(i) = rFcdFirst
+		! Check time stamp increase monotonically
+		do i = 1, iNumData-1
+			if(rvTimeStamp(i) >= rvTimeStamp(i+1)) then
+				iRetCode = 2
+				return
 			end if
 		end do
 
+		! *** Anything potentially wrong excluded: we have a "go" for calculations
+
+		! Reserve workspace
+		if(allocated(rvFcd)) deallocate(rvFcd)
+		allocate(rvFcd(iNumData))
+
+		! Get day index
+		allocate(ivDay(iNumData))
+		ivDay = floor(rvTimeStamp / 86400.)
+		ivDay = ivDay - minval(ivDay) + 1
+
+		! Compute begin and end of each day
+		iNumDays = maxval(ivDay)
+		allocate(ivDayBegin(iNumDays), ivDayEnd(iNumDays))
+		ivDayBegin(1)      = 1
+		ivDayEnd(iNumDays) = iNumData
+		iDay = 1
+		do i = 1, iNumData - 1
+			if(ivDay(i) /= ivDay(i+1)) then
+				ivDayEnd(iDay)   = i
+				iDay             = iDay + 1
+				ivDayBegin(iDay) = i + 1
+			end if
+		end do
+	
+		! Main loop: iterate over days
+		do iDay = 1, iNumDays
+
+			! Perform estimation of cloudiness factor over "valid" hours
+			rMeanFcd = 0.0
+			rWghtFcd = 0.0
+			rBaseTime = (int(rvTimeStamp(ivDayBegin(iDay))) / 86400) * 86400.d0 + 43200.d0
+			do i = ivDayBegin(iDay), ivDayEnd(iDay)
+				if(rvRcs(i) == rvRcs(i) .and. rvRg(i) == rvRg(i) .and. rvRcs(i) > 0.) then
+					rvFcd(i) = 1.35*(rvRg(i) / rvRcs(i)) - 0.35
+					rvFcd(i) = min(max(0.0, rvFcd(i)), 1.0)
+					rWeight = 1. / (abs(real(rvTimeStamp(i) - rBaseTime, kind=4)/3600.0) + 1.)**2
+					rMeanFcd = rMeanFcd + rvFcd(i) * rWeight
+					rWghtFcd = rWghtFcd + rWeight
+				end if
+			end do
+			if(rWghtFcd > 0.) then
+				rMeanFcd = rMeanFcd / rWghtFcd
+			else
+				rMeanFcd = NaN
+			end if
+
+			! Propagate mean N over "invalid" hours
+			do i = ivDayBegin(iDay), ivDayEnd(iDay)
+				rvFcd(i) = rMeanFcd
+			end do
+
+		end do
+
+		! Leave
+		deallocate(ivDayBegin, ivDayEnd)
+		deallocate(ivDay)
+	
 	end function Cloudiness
+
+
+	function GroundHeatFlux(Rn, LAI) result(G)
+
+		! Routine arguments
+		real, intent(in)	:: Rn	! Net radiation (W/m2)
+		real, intent(in)	:: LAI	! Leaf Area Index
+		real				:: G
+
+		! Locals
+		real	:: Kg
+
+		! Compute the desired quantity
+		if(Rn > 0.) then
+			Kg = 0.4
+		else
+			Kg = 2.0
+		end if
+		G = Kg * Rn * exp(-0.5*LAI)
+
+	end function GroundHeatFlux
 
 
 	! Water vapor saturation pressure, given temperature
@@ -904,6 +1102,7 @@ contains
 		INTEGER	:: iMethod
 		REAL	:: a, b			! Minimum and maximum of bracketing interval
 		REAL	:: da, db		! Delta values corresponding to a and b respectively
+		real	:: T
 
 		! Set default input parameters
 		IF(PRESENT(RoughTol)) THEN
@@ -939,8 +1138,9 @@ contains
 		CASE(2)
 
 			! Stull simplified method
-			Tw = (Td-273.15) * ATAN(0.151977*SQRT(Ur + 8.313659)) + ATAN(Td-273.15 + Ur) - ATAN(Ur - 1.676331) + &
-				 0.00391838*Ur**1.5 * ATAN(0.023101 * Ur) - 4.686035 + 273.15
+			T  = Td - 273.15
+			Tw = T * atan(0.151977 * sqrt(Ur + 8.313659)) + atan(T + Ur) - atan(Ur - 1.676331) + &
+				 0.00391838*Ur**(3./2.) * atan(0.023101 * Ur) - 4.686035 + 273.15
 
 		CASE DEFAULT
 
@@ -1339,7 +1539,7 @@ contains
 	!
 	! Function return value: Error code (always 0, "success", in current version)
 	!
-	function PBL_Parameters(iLandUse, z0_in, zr, Vel, T, Rn, N, u_star, T_star, H0, hlm1) result(iRetCode)
+	function PBL_Parameters(iLandUse_in, z0_in, zr, Vel, T, Rn, N, u_star, T_star, H0, hlm1) result(iRetCode)
 
 		! Routine arguments
 		integer, intent(in)	:: iLandUse_in
@@ -1367,8 +1567,10 @@ contains
 		real	:: a
 		real	:: d1
 		real	:: d2
+		real	:: d3
 		real	:: uss
 		real	:: uuu
+		real	:: zz0
 
 		! Constants
 		real, dimension(6), parameter	:: alpha = [0.1, 0.3, 0.5, 0.7, 1.0, 1.4]
@@ -1428,16 +1630,15 @@ contains
 			T_star = min(0.09 * (1. - 0.5*N**2), k * (T+273.15) * Vel**2 / (18.8 * zr * g * alu))
 
 			! Estimate u*, H0, hlm1
-			ustar_min = k / alu * Vel  
-			uss       = 0.5*hk*vel/alu
-			uuu       = 1. - 4. * 4.7 * g * zr * T_star * alu / (k * (T+273.15) * Vel**2)
+			uss = 0.5 * k * Vel / alu
+			uuu = 1. - 4. * 4.7 * g * zr * T_star * alu / (k * (T+273.15) * Vel**2)
 			if(uuu <= 0.) then
 				hlm1   = 0.2
 				u_star = k * Vel / (alu + 4.7 * zr * hlm1)
-				u_star = max(u_star, 0.05)
+				u_star = max(u_star, k / alu * Vel)
 				H0     = -rhoCp * u_star * T_star
 			else
-				u_star = max(uss * (1+sqrt(uuu)), 0.05)
+				u_star = max(uss * (1+sqrt(uuu)), k / alu * Vel)
 				H0     = -rhoCp * u_star * T_star
 				hlm1   = k * g / (T+273.15) * T_star / u_star**2
 			end if
