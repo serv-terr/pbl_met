@@ -364,6 +364,9 @@ contains
 		integer, dimension(:), allocatable		:: ivDayBegin
 		integer, dimension(:), allocatable		:: ivDayEnd
 
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+		
 		! Check parameters
 		iNumData = size(rvTimeStamp)
 		if(size(rvRcs) /= iNumData .or. size(rvRg) /= iNumData) then
@@ -665,15 +668,16 @@ contains
 		integer	:: i
 		integer	:: iDay
 		integer	:: iHour
-		real	:: rMeanFcd
-		real	:: rWghtFcd
-		real	:: rWeight
-		real(8)	:: rBaseTime
+		real	:: rAvgFcd
+		integer	:: iNumFcd
 		integer	:: iNumDays
 		integer(8), dimension(:), allocatable	:: ivDay
 		logical, dimension(:), allocatable		:: lvValid
 		integer, dimension(:), allocatable		:: ivDayBegin
 		integer, dimension(:), allocatable		:: ivDayEnd
+	
+		! Assume success (will falsify on failure)
+		iRetCode = 0
 	
 		! Check parameters
 		iNumData = size(rvTimeStamp)
@@ -719,27 +723,31 @@ contains
 		do iDay = 1, iNumDays
 
 			! Perform estimation of cloudiness factor over "valid" hours
-			rMeanFcd = 0.0
-			rWghtFcd = 0.0
-			rBaseTime = (int(rvTimeStamp(ivDayBegin(iDay))) / 86400) * 86400.d0 + 43200.d0
+			rAvgFcd = 0.
+			iNumFcd = 0
 			do i = ivDayBegin(iDay), ivDayEnd(iDay)
 				if(rvRcs(i) == rvRcs(i) .and. rvRg(i) == rvRg(i) .and. rvRcs(i) > 0.) then
-					rvFcd(i) = 1.35*(rvRg(i) / rvRcs(i)) - 0.35
+					if(rvRg(i) >= rvRcs(i)) then
+						rvFcd(i) = 0.0
+					elseif(rvRg(i) <= 0.) then
+						rvFcd(i) = 1.0
+					else
+						rvFcd(i) = 1.35*(rvRg(i) / rvRcs(i)) - 0.35
+					end if
 					rvFcd(i) = min(max(0.0, rvFcd(i)), 1.0)
-					rWeight = 1. / (abs(real(rvTimeStamp(i) - rBaseTime, kind=4)/3600.0) + 1.)**2
-					rMeanFcd = rMeanFcd + rvFcd(i) * rWeight
-					rWghtFcd = rWghtFcd + rWeight
+					rAvgFcd = rAvgFcd + rvFcd(i)
+					iNumFcd = iNumFcd + 1
 				end if
 			end do
-			if(rWghtFcd > 0.) then
-				rMeanFcd = rMeanFcd / rWghtFcd
+			if(iNumFcd > 0) then
+				rAvgFcd = rAvgFcd / iNumFcd
 			else
-				rMeanFcd = NaN
+				rAvgFcd = NaN
 			end if
 
 			! Propagate mean N over "invalid" hours
 			do i = ivDayBegin(iDay), ivDayEnd(iDay)
-				rvFcd(i) = rMeanFcd
+				rvFcd(i) = rAvgFcd
 			end do
 
 		end do

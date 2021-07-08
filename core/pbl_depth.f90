@@ -23,6 +23,7 @@ module pbl_depth
     ! Public interface
     public	:: EstimateZi
     public	:: LapseRateSpec
+	public	:: ZiDailySynthesis
 
     ! Data types
 
@@ -394,5 +395,114 @@ contains
 		end if
 
 	end function lrGetLapseRate
+
+
+	function ZiDailySynthesis(rvTimeStamp, rvVel, rvZi, rvDailyTimeStamp, rvMaxZi, rvMaxPlm) result(iRetCode)
+
+		implicit none
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)				:: rvTimeStamp
+		real, dimension(:), intent(in)					:: rvVel
+		real, dimension(:), intent(in)					:: rvZi
+		real(8), dimension(:), allocatable, intent(out)	:: rvDailyTimeStamp
+		real, dimension(:), allocatable, intent(out)	:: rvMaxZi			! Maximum mixing height (m)
+		real, dimension(:), allocatable, intent(out)	:: rvMaxPlm			! Palmieri Index (vel*zi) (m^2/s)
+		integer											:: iRetCode
+
+		! Locals
+		integer	:: iNumData
+		integer	:: i
+		integer	:: iDay
+		integer	:: iHour
+		real	:: rMaxZi
+		real	:: rMaxPlm
+		integer	:: iNumDays
+		integer(8), dimension(:), allocatable	:: ivDay
+		logical, dimension(:), allocatable		:: lvValid
+		integer, dimension(:), allocatable		:: ivDayBegin
+		integer, dimension(:), allocatable		:: ivDayEnd
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+	
+		! Check parameters
+		iNumData = size(rvTimeStamp)
+		if(size(rvVel) /= iNumData .or. size(rvZi) /= iNumData) then
+			iRetCode = 1
+			return
+		end if
+
+		! Check time stamp increase monotonically
+		do i = 1, iNumData-1
+			if(rvTimeStamp(i) >= rvTimeStamp(i+1)) then
+				iRetCode = 2
+				return
+			end if
+		end do
+
+		! *** Anything potentially wrong excluded: we have a "go" for calculations
+
+		! Reserve workspace
+		if(allocated(rvDailyTimeStamp)) deallocate(rvDailyTimeStamp)
+		if(allocated(rvMaxZi))          deallocate(rvMaxZi)
+		if(allocated(rvMaxPlm))         deallocate(rvMaxPlm)
+		allocate(rvDailyTimeStamp(iNumData))
+		allocate(rvMaxZi(iNumData))
+		allocate(rvMaxPlm(iNumData))
+
+		! Get day index
+		allocate(ivDay(iNumData))
+		ivDay = floor(rvTimeStamp / 86400.)
+		ivDay = ivDay - minval(ivDay) + 1
+
+		! Compute begin and end of each day
+		iNumDays = maxval(ivDay)
+		allocate(ivDayBegin(iNumDays), ivDayEnd(iNumDays))
+		ivDayBegin(1)      = 1
+		ivDayEnd(iNumDays) = iNumData
+		iDay = 1
+		do i = 1, iNumData - 1
+			if(ivDay(i) /= ivDay(i+1)) then
+				ivDayEnd(iDay)   = i
+				iDay             = iDay + 1
+				ivDayBegin(iDay) = i + 1
+			end if
+		end do
+	
+		! Main loop: iterate over days
+		rvMaxZi  = -huge(rvMaxZi)
+		rvMaxPlm = -huge(rvMaxPlm)
+		do iDay = 1, iNumDays
+
+			! Calculate daily initial time stamp
+			rvDailyTimeStamp(iDay) = rvTimeStamp(ivDayBegin(iDay))
+			rvDailyTimeStamp(iDay) = floor(rvDailyTimeStamp(iDay) / 86400.d0) * 86400.d0
+
+			! Calculate maximum Zi and Palmieri index
+			do i = ivDayBegin(iDay), ivDayEnd(iDay)
+				if(rvZi(i) == rvZi(i)) then
+					rvMaxZi(iDay)  = max(rvMaxZi(iDay),  rvZi(i))
+				end if
+				if(rvVel(i) == rvVel(i) .and. rvZi(i) == rvZi(i)) then
+					rvMaxPlm(iDay) = max(rvMaxPlm(iDay), rvZi(i) * rvVel(i))
+				end if
+			end do
+
+		end do
+
+		! Invalidate non-positive Zi and Plm
+		where(rvMaxZi <= 0.)
+			rvMaxZi = NaN
+		end where
+		where(rvMaxPlm <= 0.)
+			rvMaxPlm = NaN
+		end where
+
+		! Leave
+		deallocate(ivDayBegin, ivDayEnd)
+		deallocate(ivDay)
+	
+	end function ZiDailySynthesis
 
 end module pbl_depth
