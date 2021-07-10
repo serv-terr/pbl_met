@@ -41,6 +41,7 @@ module pbl_base
 	public	:: toUpper
 	public	:: toLower
 	public	:: baseName
+	public	:: splitString
 	public	:: gammaP	! Lower incomplete gamma function P(a,x)
 	! 2. Data types
 	public	:: IniFile
@@ -246,6 +247,90 @@ contains
 		end if
 
 	end function baseName
+
+
+	function splitString(sString, svSlices, cSeparator) result(iRetCode)
+
+		! Routine arguments
+		character(len=*), intent(in)								:: sString
+		character(len=*), dimension(:), allocatable, intent(out)	:: svSlices
+		character(len=1), intent(in), optional						:: cSeparator
+		integer														:: iRetCode
+
+		! Locals
+		character(len=1)					:: cSep
+		integer								:: iNumSep
+		integer								:: iNumSlices
+		integer								:: iSepIndex
+		integer								:: i
+		integer								:: n
+		integer, dimension(:), allocatable	:: ivPos
+		integer, dimension(:), allocatable	:: ivSliceBegin
+		integer, dimension(:), allocatable	:: ivSliceEnd
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Assign separator
+		if(present(cSeparator)) then
+			if(cSeparator == ',' .or. cSeparator == ';' .or. cSeparator == char(9)) then
+				cSep = cSeparator
+			else
+				cSep = ','
+			end if
+		else
+			cSep = ','
+		end if
+
+		! Check parameters
+		n = len_trim(sString)
+		if(n <= 0) then
+			iRetCode = 1
+			return
+		end if
+
+		! Count separator instances
+		iNumSep = 0
+		do i = 1, n
+			if(sString(i:i) == cSep) then
+				iNumSep = iNumSep + 1
+			end if
+		end do
+
+		! Reserve workspace
+		iNumSlices = iNumSep + 1
+		allocate(ivPos(iNumSlices), ivSliceBegin(iNumSlices), ivSliceEnd(iNumSlices))
+
+		! Get separators's actual positions, and use them to deduce the begin-end of each slice
+		iSepIndex = 0
+		do i = 1, n
+			if(sString(i:i) == cSep) then
+				iSepIndex = iSepIndex + 1
+				ivPos(iSepIndex) = i
+			end if
+		end do
+		ivSliceBegin(1) = 1
+		ivSliceEnd(iNumSlices) = n
+		do i = 1, iNumSep
+			ivSliceBegin(i+1) = ivPos(i) + 1
+			ivSliceEnd(i)     = ivPos(i) - 1
+		end do
+
+		! Get actual slices
+		if(allocated(svSlices)) deallocate(svSlices)
+		allocate(svSlices(iNumSlices))
+		do i = 1, iNumSlices
+			if(ivSliceBegin(i) > ivSliceEnd(i)) then
+				svSlices(i) = sString(ivSliceBegin(i):ivSliceEnd(i))
+			else
+				svSlices(i) = " "
+			end if
+		end do
+
+		! Locals
+		deallocate(ivPos, ivSliceBegin, ivSliceEnd)
+
+	end function splitString
 
 
 	function gammaP(a, x, iMaxIterations) result(gP)
