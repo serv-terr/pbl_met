@@ -66,6 +66,8 @@ module pbl_stat
     public	:: QUANT_9			! Sample quantile type 9 (R-9, Maple-8; Defined so that the resulting quantile estimates are approximately unbiased for the expected order statistics; Valid if data are normally distributed)
     public	:: MA_ALLDATA		! Use all available data when computing centered moving averages
     public	:: MA_STRICT		! Discard incomplete upper and lower time tails when computing centered moving averages
+	! 8. Multivariate series
+	public	:: MultiSeries
 
     ! Data types
 
@@ -113,6 +115,23 @@ module pbl_stat
     	! Gap fillers
     	procedure, public	:: fillGaps							=> tsFillGaps
     end type TimeSeries
+
+
+    type MultiSeries
+    	real(8), dimension(:), allocatable, private				:: rvTimeStamp
+		character(len=16), dimension(:), allocatable, private	:: svColumn
+    	real, dimension(:,:), allocatable, private				:: rmValue
+    contains
+    	! Constructors
+    	procedure, public	:: createEmpty						=> msCreateEmpty
+    	procedure, public	:: addTimeSeries					=> msAddTimeSeries
+    	! Selectors
+    	procedure, public	:: getTimeSeries					=> msGetTimeSeries
+    	procedure, public	:: getTimeStamp						=> msGetTimeStamp
+    	procedure, public	:: getVector						=> msGetVector
+    	! State interrogations
+    	procedure, public	:: isEmpty							=> msIsEmpty
+    end type MultiSeries
 
 
 	type TwoDimensionalField
@@ -3668,6 +3687,314 @@ contains
 
 
 	end function dfEvaluate
+
+	! ********************************
+	! * Members of MultiSeries class *
+	! ********************************
+
+	function msCreateEmpty(this) result(iRetCode)
+
+		! Routine arguments
+		class(MultiSeries), intent(inout)	:: this			! Current time series
+		integer								:: iRetCode		! Return code (0 if successful completion; any non-zero in case of error(s))
+
+		! Locals
+		integer	:: iErrCode
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Clean workspace
+		if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
+		if(allocated(this % rmValue)) deallocate(this % rmValue)
+
+	end function msCreateEmpty
+
+
+	function msAddTimeSeries(this, sColumn, tSeries) result(iRetCode)
+
+		! Routine arguments
+		class(MultiSeries), intent(inout)	:: this
+		character(len=*), intent(in)		:: sColumn
+		type(TimeSeries), intent(in)		:: tSeries
+		integer								:: iRetCode
+
+		! Locals
+		integer											:: iErrCode
+		integer											:: i
+		integer											:: iNumData
+		integer											:: iNumCols
+		character(len=16), dimension(:), allocatable	:: svColumn
+		real, dimension(:,:), allocatable				:: rmValue
+		real(8), dimension(:), allocatable				:: rvTimeStamp
+		real, dimension(:), allocatable					:: rvData
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check input parameters
+		if(tSeries % isEmpty()) then
+			iRetCode = 1
+			return
+		end if
+		if(sColumn == ' ') then
+			iRetCode = 2
+			return
+		end if
+		iNumData = tSeries % size()
+
+		! Check the multiseries is empty or not, and act accordingly
+		if(this % isEmpty()) then	! The multivariate time series is empty: create it
+
+			! Reserve workspace
+			iErrCode = this % CreateEmpty()		! force deallocation of "all" data - just out of prudence
+			allocate(this % rvTimeStamp(iNumData), stat = iErrCode)
+			if(iErrCode /= 0) then
+				iRetCode = 3
+				return
+			end if
+			allocate(this % rmValue(iNumData, 1), stat = iErrCode)
+			if(iErrCode /= 0) then
+				iRetCode = 4
+				return
+			end if
+			allocate(this % svColumn(1), stat = iErrCode)
+			if(iErrCode /= 0) then
+				iRetCode = 5
+				return
+			end if
+
+			! Get data from time series
+			iErrCode = tSeries % getTimeStamp(rvTimeStamp)
+			if(iErrCode /= 0) then
+				iRetCode = 6
+				return
+			end if
+			iErrCode = tSeries % getValues(rvData)
+			if(iErrCode /= 0) then
+				iRetCode = 7
+				return
+			end if
+
+			! Put data to multivariate time series (with one column)
+			this % rvTimeStamp  = rvTimeStamp
+			this % rmValue(:,1) = rvData
+			this % svColumn(1)  = sColumn
+			
+		else	! The multivariate series is non-empty
+
+			! Check the multiseries makes sense (this is just for defensive programming)
+			if(.not.allocated(this % svColumn) .or. .not.allocated(this % rmValue)) then
+				iRetCode = 8
+				return
+			end if
+
+			! Check the time series to add is compatible by size and time to the multiseries
+			iNumData = size(this % rmValue, dim=1)
+			iNumCols = size(this % rmValue, dim=2)
+			if(tSeries % size() /= iNumData) then
+				iRetCode = 9
+				return
+			end if
+			iErrCode = tSeries % getTimeStamp(rvTimeStamp)
+			if(iErrCode /= 0) then
+				iRetCode = 10
+				return
+			end if
+			do i = 1, iNumData
+				if(abs(this % rvTimeStamp(i) - rvTimeStamp(i)) > 1.d-1) then
+					iRetCode = 11
+					return
+				end if
+			end do
+
+			! Get a copy of data from current multiseries
+			allocate(svColumn(iNumCols + 1), stat=iErrCode)
+			if(iErrCode /= 0) then
+				iRetCode = 12
+				return
+			end if
+			allocate(rmValue(iNumData, iNumCols + 1), stat=iErrCode)
+			if(iErrCode /= 0) then
+				iRetCode = 13
+				return
+			end if
+			svColumn(1:iNumCols) = this % svColumn
+			rmValue(1:iNumData, 1:iNumCols) = this % rmValue
+
+			! Add temporary vectors the time series data
+			iErrCode = tSeries % GetValues(rvData)
+			if(iErrCode /= 0) then
+				iRetCode = 14
+				return
+			end if
+			svColumn(iNumCols + 1) = sColumn
+			rmValue(1:iNumData, iNumCols + 1) = rvData
+
+			! Re-allocate multiseries space, and fill it with new data
+			deallocate(this % svColumn)
+			deallocate(this % rmValue)
+			allocate(this % svColumn(iNumCols + 1), stat=iErrCode)
+			if(iErrCode /= 0) then
+				iRetCode = 15
+				return
+			end if
+			allocate(this % rmValue(iNumData, iNumCols + 1), stat=iErrCode)
+			if(iErrCode /= 0) then
+				iRetCode = 16
+				return
+			end if
+			this % svColumn = svColumn
+			this % rmValue  = rmValue
+			
+		end if
+
+		! Reclaim workspace
+		if(allocated(rmValue))  deallocate(rmValue)
+		if(allocated(svColumn)) deallocate(svColumn)
+		deallocate(rvTimeStamp)
+		deallocate(rvData)
+
+	end function msAddTimeSeries
+
+
+	function msGetTimeSeries(this, sColumn, tSeries) result(iRetCode)
+
+		! Routine arguments
+		class(MultiSeries), intent(in)	:: this
+		character(len=*), intent(in)	:: sColumn
+		type(TimeSeries), intent(out)	:: tSeries
+		integer							:: iRetCode
+
+		! Locals
+		integer		:: iErrCode
+		integer		:: iPos
+		integer		:: i
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check all this makes sense
+		if(this % isEmpty()) then
+			iRetCode = 1
+			return
+		end if
+
+		! Find column in name set
+		iPos = 0
+		do i = 1, size(this % rvTimeStamp)
+			if(sColumn == this % svColumn(i)) then
+				iPos = i
+				exit
+			end if
+		end do
+		if(iPos <= 0) then
+			iRetCode = 2
+			return
+		end if
+
+		! Create workspace from data
+		iErrCode = tSeries % createFromTimeAndDataVectors(this % rvTimeStamp, this % rmValue(:, iPos))
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+
+	end function msGetTimeSeries
+
+
+	function msGetTimeStamp(this, rvTimeStamp) result(iRetCode)
+
+		! Routine arguments
+		class(MultiSeries), intent(in)					:: this
+		real(8), dimension(:), allocatable, intent(out)	:: rvTimeStamp
+		integer											:: iRetCode
+
+		! Locals
+		integer		:: iErrCode
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check all this makes sense
+		if(this % isEmpty()) then
+			iRetCode = 1
+			return
+		end if
+
+		! Create workspace from data
+		if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
+		allocate(rvTimeStamp(size(this % rvTimeStamp)), stat=iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		rvTimeStamp = this % rvTimeStamp
+
+	end function msGetTimeStamp
+
+
+	function msGetVector(this, sColumn, rvVector) result(iRetCode)
+
+		! Routine arguments
+		class(MultiSeries), intent(in)					:: this
+		character(len=*), intent(in)					:: sColumn
+		real(8), dimension(:), allocatable, intent(out)	:: rvVector
+		integer											:: iRetCode
+
+		! Locals
+		integer		:: iErrCode
+		integer		:: iPos
+		integer		:: i
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check all this makes sense
+		if(this % isEmpty()) then
+			iRetCode = 1
+			return
+		end if
+
+		! Find column in name set
+		iPos = 0
+		do i = 1, size(this % rvTimeStamp)
+			if(sColumn == this % svColumn(i)) then
+				iPos = i
+				exit
+			end if
+		end do
+		if(iPos <= 0) then
+			iRetCode = 2
+			return
+		end if
+
+		! Create workspace from data
+		if(allocated(rvVector)) deallocate(rvVector)
+		allocate(rvVector(size(this % rmValue, dim=1)), stat=iErrCode)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+		rvVector = this % rmValue(:,iPos)
+
+	end function msGetVector
+
+
+	function msIsEmpty(this) result(lIsEmpty)
+
+		! Routine arguments
+		class(MultiSeries), intent(in)	:: this
+		logical							:: lIsEmpty
+
+		! Locals
+		! --none--
+
+		! Check emptyness
+		lIsEmpty = .not.allocated(this % rvTimeStamp)
+
+	end function msIsEmpty
+
 
 	! *********************
 	! * Internal routines *
