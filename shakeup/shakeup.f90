@@ -8,238 +8,453 @@ module shakeup
     private
 
     ! Public interface
-    public  :: DataSet
+    public  :: StationList
 
     ! Data types
-    type DataSet
-        real                                :: lat
-        real                                :: lon
-        integer                             :: zone
-        real                                :: alt
-        real(8), dimension(:), allocatable  :: time_stamp_begin
-        real(8), dimension(:), allocatable  :: time_stamp_end
-        real(8), dimension(:), allocatable  :: Vel
-        real(8), dimension(:), allocatable  :: Temp
-        real(8), dimension(:), allocatable  :: ustar
-        real(8), dimension(:), allocatable  :: H0
-    contains
-        procedure   :: read
-    end type DataSet
 
-contains
-
-    function read(this, sDataPath, sStationName, sAvgPeriod) result(iRetCode)
-
-        ! Routine arguments
-        class(DataSet), intent(out)     :: this
-        character(len=256), intent(in)  :: sDataPath
-        character(len=256), intent(in)  :: sStationName
-        character(len=1), intent(in)    :: sAvgPeriod
-        integer                         :: iRetCode
-
-        ! Locals
-        character(len=256), dimension(:), allocatable   :: svStationName
+    type StationList
+        character(len=32), dimension(:), allocatable    :: svName
         real, dimension(:), allocatable                 :: rvLat
         real, dimension(:), allocatable                 :: rvLon
         integer, dimension(:), allocatable              :: ivZone
         real, dimension(:), allocatable                 :: rvAlt
-        integer, dimension(:), allocatable              :: ivIdxVel
-        integer, dimension(:), allocatable              :: ivIdxTemp
-        integer, dimension(:), allocatable              :: ivIdxUstar
-        integer, dimension(:), allocatable              :: ivIdxH0
-        real(8), dimension(:), allocatable              :: rvTimeVel
-        real(8), dimension(:), allocatable              :: rvTimeTemp
-        real(8), dimension(:), allocatable              :: rvTimeUstar
-        real(8), dimension(:), allocatable              :: rvTimeH0
-        real(8), dimension(:), allocatable              :: rvVel
-        real(8), dimension(:), allocatable              :: rvTemp
-        real(8), dimension(:), allocatable              :: rvUstar
-        real(8), dimension(:), allocatable              :: rvH0
-        character(len=256)                              :: sBuffer
-        integer                                         :: iLUN
-        integer                                         :: iErrCode
-        integer                                         :: iStation
-        integer                                         :: iNumStations
-        integer                                         :: iPos
-        integer                                         :: iFill
-        integer                                         :: iStationIdx
-        real(8), dimension(4)                           :: rvTimeStamps
-        integer                                         :: n
-        integer                                         :: i
-        logical                                         :: lEqualTimeStamps
-        real(8)                                         :: rTimeDelta
+        character(len=16), dimension(:), allocatable    :: svQuantity
+        integer, dimension(:,:), allocatable            :: imQuantityIdx
+        logical                                         :: lComplete = .false.
+    contains
+        procedure   :: Read              => StationsRead
+        procedure   :: GetData           => StationsGetData
+        procedure   :: GetQuantityIdx    => StationsGetQuantityIdx
+        procedure   :: GetQuantitySeries => StationsGetQuantitySeries
+    end type StationList
 
-        ! Constants
-        character(len=256), parameter   :: sStationsFile = "./shakeup_stations.csv"
+contains
+
+    function StationsRead(this, sFileName) result(iRetCode)
+
+        ! Routine arguments
+        class(StationList), intent(out)     :: this
+        character(len=*), intent(in)        :: sFileName
+        integer                             :: iRetCode
+
+        ! Locals
+        integer     :: iLUN
+        integer     :: iErrCode
+        integer     :: iNumStations
+        integer     :: iStation
+        integer     :: jStation
+        integer     :: iNumData
+        integer     :: iData
+        integer     :: i
+        character(len=256)                              :: sBuffer
+        character(len=16), dimension(:), allocatable    :: svFieldNames
+        character(len=16), dimension(:), allocatable    :: svField
 
         ! Assume success (will falsify on failure)
         iRetCode = 0
+        this % lComplete = .false.
 
-        ! Get station list from configuration file
-        open(newunit=iLUN, file=sStationsFile, status='old', action='read', iostat=iErrCode)
+        ! Get file header
+        open(newunit=iLUN, file=sFileName, status='old', action='read', iostat=iErrCode)
         if(iErrCode /= 0) then
             iRetCode = 1
             return
         end if
-        iNumStations = -1   ! Skip header line implicitly
+        read(iLUN, "(a)", iostat=iErrCode) sBuffer
+        if(iErrCode /= 0) then
+            close(iLUN)
+            iRetCode = 2
+            return
+        end if
+        iErrCode = splitString(sBuffer, svFieldNames)
+        if(iErrCode /= 0) then
+            close(iLUN)
+            iRetCode = 3
+            return
+        end if
+        if(size(svFieldNames) < 6) then
+            close(iLUN)
+            iRetCode = 4
+            return
+        end if
+
+        ! Adjust fields to left, to prevent ambiguities
+        do i = 1, size(svFieldNames)
+            svFieldNames(i) = adjustl(svFieldNames(i))
+        end do
+
+        ! Save header data
+        iNumData = size(svFieldNames) - 5
+        if(allocated(this % svQuantity)) deallocate(this % svQuantity)
+        allocate(this % svQuantity(iNumData))
+        this % svQuantity = svFieldNames(6:)
+
+        ! Count stations and allocate workspace
+        iNumStations = 0
         do
             read(iLUN, "(a)", iostat=iErrCode) sBuffer
             if(iErrCode /= 0) exit
             iNumStations = iNumStations + 1
         end do
         if(iNumStations <= 0) then
+            iRetCode = 5
             close(iLUN)
-            iRetCode = 2
             return
         end if
-        allocate(svStationName(iNumStations))
-        allocate(rvLat(iNumStations))
-        allocate(rvLon(iNumStations))
-        allocate(ivZone(iNumStations))
-        allocate(rvAlt(iNumStations))
-        allocate(ivIdxVel(iNumStations))
-        allocate(ivIdxTemp(iNumStations))
-        allocate(ivIdxUstar(iNumStations))
-        allocate(ivIdxH0(iNumStations))
+        if(allocated(this % svName))         deallocate(this % svName)
+        if(allocated(this % rvLon))          deallocate(this % rvLon)
+        if(allocated(this % rvLat))          deallocate(this % rvLat)
+        if(allocated(this % ivZone))         deallocate(this % ivZone)
+        if(allocated(this % rvAlt))          deallocate(this % rvAlt)
+        if(allocated(this % imQuantityIdx))  deallocate(this % imQuantityIdx)
+        allocate(this % svName(iNumStations))
+        allocate(this % rvLon(iNumStations))
+        allocate(this % rvLat(iNumStations))
+        allocate(this % ivZone(iNumStations))
+        allocate(this % rvAlt(iNumStations))
+        allocate(this % imQuantityIdx(iNumData, iNumStations))
+
+        ! Read stations data
         rewind(iLUN)
-        read(iLUN, "(a)") sBuffer
-        ! Data indexing in header:
-        ! Temp,RelH,Prec,Rg,Rn,Vel_Conv,Dir_Conv,Vel_Scalar,Dir_Unit,Vel_Sonic,Dir_Sonic,Temp_Sonic,Ustar,H0,z_over_L,Tstar,Sigma_U,Sigma_V,Sigma_W,Sigma_T,TKE,T_Surface
-        ! 1    2    3    4  5  6        7        8          9        10        11        12         13    14 15       16    17      18      19      20      21  22
+        read(iLUN, "(a)") sBuffer   ! Skip header
         do iStation = 1, iNumStations
             read(iLUN, "(a)") sBuffer
-            iPos = index(sBuffer, ",")
-            svStationName(iStation) = sBuffer(:iPos-1)
-            read(sBuffer(iPos+1:), *) &
-                rvLon(iStation), rvLat(iStation), ivZone(iStation), rvAlt(iStation), &
-                ivIdxTemp(iStation), &  !  1
-                iFill, &                !  2
-                iFill, &                !  3
-                iFill, &                !  4
-                iFill, &                !  5
-                iFill, &                !  6
-                iFill, &                !  7
-                iFill, &                !  8
-                iFill, &                !  9
-                ivIdxVel(iStation), &   ! 10
-                iFill, &                ! 11
-                iFill, &                ! 12
-                ivIdxUstar(iStation), & ! 13
-                ivIdxH0(iStation), &    ! 14
-                iFill                   ! 15
+            iErrCode = splitString(sBuffer, svField)
+            if(iErrCode /= 0) then
+                close(iLUN)
+                iRetCode = 6
+                return
+            end if
+            if(size(svField) /= iNumData + 5) then
+                close(iLUN)
+                iRetCode = 7
+                return
+            end if
+            this % svName(iStation) = svField(1)
+            read(svField(2), *, iostat=iErrCode) this % rvLon(iStation)
+            if(iErrCode /= 0) then
+                close(iLUN)
+                iRetCode = 8
+                return
+            end if
+            read(svField(3), *, iostat=iErrCode) this % rvLat(iStation)
+            if(iErrCode /= 0) then
+                close(iLUN)
+                iRetCode = 9
+                return
+            end if
+            read(svField(4), *, iostat=iErrCode) this % ivZone(iStation)
+            if(iErrCode /= 0) then
+                close(iLUN)
+                iRetCode = 8
+                return
+            end if
+            read(svField(5), *, iostat=iErrCode) this % rvAlt(iStation)
+            if(iErrCode /= 0) then
+                close(iLUN)
+                iRetCode = 9
+                return
+            end if
+            do iData = 1, iNumData
+                read(svField(iData + 5), *, iostat=iErrCode) this % imQuantityIdx(iData, iStation)
+                if(iErrCode /= 0) then
+                    close(iLUN)
+                    iRetCode = 10
+                    return
+                end if
+            end do
         end do
-        close(iLUN)
 
-        ! Lookup desired station by name
-        iStationIdx = 0
+        ! Ensure no two stations have the same name, nor an empty name
         do iStation = 1, iNumStations
-            if(svStationName(iStation) == sStationName) then
-                iStationIdx = iStation
+            if(this % svName(iStation) == ' ') then
+                iRetCode = 11
+                return
+            end if
+            do jStation = iStation+1, iNumStations
+                if(this % svName(iStation) == this % svName(jStation)) then
+                    iRetCode = 12
+                    return
+                end if
+            end do
+        end do
+
+        ! Confirm the read was correct
+        this % lComplete = .true.
+
+    end function StationsRead
+
+
+    function StationsGetData( &
+        this, &
+        sStationName, &
+        rLon, &
+        rLat, &
+        iZone, &
+        rAlt, &
+        iStationIdxOut &
+    ) result(iRetCode)
+
+        ! Routime arguments
+        class(StationList), intent(in)  :: this
+        character(len=*), intent(in)    :: sStationName
+        real, intent(out)               :: rLon
+        real, intent(out)               :: rLat
+        integer, intent(out)            :: iZone
+        real, intent(out)               :: rAlt
+        integer, intent(out), optional  :: iStationIdxOut
+        integer                         :: iRetCode
+
+        ! Locals
+        integer     :: iErrCode
+        integer     :: iStationIdx
+        integer     :: i
+
+        ! Assume success (will falsify on failure)
+        iRetCode = 0
+
+        ! Check the stations list is complete
+        if(.not. this % lComplete) then
+            iRetCode = 1
+            return
+        end if
+        ! Post-condition: Yes, it is, and it makes sense to access its data
+
+        ! Search station by name
+        iStationIdx = 0
+        do i = 1, size(this % svName)
+            if(this % svName(i) == sStationName) then
+                iStationIdx = i
                 exit
             end if
         end do
         if(iStationIdx <= 0) then
+            iRetCode = 2
+            return
+        end if
+        ! Post-condition: Station found
+
+        ! Gather data
+        rAlt  = this % rvLat(iStationIdx)
+        rLon  = this % rvLon(iStationIdx)
+        iZone = this % ivZone(iStationIdx)
+        rAlt  = this % rvAlt(iStationIdx)
+        if(present(iStationIdxOut)) iStationIdxOut = iStationIdx
+        
+    end function StationsGetData
+
+
+    function StationsGetQuantityIdx(this, sStationName, svQuantityNames, ivQuantityIdx) result(iRetCode)
+
+        ! Routine arguments
+        class(StationList), intent(in)                  :: this
+        character(len=*), intent(in)                    :: sStationName
+        character(len=*), dimension(:), intent(in)      :: svQuantityNames
+        integer, dimension(:), allocatable, intent(out) :: ivQuantityIdx
+        integer                                         :: iRetCode
+
+        ! Locals
+        integer :: iErrCode
+        integer :: i
+        integer :: j
+        integer :: iStationIdx
+        integer, dimension(:), allocatable  :: ivQuantityPos
+
+        ! Assue success (will falsify on failure)
+        iRetCode = 0
+
+        ! Check the stations list is complete
+        if(.not. this % lComplete) then
+            iRetCode = 1
+            return
+        end if
+        ! Post-condition: Yes, it is, and it makes sense to access its data
+
+        ! Search station by name
+        iStationIdx = 0
+        do i = 1, size(this % svName)
+            if(this % svName(i) == sStationName) then
+                iStationIdx = i
+                exit
+            end if
+        end do
+        if(iStationIdx <= 0) then
+            iRetCode = 2
+            return
+        end if
+        ! Post-condition: Station found
+
+        ! Check which indices do quantities have
+        allocate(ivQuantityPos(size(svQuantityNames)))
+        do i = 1, size(svQuantityNames)
+            ivQuantityPos(i) = 0
+            do j = 1, size(this % svQuantity)
+                if(svQuantityNames(i) == this % svQuantity(j)) then
+                    ivQuantityPos(i) = j
+                    exit
+                end if
+            end do
+            if(ivQuantityPos(i) <= 0) then
+                iRetCode = 3
+                return
+            end if
+        end do
+        ! Post-condition: All variables found
+
+        ! Get actual quantity indices
+        if(allocated(ivQuantityIdx)) deallocate(ivQuantityIdx)
+        allocate(ivQuantityIdx(size(svQuantityNames)))
+        do i = 1, size(svQuantityNames)
+            ivQuantityIdx(i) = this % imQuantityIdx(ivQuantityPos(i), iStationIdx)
+        end do
+
+    end function StationsGetQuantityIdx
+
+
+    function StationsGetQuantitySeries( &
+        this, &
+        sDataPath, &
+        sStationName, &
+        sAvgPeriod, &
+        svQuantityNames, &
+        rvQualityThreshold, &
+        tMultiSeries &
+    ) result(iRetCode)
+
+        ! Routine arguments
+        class(StationList), intent(in)                  :: this
+        character(len=*), intent(in)                    :: sDataPath
+        character(len=*), intent(in)                    :: sStationName
+        character(len=*), dimension(:), intent(in)      :: svQuantityNames
+        real(8), dimension(:), intent(in)               :: rvQualityThreshold
+        character(len=*), intent(in)                    :: sAvgPeriod
+        type(MultiSeries), intent(out)                  :: tMultiSeries
+        integer                                         :: iRetCode
+
+        ! Locals
+        integer :: iErrCode
+        integer :: iData
+        integer :: i
+        integer :: j
+        integer :: n
+        integer :: iStationIdx
+        integer, dimension(:), allocatable  :: ivQuantityPos
+        integer, dimension(:), allocatable  :: ivQuantityIdx
+        type(TimeSeries)                    :: tSeries
+
+        ! Assue success (will falsify on failure)
+        iRetCode = 0
+
+        ! Check parameters
+        if(sDataPath == ' ' .or. sStationName == ' ') then
+            iRetCode = 1
+            return
+        end if
+        n = size(svQuantityNames)
+        if(size(rvQualityThreshold) /= n) then
+            iRetCode = 2
+            return
+        end if
+        if(minval(rvQualityThreshold) < 0.d0 .or. maxval(rvQualityThreshold) > 1000.d0) then
             iRetCode = 3
             return
         end if
 
-        ! Get the desired data
-        iErrCode = get_data(sDataPath, sAvgPeriod, ivIdxVel(iStationIdx), rvTimeVel, rvVel, 9.d0)
-        if(iErrCode /= 0) then
+        ! Check the stations list is complete
+        if(.not. this % lComplete) then
             iRetCode = 4
             return
         end if
-        iErrCode = get_data(sDataPath, sAvgPeriod, ivIdxTemp(iStationIdx), rvTimeTemp, rvTemp, 9.d0)
-        if(iErrCode /= 0) then
+        ! Post-condition: Yes, it is, and it makes sense to access its data
+
+        ! Search station by name
+        iStationIdx = 0
+        do i = 1, size(this % svName)
+            if(this % svName(i) == sStationName) then
+                iStationIdx = i
+                exit
+            end if
+        end do
+        if(iStationIdx <= 0) then
             iRetCode = 5
             return
         end if
-        iErrCode = get_data(sDataPath, sAvgPeriod, ivIdxUstar(iStationIdx), rvTimeUstar, rvUstar, 0.d0)
+        ! Post-condition: Station found
+
+        ! Check which indices do quantities have
+        allocate(ivQuantityPos(size(svQuantityNames)))
+        do i = 1, size(svQuantityNames)
+            ivQuantityPos(i) = 0
+            do j = 1, size(this % svQuantity)
+                if(svQuantityNames(i) == this % svQuantity(j)) then
+                    ivQuantityPos(i) = j
+                    exit
+                end if
+            end do
+            if(ivQuantityPos(i) <= 0) then
+                iRetCode = 6
+                return
+            end if
+        end do
+        ! Post-condition: All variables found
+
+        ! Get actual quantity indices
+        if(allocated(ivQuantityIdx)) deallocate(ivQuantityIdx)
+        allocate(ivQuantityIdx(size(svQuantityNames)))
+        do i = 1, size(svQuantityNames)
+            ivQuantityIdx(i) = this % imQuantityIdx(ivQuantityPos(i), iStationIdx)
+        end do
+
+        ! Get first series (it must exist), and compose the multivariate time series
+        ! starting from it
+        iErrCode = get_data(sDataPath, sAvgPeriod, ivQuantityIdx(1), tSeries, rvQualityThreshold(1))
+        if(iErrCode /= 0) then
+            iRetCode = 7
+            return
+        end if
+        iErrCode = tMultiSeries % CreateEmpty()
         if(iErrCode /= 0) then
             iRetCode = 8
             return
         end if
-        iErrCode = get_data(sDataPath, sAvgPeriod, ivIdxH0(iStationIdx), rvTimeH0, rvH0, 0.d0)
+        iErrCode = tMultiSeries % addTimeSeries(svQuantityNames(1), tSeries)
         if(iErrCode /= 0) then
             iRetCode = 9
             return
         end if
 
-        ! Check all the time stamp vectors coincide (they should)
-        n = size(rvTimeUstar)
-        if( &
-            size(rvTimeVel) /= n .or. &
-            size(rvTimeTemp) /= n .or. &
-            size(rvH0) /= n &
-        ) then
-            iRetCode = 11
-            return
-        end if
-        lEqualTimeStamps = .true.
-        do i = 1, n
-            rvTimeStamps = [ &
-                rvTimeVel(i), &
-                rvTimeTemp(i), &
-                rvTimeUstar(i), &
-                rvTimeH0(i) &
-            ]
-            if(abs(maxval(rvTimeStamps) - minval(rvTimeStamps)) > 1.d-1 ) then
-                lEqualTimeStamps = .false.
-                exit
+        ! Get all other series, if any
+        do iData = 2, size(svQuantityNames)
+
+            iErrCode = get_data(sDataPath, sAvgPeriod, ivQuantityIdx(iData), tSeries, rvQualityThreshold(iData))
+            if(iErrCode /= 0) then
+                iRetCode = 10
+                return
             end if
+
+            iErrCode = tMultiSeries % addTimeSeries(svQuantityNames(iData), tSeries)
+            if(iErrCode /= 0) then
+                iRetCode = 11
+                return
+            end if
+    
         end do
-        if(.not.lEqualTimeStamps) then
-            iRetCode = 12
-            return
-        end if
 
-        ! Ustar-specific processing
-        where(rvUstar <= 0.05)
-            rvUstar = 0.05
-        endwhere
+    end function StationsGetQuantitySeries
 
-        ! Save data to data set
-        this % lat  = rvLat(iStationIdx)
-        this % lon  = rvLon(iStationIdx)
-        this % zone = ivZone(iStationIdx)
-        this % alt  = rvAlt(iStationIdx)
-        if(sAvgPeriod == 'H') then
-            rTimeDelta = 3600.d0
-        else
-            rTimeDelta =  600.d0
-        end if
-        if(allocated(this % time_stamp_begin)) deallocate(this % time_stamp_begin)
-        if(allocated(this % time_stamp_end))   deallocate(this % time_stamp_end)
-        if(allocated(this % Vel))              deallocate(this % Vel)
-        if(allocated(this % Temp))             deallocate(this % Temp)
-        if(allocated(this % ustar))            deallocate(this % ustar)
-        if(allocated(this % H0))               deallocate(this % H0)
-        allocate(this % time_stamp_begin(n))
-        allocate(this % time_stamp_end(n))
-        allocate(this % Vel(n))
-        allocate(this % Temp(n))
-        allocate(this % ustar(n))
-        allocate(this % H0(n))
-        this % time_stamp_begin = rvTimeUstar - rTimeDelta
-        this % time_stamp_end   = rvTimeUstar
-        this % Vel              = rvVel
-        this % Temp             = rvTemp
-        this % ustar            = rvUstar
-        this % H0               = rvH0
+    ! *********************
+    ! * Internal routines *
+    ! *********************
 
-    end function read
-
-
-    function get_data(sDataPath, sAvgPeriod, iDataIdx, rvDataTime, rvData, rQualityThreshold) result(iRetCode)
+    function get_data(sDataPath, sAvgPeriod, iDataIdx, tSeries, rQualityThreshold) result(iRetCode)
 
         ! Routine arguments
-        character(len=256), intent(in)                      :: sDataPath
-        character(len=1), intent(in)                        :: sAvgPeriod
-        integer, intent(in)                                 :: iDataIdx
-        real(8), dimension(:), allocatable, intent(out)     :: rvDataTime
-        real(8), dimension(:), allocatable, intent(out)     :: rvData
-        real(8), intent(in), optional                       :: rQualityThreshold
-        integer                                             :: iRetCode
+        character(len=256), intent(in)      :: sDataPath
+        character(len=1), intent(in)        :: sAvgPeriod
+        integer, intent(in)                 :: iDataIdx
+        type(TimeSeries), intent(out)       :: tseries
+        real(8), intent(in), optional       :: rQualityThreshold
+        integer                             :: iRetCode
 
         ! Locals
         integer             :: iErrCode
@@ -259,6 +474,8 @@ contains
         integer             :: iYear, iMonth, iDay, iHour, iMinute, iSecond
         real(8)             :: rMinQuality
         logical             :: lDisableQuality
+        real(8), dimension(:), allocatable  :: rvDataTime
+        real, dimension(:), allocatable     :: rvData
 
         ! Assume success (will falsify on failure)
         iRetCode = 0
@@ -352,6 +569,13 @@ contains
 
         end do
         close(iLUN)
+
+        ! Create time series
+        iErrCode = tSeries % createFromTimeAndDataVectors(rvDataTime, rvData)
+        if(iErrCode /= 0) then
+            iRetCode = 4
+            return
+        end if
 
     end function get_data
 
