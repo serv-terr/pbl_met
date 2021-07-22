@@ -45,6 +45,7 @@ contains
         integer     :: jStation
         integer     :: iNumData
         integer     :: iData
+        integer     :: jData
         integer     :: i
         character(len=256)                              :: sBuffer
         character(len=16), dimension(:), allocatable    :: svFieldNames
@@ -176,6 +177,22 @@ contains
                     iRetCode = 12
                     return
                 end if
+            end do
+        end do
+
+        ! Ensure no two sensor IDs are the same
+        ! Note the little trick in 'jStation' loop: it starts on 'iStation', and
+        ! not 'iStation+1', to force a check no two IDs are repeated _on the same station_.
+        do iStation = 1, iNumStations
+            do jStation = iStation, iNumStations
+                do iData = 1, iNumData
+                    do jData = 1, iNumData
+                        if(this % imQuantityIdx(iData, iStation) == this % imQuantityIdx(jData, jStation)) then
+                            iRetCode = 13
+                            return
+                        end if
+                    end do
+                end do
             end do
         end do
 
