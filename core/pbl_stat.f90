@@ -40,6 +40,7 @@ module pbl_stat
     ! 5. Peak detection
     ! 6. Utilities
     public	:: RemoveLinearTrend
+	public	:: SimpleLinearRegression
     ! 7. Time series
     public	:: TimeSeries
     public	:: TDELTA_YEAR
@@ -1562,6 +1563,65 @@ contains
 		rOffset = rOffset - rMeanAfterDetrend + rMeanBeforeDetrend
 
 	end function RemoveLinearTrend
+
+
+	! Remove linear trend, if any, from a signal.
+	!
+	! The signal is modified by eliminating the trend found, but
+	! leaving the riginal mean unchanged.
+	function SimpleLinearRegression(rvX, rvY, rMultiplier, rOffset) result(iRetCode)
+
+		! Routine argument
+		real(8), dimension(:), intent(in)	:: rvX			! Index signal (typically time, in floating point form)
+		real, dimension(:), intent(inout)	:: rvY			! Signal to remove the trend from
+		real(8), intent(out)				:: rMultiplier	! Multiplier of trend line
+		real(8), intent(out)				:: rOffset		! Offset of trend line
+		integer								:: iRetCode
+
+		! Locals
+		integer	:: n
+		real(8)	:: rSx
+		real(8)	:: rSy
+		real(8)	:: rSxx
+		real(8)	:: rSxy
+		real(8)	:: rDelta
+		real(8)	:: rMeanBeforeDetrend
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check input parameters
+		if(size(rvX) <= 0 .or. size(rvY) <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(rvX) /= size(rvY)) then
+			iRetCode = 2
+			return
+		end if
+		if(any(.invalid.rvX) .or. any(.invalid.rvY)) then
+			iRetCode = 3
+			return
+		end if
+
+		! Compute counts and sums
+		n    = size(rvX)
+		rSx  = sum(rvX)
+		rSy  = sum(dble(rvY))
+		rSxx = dot_product(rvX,rvX)
+		rSxy = dot_product(rvX,dble(rvY))
+		rMeanBeforeDetrend = rSy / n
+
+		! Compute multiplier and offset
+		rDelta      = n*rSxx - rSx**2
+		if(rDelta <= 0.d0) then
+			iRetCode = 4
+			return
+		end if
+		rOffset     = (rSxx*rSy - rSx*rSxy)/rDelta
+		rMultiplier = (n*rSxy - rSx*rSy)/rDelta
+
+	end function SimpleLinearRegression
 
 	! ********************************
 	! * Members of Time<series class *
