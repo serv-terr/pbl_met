@@ -177,6 +177,26 @@ module pbl_stat
 
     ! Polymorphic interfaces
 
+    interface RangeInvalidate
+    	module procedure	:: RangeInvalidate4
+    	module procedure	:: RangeInvalidate8
+    end interface RangeInvalidate
+
+    interface PairInvalidate
+    	module procedure	:: PairInvalidate4
+    	module procedure	:: PairInvalidate8
+    end interface PairInvalidate
+
+    interface RangeClip
+    	module procedure	:: RangeClip4
+    	module procedure	:: RangeClip8
+    end interface RangeClip
+
+    interface GetValidOnly
+    	module procedure	:: GetValidOnly4
+    	module procedure	:: GetValidOnly8
+    end interface GetValidOnly
+
     interface Quantile
     	module procedure	:: QuantileScalar
     	module procedure	:: QuantileVector
@@ -190,7 +210,7 @@ module pbl_stat
 contains
 
 	! Make data outside a specified range invalid, by replacing their value with NaN
-	subroutine RangeInvalidate(rvX, rMin, rMax)
+	subroutine RangeInvalidate4(rvX, rMin, rMax)
 
 		! Routine arguments
 		real, dimension(:), intent(inout)	:: rvX		! Vector of data to range-invalidate
@@ -209,12 +229,34 @@ contains
 			end if
 		end do
 
-	end subroutine RangeInvalidate
+	end subroutine RangeInvalidate4
+
+
+		! Make data outside a specified range invalid, by replacing their value with NaN
+	subroutine RangeInvalidate8(rvX, rMin, rMax)
+
+		! Routine arguments
+		real(8), dimension(:), intent(inout)	:: rvX		! Vector of data to range-invalidate
+		real(8), intent(in)						:: rMin		! Minimum allowed value
+		real(8), intent(in)						:: rMax		! Maximum allowed value
+
+		! Locals
+		integer	:: i
+
+		! Validate by range
+		do i = 1, size(rvX)
+			if(rvX(i) < rMin) then
+				rvX(i) = NaN_8
+			elseif(rvX(i) > rMax) then
+				rvX(i) = NaN_8
+			end if
+		end do
+
+	end subroutine RangeInvalidate8
 
 
 	! Make invalid data in a vector invalid if those of another also are, and viceversa.
-	! After
-	subroutine PairInvalidate(rvX, rvY)
+	subroutine PairInvalidate4(rvX, rvY)
 
 		! Routine arguments
 		real, dimension(:), intent(inout)	:: rvX		! Vector to pair-invalidate
@@ -237,11 +279,38 @@ contains
 			end if
 		end do
 
-	end subroutine PairInvalidate
+	end subroutine PairInvalidate4
+
+
+	! Make invalid data in a vector invalid if those of another also are, and viceversa.
+	subroutine PairInvalidate8(rvX, rvY)
+
+		! Routine arguments
+		real(8), dimension(:), intent(inout)	:: rvX		! Vector to pair-invalidate
+		real(8), dimension(:), intent(inout)	:: rvY		! Vector to pair-invalidate
+
+		! Locals
+		integer	:: i
+		integer	:: iMin, iMax
+
+		! Compute loop limits from array dimensions
+		iMin = max(lbound(rvX,dim=1), lbound(rvY,dim=1))
+		iMax = min(ubound(rvX,dim=1), ubound(rvY,dim=1))
+
+		! Ensure invalid positions in one vector are propagated to the other
+		do i = iMin, iMax
+			if(.invalid. rvX(i)) then
+				rvY(i) = NaN_8
+			elseif(.invalid. rvY(i)) then
+				rvX(i) = NaN_8
+			end if
+		end do
+
+	end subroutine PairInvalidate8
 
 
 	! Force data to be within a specified range invalid, clipping to extremal values
-	subroutine RangeClip(rvX, rMin, rMax)
+	subroutine RangeClip4(rvX, rMin, rMax)
 
 		! Routine arguments
 		real, dimension(:), intent(inout)	:: rvX		! Vector of data to range-clip
@@ -260,11 +329,34 @@ contains
 			end if
 		end do
 
-	end subroutine RangeClip
+	end subroutine RangeClip4
+
+
+	! Force data to be within a specified range invalid, clipping to extremal values
+	subroutine RangeClip8(rvX, rMin, rMax)
+
+		! Routine arguments
+		real(8), dimension(:), intent(inout)	:: rvX		! Vector of data to range-clip
+		real(8), intent(in)						:: rMin		! Minimum allowed value
+		real(8), intent(in)						:: rMax		! Maximum allowed value
+
+		! Locals
+		integer	:: i
+
+		! Validate by range
+		do i = 1, size(rvX)
+			if(rvX(i) < rMin) then
+				rvX(i) = rMin
+			elseif(rvX(i) > rMax) then
+				rvX(i) = rMax
+			end if
+		end do
+
+	end subroutine RangeClip8
 
 
 	! Pack a vector to another vector containing only valid (i.e. non-NaN) data
-	function GetValidOnly(rvX) result(rvValidX)
+	function GetValidOnly4(rvX) result(rvValidX)
 
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX			! Vector of data containing zero or more NaN
@@ -292,7 +384,39 @@ contains
 			end if
 		end do
 
-	end function GetValidOnly
+	end function GetValidOnly4
+
+
+	! Pack a vector to another vector containing only valid (i.e. non-NaN) data
+	function GetValidOnly8(rvX) result(rvValidX)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: rvX			! Vector of data containing zero or more NaN
+		real(8), dimension(:), allocatable	:: rvValidX		! The same vector, with all NaN values stripped
+
+		! Locals
+		integer	:: iNumValid
+		integer	:: i, j
+
+		! Count valid data, and check something is to be made
+		iNumValid = count(.not.ieee_is_nan(rvX))
+		if(allocated(rvValidX)) deallocate(rvValidX)
+		if(size(rvX) <= 0 .or. iNumValid <= 0) then
+			allocate(rvValidX(0))
+			return
+		end if
+
+		! Loop over data, copying valids only to the new vector
+		allocate(rvValidX(iNumValid))
+		j = 0
+		do i = 1, size(rvX)
+			if(.not.ieee_is_nan(rvX(i))) then
+				j = j + 1
+				rvValidX(j) = rvX(i)
+			end if
+		end do
+
+	end function GetValidOnly8
 
 
 	! Compute the mean of a signal
