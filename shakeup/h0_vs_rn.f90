@@ -11,21 +11,26 @@ program h0_vs_rn
     implicit none
 
     ! Locals
-    integer                         :: iRetCode
-    character(len=256)              :: sDataPath
-    character(len=256)              :: sStationName
-    character(len=1)                :: sAvgPeriod
-    character(len=256)              :: sOutputFile
-    type(H0vsRnDataSet)             :: tData
-    integer                         :: n
-    integer                         :: i
+    integer                             :: iRetCode
+    character(len=256)                  :: sDataPath
+    character(len=256)                  :: sStationName
+    character(len=1)                    :: sAvgPeriod
+    character(len=256)                  :: sOutputFile
+    type(H0vsRnDataSet)                 :: tData
+    integer                             :: n
+    integer                             :: i
     real(8), dimension(:), allocatable  :: rvRn
     real(8), dimension(:), allocatable  :: rvH0
-    real                            :: averagingPeriod
-    type(DateTime)                  :: tDateTime
-    character(len=23)               :: sTimeStamp
-    integer                         :: iLUN
-    integer                         :: iDeltaTime
+    real(8), dimension(:), allocatable  :: rvValidRn
+    real(8), dimension(:), allocatable  :: rvValidH0
+    real(8), dimension(:), allocatable  :: rvEstimatedH0
+    real(8)                             :: rAlpha
+    real(8)                             :: rOffset
+    real                                :: averagingPeriod
+    type(DateTime)                      :: tDateTime
+    character(len=23)                   :: sTimeStamp
+    integer                             :: iLUN
+    integer                             :: iDeltaTime
 
     ! Get parameters
     if(command_argument_count() /= 4) then
@@ -56,30 +61,53 @@ program h0_vs_rn
         stop
     end if
 
-    ! Reserve workspace
-    n = size(tData % time_stamp_begin)
+    ! Use the pbl_met clipping functions to remove invalids in either series
+    print *, "Taking valid data only"
+    n = size(tData % Rn)
     allocate(rvRn(n))
     allocate(rvH0(n))
-
-    ! Estimate mixing height using measured PBL parameters
-    print *, "Get Rn and H0 readings"
     rvRn = tData % Rn
     rvH0 = tData % H0
+    call PairInvalidate(rvRn, rvH0)
+    rvValidRn = GetValidOnly(rvRn)
+    rvValidH0 = GetValidOnly(rvH0)
+    if(size(rvValidRn) <= 0 .or. size(rvValidH0) <= 0 .or. size(rvValidRn) /= size(rvValidH0)) then
+        print *, "h0_vs_rn:: error: No valid data found"
+        stop
+    end if
+
+    ! Regress H0 on Rn, to compute 'alpha' (the regression multiplier); the offset, in this case,
+    ! acts as an error indication: ideally, its value is 0.
+    print *, "Get Rn and H0 readings"
+    iRetCode = SimpleLinearRegression(rvValidRn, rvValidH0, rAlpha, rOffset, rvEstimatedH0)
+    if(iRetCode /= 0) then
+        print *, "h0_vs_rn:: error: Regression not computed - Return code = ", iRetCode
+        stop
+    end if
 
     ! Write hourly report
     print *, "Print hourly data"
     open(newunit=iLUN, file=sOutputFile, status='unknown', action='write')
-    write(iLUN, "(a,2(',',a))") 'Date.Time', &
-                                 'Rn', &
-                                 'H0'
-    do i = 1, n
+    write(iLUN, "(a,3(',',a))") 'Date.Time', &
+        'Rn', &
+        'H0', &
+        'H0.Estimate'
+    do i = 1, size(rvValidRn)
         iRetCode = tDateTime % fromEpoch(tData % time_stamp_begin(i))
-        write(iLUN, "(i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2),2(',',f9.3))") &
+        write(iLUN, "(i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2),3(',',f9.3))") &
             tDateTime % iYear, tDateTime % iMonth, tDateTime % iDay, &
             tDateTime % iHour, tDateTime % iMinute, int(tDateTime % rSecond), &
-            tData % Rn(i), &
-            tData % H0(i)
+            rvValidRn(i), &
+            rvValidH0(i), &
+            rvEstimatedH0(i)
     end do
     close(iLUN)
+
+    ! Print parameters
+    print *, 'Alpha  = ', rAlpha
+    print *, 'Offset = ', rOffset
+
+    deallocate(rvH0)
+    deallocate(rvRn)
 
 end program h0_vs_rn

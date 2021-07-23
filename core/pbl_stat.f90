@@ -40,6 +40,7 @@ module pbl_stat
     ! 5. Peak detection
     ! 6. Utilities
     public	:: RemoveLinearTrend
+	public	:: SimpleLinearRegression
     ! 7. Time series
     public	:: TimeSeries
     public	:: TDELTA_YEAR
@@ -176,15 +177,40 @@ module pbl_stat
 
     ! Polymorphic interfaces
 
+    interface RangeInvalidate
+    	module procedure	:: RangeInvalidate4
+    	module procedure	:: RangeInvalidate8
+    end interface RangeInvalidate
+
+    interface PairInvalidate
+    	module procedure	:: PairInvalidate4
+    	module procedure	:: PairInvalidate8
+    end interface PairInvalidate
+
+    interface RangeClip
+    	module procedure	:: RangeClip4
+    	module procedure	:: RangeClip8
+    end interface RangeClip
+
+    interface GetValidOnly
+    	module procedure	:: GetValidOnly4
+    	module procedure	:: GetValidOnly8
+    end interface GetValidOnly
+
     interface Quantile
     	module procedure	:: QuantileScalar
     	module procedure	:: QuantileVector
     end interface Quantile
 
+    interface SimpleLinearRegression
+    	module procedure	:: SimpleLinearRegression4
+    	module procedure	:: SimpleLinearRegression8
+    end interface SimpleLinearRegression
+
 contains
 
 	! Make data outside a specified range invalid, by replacing their value with NaN
-	subroutine RangeInvalidate(rvX, rMin, rMax)
+	subroutine RangeInvalidate4(rvX, rMin, rMax)
 
 		! Routine arguments
 		real, dimension(:), intent(inout)	:: rvX		! Vector of data to range-invalidate
@@ -203,12 +229,34 @@ contains
 			end if
 		end do
 
-	end subroutine RangeInvalidate
+	end subroutine RangeInvalidate4
+
+
+		! Make data outside a specified range invalid, by replacing their value with NaN
+	subroutine RangeInvalidate8(rvX, rMin, rMax)
+
+		! Routine arguments
+		real(8), dimension(:), intent(inout)	:: rvX		! Vector of data to range-invalidate
+		real(8), intent(in)						:: rMin		! Minimum allowed value
+		real(8), intent(in)						:: rMax		! Maximum allowed value
+
+		! Locals
+		integer	:: i
+
+		! Validate by range
+		do i = 1, size(rvX)
+			if(rvX(i) < rMin) then
+				rvX(i) = NaN_8
+			elseif(rvX(i) > rMax) then
+				rvX(i) = NaN_8
+			end if
+		end do
+
+	end subroutine RangeInvalidate8
 
 
 	! Make invalid data in a vector invalid if those of another also are, and viceversa.
-	! After
-	subroutine PairInvalidate(rvX, rvY)
+	subroutine PairInvalidate4(rvX, rvY)
 
 		! Routine arguments
 		real, dimension(:), intent(inout)	:: rvX		! Vector to pair-invalidate
@@ -231,11 +279,38 @@ contains
 			end if
 		end do
 
-	end subroutine PairInvalidate
+	end subroutine PairInvalidate4
+
+
+	! Make invalid data in a vector invalid if those of another also are, and viceversa.
+	subroutine PairInvalidate8(rvX, rvY)
+
+		! Routine arguments
+		real(8), dimension(:), intent(inout)	:: rvX		! Vector to pair-invalidate
+		real(8), dimension(:), intent(inout)	:: rvY		! Vector to pair-invalidate
+
+		! Locals
+		integer	:: i
+		integer	:: iMin, iMax
+
+		! Compute loop limits from array dimensions
+		iMin = max(lbound(rvX,dim=1), lbound(rvY,dim=1))
+		iMax = min(ubound(rvX,dim=1), ubound(rvY,dim=1))
+
+		! Ensure invalid positions in one vector are propagated to the other
+		do i = iMin, iMax
+			if(.invalid. rvX(i)) then
+				rvY(i) = NaN_8
+			elseif(.invalid. rvY(i)) then
+				rvX(i) = NaN_8
+			end if
+		end do
+
+	end subroutine PairInvalidate8
 
 
 	! Force data to be within a specified range invalid, clipping to extremal values
-	subroutine RangeClip(rvX, rMin, rMax)
+	subroutine RangeClip4(rvX, rMin, rMax)
 
 		! Routine arguments
 		real, dimension(:), intent(inout)	:: rvX		! Vector of data to range-clip
@@ -254,11 +329,34 @@ contains
 			end if
 		end do
 
-	end subroutine RangeClip
+	end subroutine RangeClip4
+
+
+	! Force data to be within a specified range invalid, clipping to extremal values
+	subroutine RangeClip8(rvX, rMin, rMax)
+
+		! Routine arguments
+		real(8), dimension(:), intent(inout)	:: rvX		! Vector of data to range-clip
+		real(8), intent(in)						:: rMin		! Minimum allowed value
+		real(8), intent(in)						:: rMax		! Maximum allowed value
+
+		! Locals
+		integer	:: i
+
+		! Validate by range
+		do i = 1, size(rvX)
+			if(rvX(i) < rMin) then
+				rvX(i) = rMin
+			elseif(rvX(i) > rMax) then
+				rvX(i) = rMax
+			end if
+		end do
+
+	end subroutine RangeClip8
 
 
 	! Pack a vector to another vector containing only valid (i.e. non-NaN) data
-	function GetValidOnly(rvX) result(rvValidX)
+	function GetValidOnly4(rvX) result(rvValidX)
 
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX			! Vector of data containing zero or more NaN
@@ -286,7 +384,39 @@ contains
 			end if
 		end do
 
-	end function GetValidOnly
+	end function GetValidOnly4
+
+
+	! Pack a vector to another vector containing only valid (i.e. non-NaN) data
+	function GetValidOnly8(rvX) result(rvValidX)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: rvX			! Vector of data containing zero or more NaN
+		real(8), dimension(:), allocatable	:: rvValidX		! The same vector, with all NaN values stripped
+
+		! Locals
+		integer	:: iNumValid
+		integer	:: i, j
+
+		! Count valid data, and check something is to be made
+		iNumValid = count(.not.ieee_is_nan(rvX))
+		if(allocated(rvValidX)) deallocate(rvValidX)
+		if(size(rvX) <= 0 .or. iNumValid <= 0) then
+			allocate(rvValidX(0))
+			return
+		end if
+
+		! Loop over data, copying valids only to the new vector
+		allocate(rvValidX(iNumValid))
+		j = 0
+		do i = 1, size(rvX)
+			if(.not.ieee_is_nan(rvX(i))) then
+				j = j + 1
+				rvValidX(j) = rvX(i)
+			end if
+		end do
+
+	end function GetValidOnly8
 
 
 	! Compute the mean of a signal
@@ -1562,6 +1692,129 @@ contains
 		rOffset = rOffset - rMeanAfterDetrend + rMeanBeforeDetrend
 
 	end function RemoveLinearTrend
+
+
+	! Compute the simple regression.
+
+	function SimpleLinearRegression4(rvX, rvY, rMultiplier, rOffset, rvEstimatedY) result(iRetCode)
+
+		! Routine argument
+		real, dimension(:), intent(in)							:: rvX			! Index signal (typically time, in floating point form)
+		real, dimension(:), intent(in)							:: rvY			! Experimental values to regress on
+		real, intent(out)										:: rMultiplier	! Multiplier of trend line
+		real, intent(out)										:: rOffset		! Offset of trend line
+		real, dimension(:), allocatable, optional, intent(out)	:: rvEstimatedY	! Estimated signal
+		integer													:: iRetCode
+
+		! Locals
+		integer	:: n
+		real	:: rSx
+		real	:: rSy
+		real	:: rSxx
+		real	:: rSxy
+		real	:: rDelta
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check input parameters
+		if(size(rvX) <= 0 .or. size(rvY) <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(rvX) /= size(rvY)) then
+			iRetCode = 2
+			return
+		end if
+		if(any(.invalid.rvX) .or. any(.invalid.rvY)) then
+			iRetCode = 3
+			return
+		end if
+
+		! Compute counts and sums
+		n    = size(rvX)
+		rSx  = sum(rvX)
+		rSy  = sum(dble(rvY))
+		rSxx = dot_product(rvX,rvX)
+		rSxy = dot_product(rvX,rvY)
+
+		! Compute multiplier and offset
+		rDelta      = n*rSxx - rSx**2
+		if(rDelta <= 0.d0) then
+			iRetCode = 4
+			return
+		end if
+		rOffset     = (rSxx*rSy - rSx*rSxy)/rDelta
+		rMultiplier = (n*rSxy - rSx*rSy)/rDelta
+
+		! Estimate data
+		if(present(rvEstimatedY)) then
+			if(allocated(rvEstimatedY)) deallocate(rvEstimatedY)
+			allocate(rvEstimatedY(size(rvX)))
+			rvEstimatedY = rMultiplier * rvX + rOffset
+		end if
+
+	end function SimpleLinearRegression4
+
+	function SimpleLinearRegression8(rvX, rvY, rMultiplier, rOffset, rvEstimatedY) result(iRetCode)
+
+		! Routine argument
+		real(8), dimension(:), intent(in)							:: rvX			! Index signal (typically time, in floating point form)
+		real(8), dimension(:), intent(in)							:: rvY			! Experimental values to regress on
+		real(8), intent(out)										:: rMultiplier	! Multiplier of trend line
+		real(8), intent(out)										:: rOffset		! Offset of trend line
+		real(8), dimension(:), allocatable, optional, intent(out)	:: rvEstimatedY	! Estimated signal
+		integer														:: iRetCode
+
+		! Locals
+		integer	:: n
+		real(8)	:: rSx
+		real(8)	:: rSy
+		real(8)	:: rSxx
+		real(8)	:: rSxy
+		real(8)	:: rDelta
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check input parameters
+		if(size(rvX) <= 0 .or. size(rvY) <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(rvX) /= size(rvY)) then
+			iRetCode = 2
+			return
+		end if
+		if(any(.invalid.rvX) .or. any(.invalid.rvY)) then
+			iRetCode = 3
+			return
+		end if
+
+		! Compute counts and sums
+		n    = size(rvX)
+		rSx  = sum(rvX)
+		rSy  = sum(dble(rvY))
+		rSxx = dot_product(rvX,rvX)
+		rSxy = dot_product(rvX,rvY)
+
+		! Compute multiplier and offset
+		rDelta      = n*rSxx - rSx**2
+		if(rDelta <= 0.d0) then
+			iRetCode = 4
+			return
+		end if
+		rOffset     = (rSxx*rSy - rSx*rSxy)/rDelta
+		rMultiplier = (n*rSxy - rSx*rSy)/rDelta
+
+		! Estimate data
+		if(present(rvEstimatedY)) then
+			if(allocated(rvEstimatedY)) deallocate(rvEstimatedY)
+			allocate(rvEstimatedY(size(rvX)))
+			rvEstimatedY = rMultiplier * rvX + rOffset
+		end if
+
+	end function SimpleLinearRegression8
 
 	! ********************************
 	! * Members of Time<series class *
