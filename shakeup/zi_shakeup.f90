@@ -5,7 +5,7 @@
 !
 program zi_shakeup
 
-    use shakeup
+    use DataSet
     use pbl_met
 
     implicit none
@@ -17,7 +17,7 @@ program zi_shakeup
     character(len=1)                :: sAvgPeriod
     character(len=256)              :: sOutputFile
     character(len=256)              :: sDailyOutputFile
-    type(DataSet)                   :: tData
+    type(ZiDataSet)                 :: tData
     integer                         :: n
     integer                         :: i
     real(8), dimension(:), allocatable  :: rvUstar
@@ -37,11 +37,11 @@ program zi_shakeup
 
     ! Get parameters
     if(command_argument_count() /= 5) then
-        print *, "zi - Procedure for calculating basic diagnostic indices on SonicLib data files"
+        print *, "zi_shakeup - Procedure for calculating basic diagnostic indices on SonicLib data files"
         print *
         print *, "Usage:"
         print *
-        print *, "  zi_shakeup <Data_Path> <Station_Name> <Averaging_Period> <Results_File> <Daily_File>>"
+        print *, "  zi_shakeup <Data_Path> <Station_Name> <Averaging_Period> <Results_File> <Daily_File>"
         print *
         print *, "where"
         print *
@@ -61,7 +61,7 @@ program zi_shakeup
     ! Get data
     iRetCode = tData % read(sDataPath, sStationName, sAvgPeriod)
     if(iRetCode /= 0) then
-        print *, "zi:: error: Station data not read - Return code = ", iRetCode
+        print *, "zi_shakeup:: error: Station data not read - Return code = ", iRetCode
         stop
     end if
 
@@ -135,7 +135,7 @@ program zi_shakeup
                                  'Max.Plm'
     do i = 1, size(rvDailyTimeStamp)
         iRetCode = tDateTime % fromEpoch(rvDailyTimeStamp(i))
-        write(iLUN, "(i4.4,2('-',i2.2),2(',',f9.3))") &
+        write(iLUN, "(i4.4,2('-',i2.2),2(',',f12.3))") &
             tDateTime % iYear, tDateTime % iMonth, tDateTime % iDay, &
             rvMaxZi(i), &
             rvMaxPlm(i)
