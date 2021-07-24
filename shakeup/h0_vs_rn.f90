@@ -24,8 +24,10 @@ program h0_vs_rn
     real(8), dimension(:), allocatable  :: rvValidRn
     real(8), dimension(:), allocatable  :: rvValidH0
     real(8), dimension(:), allocatable  :: rvEstimatedH0
+    logical, dimension(:), allocatable  :: lvIncluded
     real(8)                             :: rAlpha
     real(8)                             :: rOffset
+    real(8)                             :: rFAC2
     real                                :: averagingPeriod
     type(DateTime)                      :: tDateTime
     character(len=23)                   :: sTimeStamp
@@ -85,27 +87,34 @@ program h0_vs_rn
         stop
     end if
 
+    ! Compute validation statistics on measured and regressed H0
+    print *, "Compute validation statistics"
+    rFAC2 = FAC2(rvValidH0, rvEstimatedH0, lvIncluded = lvIncluded)
+
     ! Write hourly report
     print *, "Print hourly data"
     open(newunit=iLUN, file=sOutputFile, status='unknown', action='write')
-    write(iLUN, "(a,3(',',a))") 'Date.Time', &
+    write(iLUN, "(a,4(',',a))") 'Date.Time', &
         'Rn', &
         'H0', &
-        'H0.Estimate'
+        'H0.Estimate', &
+        'H0.Included'
     do i = 1, size(rvValidRn)
         iRetCode = tDateTime % fromEpoch(tData % time_stamp_begin(i))
-        write(iLUN, "(i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2),3(',',f9.3))") &
+        write(iLUN, "(i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2),3(',',f9.3),',',l1)") &
             tDateTime % iYear, tDateTime % iMonth, tDateTime % iDay, &
             tDateTime % iHour, tDateTime % iMinute, int(tDateTime % rSecond), &
             rvValidRn(i), &
             rvValidH0(i), &
-            rvEstimatedH0(i)
+            rvEstimatedH0(i), &
+            lvIncluded(i)
     end do
     close(iLUN)
 
     ! Print parameters
     print *, 'Alpha  = ', rAlpha
     print *, 'Offset = ', rOffset
+    print *, 'FAC2   = ', rFAC2
 
     deallocate(rvH0)
     deallocate(rvRn)
