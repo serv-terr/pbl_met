@@ -29,19 +29,21 @@ module pbl_stat
     public	:: Quantile
     public	:: Skew
     public	:: Kurt
-    ! 3. Autocovariance, autocorrelation and related
+	! 3. US-EPA validation statistics
+	public	:: FAC2
+    ! 4. Autocovariance, autocorrelation and related
     public	:: AutoCov
     public	:: AutoCorr
     public	:: PartialAutoCorr
     public	:: EulerianTime
-    ! 4. Cross-covariance, cross-correlation and related
+    ! 5. Cross-covariance, cross-correlation and related
     public	:: CrossCov
     public	:: CrossCorr
-    ! 5. Peak detection
-    ! 6. Utilities
+    ! 6. Peak detection
+    ! 7. Utilities
     public	:: RemoveLinearTrend
 	public	:: SimpleLinearRegression
-    ! 7. Time series
+    ! 8. Time series
     public	:: TimeSeries
     public	:: TDELTA_YEAR
     public	:: TDELTA_MONTH
@@ -67,7 +69,7 @@ module pbl_stat
     public	:: QUANT_9			! Sample quantile type 9 (R-9, Maple-8; Defined so that the resulting quantile estimates are approximately unbiased for the expected order statistics; Valid if data are normally distributed)
     public	:: MA_ALLDATA		! Use all available data when computing centered moving averages
     public	:: MA_STRICT		! Discard incomplete upper and lower time tails when computing centered moving averages
-	! 8. Multivariate series
+	! 9. Multivariate series
 	public	:: MultiSeries
 
     ! Data types
@@ -206,6 +208,11 @@ module pbl_stat
     	module procedure	:: SimpleLinearRegression4
     	module procedure	:: SimpleLinearRegression8
     end interface SimpleLinearRegression
+
+    interface FAC2
+    	module procedure	:: FAC2_4
+    	module procedure	:: FAC2_8
+    end interface FAC2
 
 contains
 
@@ -614,6 +621,208 @@ contains
 		end if
 
 	end function Kurt
+
+
+	! FAC2 validation index
+	function FAC2_4(rvO, rvP, rFactorIn, lvIncluded) result(rFAC2)
+
+		! Routine arguments
+		real, dimension(:), intent(in)								:: rvO
+		real, dimension(:), intent(in)								:: rvP
+		real, intent(in), optional									:: rFactorIn
+		logical, dimension(:), allocatable, intent(out), optional	:: lvIncluded
+		real														:: rFAC2
+
+		! Locals
+        integer :: m
+        integer :: n
+        integer :: i
+		real	:: rFactorMin
+		real	:: rFactorMax
+		real	:: rBase
+		real, dimension(:), allocatable	:: rvX
+		real, dimension(:), allocatable	:: rvY
+
+        ! Check it makes sense to proceed
+        if(size(rvX) /= size(rvY)) then
+        	rFAC2 = NaN
+        	return
+        end if
+        n = 0
+        do i = 1, size(rvX)
+        	if((.valid.rvX(i)) .and. (.valid.rvY(i))) n = n + 1
+        end do
+        if(n <= 1) then
+            rFAC2 = NaN
+            return
+        end if
+
+		! Set factors
+		if(present(rFactorIn)) then
+			if(rFactorIn <= 0.) then
+				rFAC2 = NaN
+				return
+			else
+				if(rFactorIn <= 1.) then
+					rFactorMin = rFactorIn
+					rFactorMax = 1. / rFactorIn
+				else
+					rFactorMin = 1. / rFactorIn
+					rFactorMax = rFactorIn
+				end if
+			end if
+		else
+			rFactorMin = 0.5
+			rFactorMax = 2.0
+		end if
+
+		! Scale values to ensure positivity (validation indices apply to positive values)
+		rBase = huge(rBase)
+		do i = 1, size(rvO)
+        	if((.valid.rvO(i)) .and. (.valid.rvP(i))) then
+				rBase = min(rvO(i), rvP(i), rBase)
+			end if
+		end do
+		if(rBase > 0.5 * huge(rBase)) then
+			rFAC2 = NaN
+			return
+		end if
+		rBase = rBase + 1.
+		allocate(rvX(size(rvO)))
+		allocate(rvY(size(rvP)))
+		rvX = rvO + rBase
+		rvY = rvP + rBase
+
+		! Compute accumulators
+		if(allocated(lvIncluded)) deallocate(lvIncluded)
+		allocate(lvIncluded(size(rvO)))
+		m = 0
+		n = 0
+        do i = 1, size(rvX)
+        	if((.valid.rvX(i)) .and. (.valid.rvY(i))) then
+				m = m + 1
+				if(rFactorMin * rvX(i) <= rvY(i) .and. rvY(i) <= rFactorMax * rvX(i)) then
+					n = n + 1
+					if(present(lvIncluded)) then
+						lvIncluded(i) = .true.
+					end if
+				else
+					if(present(lvIncluded)) then
+						lvIncluded(i) = .false.
+					end if
+				end if
+			else
+				if(present(lvIncluded)) then
+					lvIncluded(i) = .false.
+				end if
+			end if
+        end do
+
+		! Convert counts to FAC2
+		rFAC2 = real(n, kind=4) / real(m, kind=8)
+
+	end function FAC2_4
+
+
+	! FAC2 validation index
+	function FAC2_8(rvO, rvP, rFactorIn, lvIncluded) result(rFAC2)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)								:: rvO
+		real(8), dimension(:), intent(in)								:: rvP
+		real(8), intent(in), optional									:: rFactorIn
+		logical, dimension(:), allocatable, intent(out), optional		:: lvIncluded
+		real(8)															:: rFAC2
+
+		! Locals
+        integer :: m
+        integer :: n
+        integer :: i
+		real(8)	:: rFactorMin
+		real(8)	:: rFactorMax
+		real(8)	:: rBase
+		real(8), dimension(:), allocatable	:: rvX
+		real(8), dimension(:), allocatable	:: rvY
+
+        ! Check it makes sense to proceed
+        if(size(rvO) /= size(rvP)) then
+        	rFAC2 = NaN_8
+        	return
+        end if
+        n = 0
+        do i = 1, size(rvO)
+        	if((.valid.rvO(i)) .and. (.valid.rvP(i))) n = n + 1
+        end do
+        if(n <= 1) then
+            rFAC2 = NaN_8
+            return
+        end if
+
+		! Set factors
+		if(present(rFactorIn)) then
+			if(rFactorIn <= 0.d0) then
+				rFAC2 = NaN_8
+				return
+			else
+				if(rFactorIn <= 1.d0) then
+					rFactorMin = rFactorIn
+					rFactorMax = 1.d0 / rFactorIn
+				else
+					rFactorMin = 1.d0 / rFactorIn
+					rFactorMax = rFactorIn
+				end if
+			end if
+		else
+			rFactorMin = 0.5d0
+			rFactorMax = 2.0d0
+		end if
+
+		! Scale values to ensure positivity (validation indices apply to positive values)
+		rBase = huge(rBase)
+		do i = 1, size(rvO)
+        	if((.valid.rvO(i)) .and. (.valid.rvP(i))) then
+				rBase = min(rvO(i), rvP(i), rBase)
+			end if
+		end do
+		if(rBase > 0.5d0 * huge(rBase)) then
+			rFAC2 = NaN_8
+			return
+		end if
+		rBase = rBase + 1.d0
+		allocate(rvX(size(rvO)))
+		allocate(rvY(size(rvP)))
+		rvX = rvO + rBase
+		rvY = rvP + rBase
+
+		! Compute accumulators
+		if(allocated(lvIncluded)) deallocate(lvIncluded)
+		allocate(lvIncluded(size(rvO)))
+		m = 0
+		n = 0
+        do i = 1, size(rvX)
+        	if((.valid.rvX(i)) .and. (.valid.rvY(i))) then
+				m = m + 1
+				if(rFactorMin * rvX(i) <= rvY(i) .and. rvY(i) <= rFactorMax * rvX(i)) then
+					n = n + 1
+					if(present(lvIncluded)) then
+						lvIncluded(i) = .true.
+					end if
+				else
+					if(present(lvIncluded)) then
+						lvIncluded(i) = .false.
+					end if
+				end if
+			else
+				if(present(lvIncluded)) then
+					lvIncluded(i) = .false.
+				end if
+			end if
+        end do
+
+		! Convert counts to FAC2
+		rFAC2 = real(n, kind=8) / real(m, kind=8)
+
+	end function FAC2_8
 
 
     ! Compute the sampling covariance between two signal samples; these samples should
