@@ -117,7 +117,7 @@ program h0_vs_rn
     print *, 'Alpha  = ', rAlpha
     print *, 'Offset = ', rOffset
     print *, 'FB     = ', rFB
-    print *, 'FAC2   = ', rFAC2
+    print *, 'FAC10  = ', rFAC2
 
     deallocate(rvH0)
     deallocate(rvRn)
