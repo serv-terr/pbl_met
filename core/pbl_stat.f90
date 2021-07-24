@@ -30,6 +30,7 @@ module pbl_stat
     public	:: Skew
     public	:: Kurt
 	! 3. US-EPA validation statistics
+	public	:: FB
 	public	:: FAC2
     ! 4. Autocovariance, autocorrelation and related
     public	:: AutoCov
@@ -213,6 +214,11 @@ module pbl_stat
     	module procedure	:: FAC2_4
     	module procedure	:: FAC2_8
     end interface FAC2
+
+    interface FB
+    	module procedure	:: FB_4
+    	module procedure	:: FB_8
+    end interface FB
 
 contains
 
@@ -623,6 +629,134 @@ contains
 	end function Kurt
 
 
+	! FB validation index
+	function FB_4(rvO, rvP) result(rFB)
+
+		! Routine arguments
+		real, dimension(:), intent(in)								:: rvO
+		real, dimension(:), intent(in)								:: rvP
+		real														:: rFB
+
+		! Locals
+        integer :: n
+        integer :: i
+		real	:: rBase
+		real	:: rSums
+		real	:: rDifferences
+		real, dimension(:), allocatable	:: rvX
+		real, dimension(:), allocatable	:: rvY
+
+        ! Check it makes sense to proceed
+        if(size(rvO) /= size(rvP)) then
+        	rFB = NaN
+        	return
+        end if
+        n = 0
+        do i = 1, size(rvO)
+        	if((.valid.rvO(i)) .and. (.valid.rvP(i))) n = n + 1
+        end do
+        if(n <= 1) then
+            rFB = NaN
+            return
+        end if
+
+		! Scale values to ensure positivity (validation indices apply to positive values)
+		rBase = huge(rBase)
+		do i = 1, size(rvO)
+        	if((.valid.rvO(i)) .and. (.valid.rvP(i))) then
+				rBase = min(rvO(i), rvP(i), rBase)
+			end if
+		end do
+		if(rBase > 0.5 * huge(rBase)) then
+			rFB = NaN
+			return
+		end if
+		rBase = rBase + 1.
+		allocate(rvX(size(rvO)))
+		allocate(rvY(size(rvP)))
+		rvX = rvO + rBase
+		rvY = rvP + rBase
+
+		! Compute accumulators
+		rDifferences = 0.
+		rSums        = 0.
+        do i = 1, size(rvX)
+        	if((.valid.rvX(i)) .and. (.valid.rvY(i))) then
+				rDifferences = rDifferences + (rvX(i) - rvY(i))
+				rSums        = rSums        + (rvX(i) + rvY(i))
+			end if
+        end do
+
+		! Convert counts to FAC2
+		rFB = rDifferences / (0.5 * rSums)
+
+	end function FB_4
+
+
+	! FB validation index
+	function FB_8(rvO, rvP) result(rFB)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)								:: rvO
+		real(8), dimension(:), intent(in)								:: rvP
+		real(8)															:: rFB
+
+		! Locals
+        integer :: n
+        integer :: i
+		real(8)	:: rBase
+		real(8)	:: rSums
+		real(8)	:: rDifferences
+		real(8), dimension(:), allocatable	:: rvX
+		real(8), dimension(:), allocatable	:: rvY
+
+        ! Check it makes sense to proceed
+        if(size(rvO) /= size(rvP)) then
+        	rFB = NaN_8
+        	return
+        end if
+        n = 0
+        do i = 1, size(rvO)
+        	if((.valid.rvO(i)) .and. (.valid.rvP(i))) n = n + 1
+        end do
+        if(n <= 1) then
+            rFB = NaN_8
+            return
+        end if
+
+		! Scale values to ensure positivity (validation indices apply to positive values)
+		rBase = huge(rBase)
+		do i = 1, size(rvO)
+        	if((.valid.rvO(i)) .and. (.valid.rvP(i))) then
+				rBase = min(rvO(i), rvP(i), rBase)
+			end if
+		end do
+		if(rBase > 0.5d0 * huge(rBase)) then
+			rFB = NaN_8
+			return
+		end if
+		rBase = rBase + 1.d0
+		allocate(rvX(size(rvO)))
+		allocate(rvY(size(rvP)))
+		rvX = rvO + rBase
+		rvY = rvP + rBase
+
+		! Compute accumulators
+		rDifferences = 0.d0
+		rSums        = 0.d0
+        do i = 1, size(rvX)
+        	if((.valid.rvX(i)) .and. (.valid.rvY(i))) then
+				rDifferences = rDifferences + (rvX(i) - rvY(i))
+				rSums        = rSums        + (rvX(i) + rvY(i))
+			end if
+        end do
+
+		! Convert counts to FB
+		rFB = rDifferences / (0.5d0 * rSums)
+
+	end function FB_8
+
+
 	! FAC2 validation index
 	function FAC2_4(rvO, rvP, rFactorIn, lvIncluded) result(rFAC2)
 
@@ -644,13 +778,13 @@ contains
 		real, dimension(:), allocatable	:: rvY
 
         ! Check it makes sense to proceed
-        if(size(rvX) /= size(rvY)) then
+        if(size(rvO) /= size(rvP)) then
         	rFAC2 = NaN
         	return
         end if
         n = 0
-        do i = 1, size(rvX)
-        	if((.valid.rvX(i)) .and. (.valid.rvY(i))) n = n + 1
+        do i = 1, size(rvO)
+        	if((.valid.rvO(i)) .and. (.valid.rvP(i))) n = n + 1
         end do
         if(n <= 1) then
             rFAC2 = NaN
