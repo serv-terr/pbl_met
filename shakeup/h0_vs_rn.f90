@@ -27,6 +27,7 @@ program h0_vs_rn
     logical, dimension(:), allocatable  :: lvIncluded
     real(8)                             :: rAlpha
     real(8)                             :: rOffset
+    real(8)                             :: rFB
     real(8)                             :: rFAC2
     real                                :: averagingPeriod
     type(DateTime)                      :: tDateTime
@@ -89,7 +90,8 @@ program h0_vs_rn
 
     ! Compute validation statistics on measured and regressed H0
     print *, "Compute validation statistics"
-    rFAC2 = FAC2(rvValidH0, rvEstimatedH0, lvIncluded = lvIncluded)
+    rFAC2 = FAC2(rvValidH0, rvEstimatedH0, rFactorIn=10.d0, lvIncluded = lvIncluded)
+    rFB   = FB(rvValidH0, rvEstimatedH0)
 
     ! Write hourly report
     print *, "Print hourly data"
@@ -114,6 +116,7 @@ program h0_vs_rn
     ! Print parameters
     print *, 'Alpha  = ', rAlpha
     print *, 'Offset = ', rOffset
+    print *, 'FB     = ', rFB
     print *, 'FAC2   = ', rFAC2
 
     deallocate(rvH0)
