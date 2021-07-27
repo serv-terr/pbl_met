@@ -10,10 +10,10 @@ program test_validate
     real, dimension(:), allocatable     :: rvP4
     real(8), dimension(:), allocatable  :: rvO8
     real(8), dimension(:), allocatable  :: rvP8
-    real                                :: rFB_4
-    real(8)                             :: rFB_8
     real                                :: rFAC2_4
     real(8)                             :: rFAC2_8
+    real                                :: rFB_4
+    real(8)                             :: rFB_8
     integer                             :: i
 
     ! Tests on FAC2
@@ -198,6 +198,182 @@ program test_validate
     print *, "Test 11"
     print *, "FAC2(NaN,rvP) = ", rFAC2_4, "   Expected: NaN"
     print *, "FAC2(NaN,rvP) = ", rFAC2_8, "   Expected: NaN"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Tests on FB
+
+    ! Test 1. Identical vectors
+    allocate(rvO4(16), rvP4(16))
+    allocate(rvO8(16), rvP8(16))
+    call random_number(rvO4)
+    rvP4 = rvO4
+    call random_number(rvO8)
+    rvP8 = rvO8
+    rFB_4 = FB(rvO4, rvP4)
+    rFB_8 = FB(rvO8, rvP8)
+    print *, "Test 1"
+    print *, "FB(rvX,rvX) = ", rFB_4, "   Expected: 0.0"
+    print *, "FB(rvX,rvX) = ", rFB_8, "   Expected: 0.0"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 2. Identical vectors with NaN
+    allocate(rvO4(16), rvP4(16))
+    allocate(rvO8(16), rvP8(16))
+    call random_number(rvO4)
+    rvP4 = rvO4
+    rvO4( 4) = NaN
+    rvP4(10) = NaN
+    call random_number(rvO8)
+    rvP8 = rvO8
+    rvO8( 4) = NaN_8
+    rvP8(10) = NaN_8
+    rFB_4 = FB(rvO4, rvP4)
+    rFB_8 = FB(rvO8, rvP8)
+    print *, "Test 2"
+    print *, "FB(rvX,rvX) = ", rFB_4, "   Expected: 0.0"
+    print *, "FB(rvX,rvX) = ", rFB_8, "   Expected: 0.0"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 3. Scaled vectors
+    allocate(rvO4(1638400), rvP4(1638400))
+    allocate(rvO8(1638400), rvP8(1638400))
+    call random_number(rvO4)
+    rvP4 = rvO4 * 2.0
+    call random_number(rvO8)
+    rvP8 = rvO8 * 2.0d0
+    rFB_4 = FB(rvO4, rvP4)
+    rFB_8 = FB(rvO8, rvP8)
+    print *, "Test 3"
+    print *, "FB(rvX,2*rvX) = ", rFB_4, "   Expected: about 0.25"
+    print *, "FB(rvX,2*rvX) = ", rFB_8, "   Expected: about 0.25"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 4. Translated vectors
+    allocate(rvO4(1638400), rvP4(1638400))
+    allocate(rvO8(1638400), rvP8(1638400))
+    call random_number(rvO4)
+    rvP4 = rvO4 + 1.0
+    call random_number(rvO8)
+    rvP8 = rvO8 + 1.0d0
+    rFB_4 = FB(rvO4, rvP4)
+    rFB_8 = FB(rvO8, rvP8)
+    print *, "Test 4"
+    print *, "FB(rvX,rvX+1) = ", rFB_4, "   Expected: about -0.5"
+    print *, "FB(rvX,rvX+1) = ", rFB_8, "   Expected: about -0.5"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 5. Independent uniformly distributed vectors
+    allocate(rvO4(1638400), rvP4(1638400))
+    allocate(rvO8(1638400), rvP8(1638400))
+    call random_number(rvO4)
+    call random_number(rvP4)
+    call random_number(rvO8)
+    call random_number(rvP8)
+    rFB_4 = FB(rvO4, rvP4)
+    rFB_8 = FB(rvO8, rvP8)
+    print *, "Test 5"
+    print *, "FB(rvX,rvY) = ", rFB_4, "   Expected: about -0.5"
+    print *, "FB(rvX,rvY) = ", rFB_8, "   Expected: about -0.5"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 6. Independent uniformly distributed vectors having different lengths
+    allocate(rvO4(16), rvP4(32))
+    allocate(rvO8(16), rvP8(32))
+    call random_number(rvO4)
+    call random_number(rvP4)
+    call random_number(rvO8)
+    call random_number(rvP8)
+    rFB_4 = FB(rvO4, rvP4)
+    rFB_8 = FB(rvO8, rvP8)
+    print *, "Test 6"
+    print *, "FB(rvX,rvY) = ", rFB_4, "   Expected: NaN"
+    print *, "FB(rvX,rvY) = ", rFB_8, "   Expected: NaN"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 7. Independent uniformly distributed vectors with some NaN
+    allocate(rvO4(32), rvP4(32))
+    allocate(rvO8(32), rvP8(32))
+    call random_number(rvO4)
+    call random_number(rvP4)
+    rvO4(3) = NaN
+    rvP4(8) = NaN
+    call random_number(rvO8)
+    call random_number(rvP8)
+    rvO8(3) = NaN_8
+    rvP8(8) = NaN_8
+    rFB_4 = FB(rvO4, rvP4)
+    rFB_8 = FB(rvO8, rvP8)
+    print *, "Test 7"
+    print *, "FB(rvX,rvY) = ", rFB_4, "   Expected: about 0"
+    print *, "FB(rvX,rvY) = ", rFB_8, "   Expected: about 0"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 8. One NaN vector
+    allocate(rvO4(32), rvP4(32))
+    allocate(rvO8(32), rvP8(32))
+    call random_number(rvO4)
+    rvP4 = NaN
+    call random_number(rvO8)
+    rvP8 = NaN_8
+    rFB_4 = FB(rvO4, rvP4)
+    rFB_8 = FB(rvO8, rvP8)
+    print *, "Test 8"
+    print *, "FB(rvX,NaN) = ", rFB_4, "   Expected: NaN"
+    print *, "FB(rvX,NaN) = ", rFB_8, "   Expected: NaN"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 9. Identical vectors, with negatines
+    allocate(rvO4(32), rvP4(32))
+    allocate(rvO8(32), rvP8(32))
+    call random_number(rvO4)
+    call random_number(rvO8)
+    rvO4 = rvO4 - 0.5
+    rvP4 = rvO4
+    rvO8 = rvO8 - 0.5d0
+    rvP8 = rvO8
+    rFB_4 = FB(rvO4, rvP4)
+    rFB_8 = FB(rvO8, rvP8)
+    print *, "Test 9"
+    print *, "FB(rvX,rvX) = ", rFB_4, "   Expected: 0"
+    print *, "FB(rvX,rvX) = ", rFB_8, "   Expected: 0"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 10. Identical vectors, with negatines
+    allocate(rvO4(65536), rvP4(65536))
+    allocate(rvO8(65536), rvP8(65536))
+    call random_number(rvO4)
+    call random_number(rvP4)
+    call random_number(rvO8)
+    call random_number(rvP8)
+    rvO4 = rvO4 - 0.5
+    rvP4 = rvP4 - 0.5
+    rvO8 = rvO8 - 0.5d0
+    rvP8 = rvP8 - 0.5d0
+    rFB_4 = FB(rvO4, rvP4)
+    rFB_8 = FB(rvO8, rvP8)
+    print *, "Test 10"
+    print *, "FB(rvX,rvY) = ", rFB_4, "   Expected: 0"
+    print *, "FB(rvX,rvY) = ", rFB_8, "   Expected: 0"
     print *
     deallocate(rvO8, rvP8)
     deallocate(rvO4, rvP4)
