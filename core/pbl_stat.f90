@@ -31,6 +31,7 @@ module pbl_stat
     public	:: Kurt
 	! 3. US-EPA validation statistics
 	public	:: FB
+	public	:: NMSE
 	public	:: FAC2
     ! 4. Autocovariance, autocorrelation and related
     public	:: AutoCov
@@ -219,6 +220,11 @@ module pbl_stat
     	module procedure	:: FB_4
     	module procedure	:: FB_8
     end interface FB
+
+    interface NMSE
+    	module procedure	:: NMSE_4
+    	module procedure	:: NMSE_8
+    end interface NMSE
 
 contains
 
@@ -682,8 +688,8 @@ contains
 		rSums        = 0.
         do i = 1, size(rvX)
         	if((.valid.rvX(i)) .and. (.valid.rvY(i))) then
-				rDifferences = rDifferences + (rvX(i) - rvY(i))
-				rSums        = rSums        + (rvX(i) + rvY(i))
+				rDifferences = rDifferences +    (rvX(i) - rvY(i))
+				rSums        = rSums        + abs(rvX(i) + rvY(i))
 			end if
         end do
 
@@ -746,8 +752,8 @@ contains
 		rSums        = 0.d0
         do i = 1, size(rvX)
         	if((.valid.rvX(i)) .and. (.valid.rvY(i))) then
-				rDifferences = rDifferences + (rvX(i) - rvY(i))
-				rSums        = rSums        + (rvX(i) + rvY(i))
+				rDifferences = rDifferences +    (rvX(i) - rvY(i))
+				rSums        = rSums        + abs(rvX(i) + rvY(i))
 			end if
         end do
 
@@ -755,6 +761,134 @@ contains
 		rFB = rDifferences / (0.5d0 * rSums)
 
 	end function FB_8
+
+
+	! FB validation index
+	function NMSE_4(rvO, rvP) result(rNMSE)
+
+		! Routine arguments
+		real, dimension(:), intent(in)								:: rvO
+		real, dimension(:), intent(in)								:: rvP
+		real														:: rNMSE
+
+		! Locals
+        integer :: n
+        integer :: i
+		real	:: rBase
+		real	:: rSums
+		real	:: rDifferences
+		real, dimension(:), allocatable	:: rvX
+		real, dimension(:), allocatable	:: rvY
+
+        ! Check it makes sense to proceed
+        if(size(rvO) /= size(rvP)) then
+        	rNMSE = NaN
+        	return
+        end if
+        n = 0
+        do i = 1, size(rvO)
+        	if((.valid.rvO(i)) .and. (.valid.rvP(i))) n = n + 1
+        end do
+        if(n <= 1) then
+            rNMSE = NaN
+            return
+        end if
+
+		! Scale values to ensure positivity (validation indices apply to positive values)
+		rBase = huge(rBase)
+		do i = 1, size(rvO)
+        	if((.valid.rvO(i)) .and. (.valid.rvP(i))) then
+				rBase = min(rvO(i), rvP(i), rBase)
+			end if
+		end do
+		if(rBase > 0.5 * huge(rBase)) then
+			rNMSE = NaN
+			return
+		end if
+		rBase = rBase + 1.
+		allocate(rvX(size(rvO)))
+		allocate(rvY(size(rvP)))
+		rvX = rvO + rBase
+		rvY = rvP + rBase
+
+		! Compute accumulators
+		rDifferences = 0.
+		rSums        = 0.
+        do i = 1, size(rvX)
+        	if((.valid.rvX(i)) .and. (.valid.rvY(i))) then
+				rDifferences = rDifferences +    (rvX(i) - rvY(i))**2
+				rSums        = rSums        + abs(rvX(i)) * abs(rvY(i))
+			end if
+        end do
+
+		! Convert counts to FAC2
+		rNMSE = rDifferences / (0.5 * rSums)
+
+	end function NMSE_4
+
+
+	! FB validation index
+	function NMSE_8(rvO, rvP) result(rNMSE)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)								:: rvO
+		real(8), dimension(:), intent(in)								:: rvP
+		real(8)															:: rNMSE
+
+		! Locals
+        integer :: n
+        integer :: i
+		real(8)	:: rBase
+		real(8)	:: rSums
+		real(8)	:: rDifferences
+		real(8), dimension(:), allocatable	:: rvX
+		real(8), dimension(:), allocatable	:: rvY
+
+        ! Check it makes sense to proceed
+        if(size(rvO) /= size(rvP)) then
+        	rNMSE = NaN_8
+        	return
+        end if
+        n = 0
+        do i = 1, size(rvO)
+        	if((.valid.rvO(i)) .and. (.valid.rvP(i))) n = n + 1
+        end do
+        if(n <= 1) then
+            rNMSE = NaN_8
+            return
+        end if
+
+		! Scale values to ensure positivity (validation indices apply to positive values)
+		rBase = huge(rBase)
+		do i = 1, size(rvO)
+        	if((.valid.rvO(i)) .and. (.valid.rvP(i))) then
+				rBase = min(rvO(i), rvP(i), rBase)
+			end if
+		end do
+		if(rBase > 0.5d0 * huge(rBase)) then
+			rNMSE = NaN_8
+			return
+		end if
+		rBase = rBase + 1.d0
+		allocate(rvX(size(rvO)))
+		allocate(rvY(size(rvP)))
+		rvX = rvO + rBase
+		rvY = rvP + rBase
+
+		! Compute accumulators
+		rDifferences = 0.d0
+		rSums        = 0.d0
+        do i = 1, size(rvX)
+        	if((.valid.rvX(i)) .and. (.valid.rvY(i))) then
+				rDifferences = rDifferences +    (rvX(i) - rvY(i))**2
+				rSums        = rSums        + abs(rvX(i)) * abs(rvY(i))
+			end if
+        end do
+
+		! Convert counts to FB
+		rNMSE = rDifferences / rSums
+
+	end function NMSE_8
 
 
 	! FAC2 validation index
