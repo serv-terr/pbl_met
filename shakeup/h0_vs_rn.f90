@@ -28,6 +28,7 @@ program h0_vs_rn
     real(8)                             :: rAlpha
     real(8)                             :: rOffset
     real(8)                             :: rFB
+    real(8)                             :: rNMSE
     real(8)                             :: rFAC2
     real                                :: averagingPeriod
     type(DateTime)                      :: tDateTime
@@ -92,6 +93,7 @@ program h0_vs_rn
     print *, "Compute validation statistics"
     rFAC2 = FAC2(rvValidH0, rvEstimatedH0, rFactorIn=10.d0, lvIncluded = lvIncluded)
     rFB   = FB(rvValidH0, rvEstimatedH0)
+    rNMSE = NMSE(rvValidH0, rvEstimatedH0)
 
     ! Write hourly report
     print *, "Print hourly data"
@@ -117,6 +119,7 @@ program h0_vs_rn
     print *, 'Alpha  = ', rAlpha
     print *, 'Offset = ', rOffset
     print *, 'FB     = ', rFB
+    print *, 'NMSE   = ', rNMSE
     print *, 'FAC10  = ', rFAC2
 
     deallocate(rvH0)
