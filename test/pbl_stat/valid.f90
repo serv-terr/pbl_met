@@ -16,6 +16,8 @@ program test_validate
     real(8)                             :: rFB_8
     real                                :: rNMSE_4
     real(8)                             :: rNMSE_8
+    real                                :: rR_4
+    real(8)                             :: rR_8
     integer                             :: i
 
     ! Tests on FAC2
@@ -555,5 +557,25 @@ program test_validate
     print *
     deallocate(rvO8, rvP8)
     deallocate(rvO4, rvP4)
+
+    ! Correlation coefficient
+
+    ! Test 1. Identical vectors
+    allocate(rvO4(16), rvP4(16))
+    allocate(rvO8(16), rvP8(16))
+    call random_number(rvO4)
+    rvP4 = rvO4
+    call random_number(rvO8)
+    rvP8 = rvO8
+    rR_4 = Corr(rvO4, rvP4)
+    rR_8 = Corr(rvO8, rvP8)
+    print *, "Test 1"
+    print *, "R(rvX,rvX) = ", rR_4, "   Expected: 1.0"
+    print *, "R(rvX,rvX) = ", rR_8, "   Expected: 1.0"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+  
 
 end program test_validate
