@@ -26,9 +26,12 @@ module pbl_stat
     public	:: Mean
     public	:: StdDev
     public  :: Cov
+	public	:: Corr
     public	:: Quantile
     public	:: Skew
     public	:: Kurt
+	public	:: SIGMA_SAMPLE
+	public	:: SIGMA_POPULATION
 	! 3. US-EPA validation statistics
 	public	:: FB
 	public	:: NMSE
@@ -45,6 +48,7 @@ module pbl_stat
     ! 7. Utilities
     public	:: RemoveLinearTrend
 	public	:: SimpleLinearRegression
+	public	:: RegressionThroughTheOrigin
     ! 8. Time series
     public	:: TimeSeries
     public	:: TDELTA_YEAR
@@ -154,6 +158,8 @@ module pbl_stat
 
     ! Constants
 
+	integer, parameter	:: SIGMA_SAMPLE		 =     1
+	integer, parameter	:: SIGMA_POPULATION  =     2
     integer, parameter	:: TDELTA_YEARMONTH  =    -3
     integer, parameter	:: TDELTA_YEAR       =    -2
     integer, parameter	:: TDELTA_MONTH      =    -1
@@ -201,15 +207,47 @@ module pbl_stat
     	module procedure	:: GetValidOnly8
     end interface GetValidOnly
 
+    interface Mean
+    	module procedure	:: Mean4
+    	module procedure	:: Mean8
+    end interface Mean
+
+    interface StdDev
+    	module procedure	:: StdDev4
+    	module procedure	:: StdDev8
+    end interface StdDev
+
+    interface Cov
+    	module procedure	:: Cov4
+    	module procedure	:: Cov8
+    end interface Cov
+
     interface Quantile
-    	module procedure	:: QuantileScalar
-    	module procedure	:: QuantileVector
-    end interface Quantile
+		module procedure	:: QuantileScalar4
+    	module procedure	:: QuantileScalar8
+		module procedure	:: QuantileVector4
+		module procedure	:: QuantileVector8
+	end interface Quantile
+
+    interface Skew
+    	module procedure	:: Skew4
+    	module procedure	:: Skew8
+    end interface Skew
+
+    interface Kurt
+    	module procedure	:: Kurt4
+    	module procedure	:: Kurt8
+    end interface Kurt
 
     interface SimpleLinearRegression
     	module procedure	:: SimpleLinearRegression4
     	module procedure	:: SimpleLinearRegression8
     end interface SimpleLinearRegression
+
+    interface RegressionThroughTheOrigin
+    	module procedure	:: RegressionThroughTheOrigin4
+    	module procedure	:: RegressionThroughTheOrigin8
+    end interface RegressionThroughTheOrigin
 
     interface FAC2
     	module procedure	:: FAC2_4
@@ -225,6 +263,11 @@ module pbl_stat
     	module procedure	:: NMSE_4
     	module procedure	:: NMSE_8
     end interface NMSE
+
+    interface Corr
+    	module procedure	:: Corr4
+    	module procedure	:: Corr8
+    end interface Corr
 
 contains
 
@@ -439,7 +482,7 @@ contains
 
 
 	! Compute the mean of a signal
-	function Mean(rvX, rValidFraction) result(rMean)
+	function Mean4(rvX, rValidFraction) result(rMean)
 
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX				! Signal, whose mean is needed
@@ -468,26 +511,73 @@ contains
 			rValidFraction = float(n) / size(rvX)
 		end if
 
-	end function Mean
+	end function Mean4
+
+
+	! Compute the mean of a signal
+	function Mean8(rvX, rValidFraction) result(rMean)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: rvX				! Signal, whose mean is needed
+		real(8), intent(out), optional		:: rValidFraction	! Fraction of valid to total signal data (optional)
+		real(8)								:: rMean			! Mean (NaN if not possible to evaluate)
+
+		! Locals
+		integer	:: n
+
+		! Check something is to be made
+		if(size(rvX) <= 0) then
+			rMean = NaN_8
+			return
+		end if
+
+		! Compute the arithmetic mean
+		n = count(.not.ieee_is_nan(rvX))
+		if(n > 0) then
+			rMean = sum(rvX, mask=.not.ieee_is_nan(rvX)) / n
+		else
+			rMean = NaN_8
+		end if
+
+		! Compute diagnostic quantities, if present
+		if(present(rValidFraction)) then
+			rValidFraction = float(n) / size(rvX)
+		end if
+
+	end function Mean8
 
 
 	! Compute the population standard deviation of a signal
-	function StdDev(rvX, rMeanIn, rValidFraction) result(rStdDev)
+	function StdDev4(rvX, rMeanIn, iMode, rValidFraction) result(rStdDev)
 
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX				! Signal, whose standard deviation is needed
 		real, intent(in), optional		:: rMeanIn			! Mean value, as computed by "Mean" function (optional, recomputed if missing)
+		integer, intent(in), optional	:: iMode			! Sample (SIGMA_SAMPLE) or population (SIGMA_POPULATION)
 		real, intent(out), optional		:: rValidFraction	! Fraction of valid to total signal data (optional)
 		real							:: rStdDev
 
 		! Locals
 		integer	:: n
 		real	:: rMean
+		integer	:: iModeValue
 
 		! Check something is to be made
 		if(size(rvX) <= 0) then
-			rMean = NaN
+			rStdDev = NaN
 			return
+		end if
+
+		! Get mode - or assign default
+		if(present(iMode)) then
+			if(iMode /= SIGMA_SAMPLE .and. iMode /= SIGMA_POPULATION) then
+				rStdDev = NaN
+				return
+			else
+				iModeValue = iMode
+			end if
+		else
+			iModeValue = SIGMA_POPULATION
 		end if
 
 		! Compute the arithmetic mean, if missing; or, get its value
@@ -503,10 +593,18 @@ contains
 		end if
 
 		! Compute the standard deviation
-		if(n > 0) then
-			rStdDev = sqrt(sum((rvX - rMean)**2, mask=.not.ieee_is_nan(rvX)) / n)
-		else
-			rStdDev = NaN
+		if(iModeValue == SIGMA_POPULATION) then
+			if(n > 0) then
+				rStdDev = sqrt(sum((rvX - rMean)**2, mask=.not.ieee_is_nan(rvX)) / n)
+			else
+				rStdDev = NaN
+			end if
+		elseif(iModeValue == SIGMA_SAMPLE) then
+			if(n > 1) then
+				rStdDev = sqrt(sum((rvX - rMean)**2, mask=.not.ieee_is_nan(rvX)) / (n-1))
+			else
+				rStdDev = NaN
+			end if
 		end if
 
 		! Compute diagnostic quantities, if present
@@ -514,11 +612,79 @@ contains
 			rValidFraction = float(n) / size(rvX)
 		end if
 
-	end function StdDev
+	end function StdDev4
+
+
+	! Compute the population standard deviation of a signal
+	function StdDev8(rvX, rMeanIn, iMode, rValidFraction) result(rStdDev)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: rvX				! Signal, whose standard deviation is needed
+		real(8), intent(in), optional		:: rMeanIn			! Mean value, as computed by "Mean" function (optional, recomputed if missing)
+		integer, intent(in), optional		:: iMode			! Sample (SIGMA_SAMPLE) or population (SIGMA_POPULATION)
+		real(8), intent(out), optional		:: rValidFraction	! Fraction of valid to total signal data (optional)
+		real(8)								:: rStdDev
+
+		! Locals
+		integer	:: n
+		real(8)	:: rMean
+		integer	:: iModeValue
+
+		! Check something is to be made
+		if(size(rvX) <= 0) then
+			rStdDev = NaN_8
+			return
+		end if
+
+		! Get mode - or assign default
+		if(present(iMode)) then
+			if(iMode /= SIGMA_SAMPLE .and. iMode /= SIGMA_POPULATION) then
+				rStdDev = NaN_8
+				return
+			else
+				iModeValue = iMode
+			end if
+		else
+			iModeValue = SIGMA_POPULATION
+		end if
+
+		! Compute the arithmetic mean, if missing; or, get its value
+		n = count(.not.ieee_is_nan(rvX))
+		if(present(rMeanIn)) then
+			rMean = rMeanIn
+		else
+			if(n > 0) then
+				rMean = sum(rvX, mask=.not.ieee_is_nan(rvX)) / n
+			else
+				rMean = NaN_8
+			end if
+		end if
+
+		! Compute the standard deviation
+		if(iModeValue == SIGMA_POPULATION) then
+			if(n > 0) then
+				rStdDev = sqrt(sum((rvX - rMean)**2, mask=.not.ieee_is_nan(rvX)) / n)
+			else
+				rStdDev = NaN_8
+			end if
+		elseif(iModeValue == SIGMA_SAMPLE) then
+			if(n > 1) then
+				rStdDev = sqrt(sum((rvX - rMean)**2, mask=.not.ieee_is_nan(rvX)) / (n-1))
+			else
+				rStdDev = NaN_8
+			end if
+		end if
+
+		! Compute diagnostic quantities, if present
+		if(present(rValidFraction)) then
+			rValidFraction = float(n) / size(rvX)
+		end if
+
+	end function StdDev8
 
 
 	! Compute the population skewness of a signal
-	function Skew(rvX, rMeanIn, rStdDevIn, rValidFraction) result(rSkewness)
+	function Skew4(rvX, rMeanIn, rStdDevIn, rValidFraction) result(rSkewness)
 
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX				! Signal, whose skewness is needed
@@ -573,11 +739,70 @@ contains
 			rValidFraction = float(n) / size(rvX)
 		end if
 
-	end function Skew
+	end function Skew4
+
+
+	! Compute the population skewness of a signal
+	function Skew8(rvX, rMeanIn, rStdDevIn, rValidFraction) result(rSkewness)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: rvX				! Signal, whose skewness is needed
+		real(8), intent(in), optional		:: rMeanIn			! Mean value, as computed by "Mean" function (optional, recomputed if missing)
+		real(8), intent(in), optional		:: rStdDevIn		! Standard deviation, as computed by "StdDev" function (optional, recomputed if missing)
+		real(8), intent(out), optional		:: rValidFraction	! Fraction of valid to total signal data (optional)
+		real(8)								:: rSkewness
+
+		! Locals
+		integer	:: n
+		real(8)	:: rMean
+		real(8)	:: rStdDev
+		real(8)	:: m3
+
+		! Check something is to be made
+		if(size(rvX) <= 0) then
+			rMean = NaN_8
+			return
+		end if
+
+		! Compute the arithmetic mean, if missing; or, get its value
+		n = count(.valid.rvX)
+		if(present(rMeanIn)) then
+			rMean = rMeanIn
+		else
+			if(n > 0) then
+				rMean = sum(rvX, mask = .valid.rvX) / n
+			else
+				rMean = NaN_8
+			end if
+		end if
+		if(present(rStdDevIn)) then
+			rStdDev = rStdDevIn
+		else
+			if(n > 0) then
+				rStdDev = sqrt(sum((rvX - rMean)**2, mask = .valid.rvX) / n)
+			else
+				rStdDev = NaN_8
+			end if
+		end if
+
+		! Compute the skewness
+		if(n > 0) then
+			m3        = sum((rvX - rMean)**3, mask = .valid.rvX) / n
+			rSkewness = m3 / rStdDev**3
+		else
+			rSkewness = NaN_8
+		end if
+
+		! Compute diagnostic quantities, if present
+		if(present(rValidFraction)) then
+			rValidFraction = float(n) / size(rvX)
+		end if
+
+	end function Skew8
 
 
 	! Compute the population kurtosis of a signal
-	function Kurt(rvX, rMeanIn, rStdDevIn, rValidFraction) result(rKurtosis)
+	function Kurt4(rvX, rMeanIn, rStdDevIn, rValidFraction) result(rKurtosis)
 
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX				! Signal, whose kurtosis is needed
@@ -632,7 +857,66 @@ contains
 			rValidFraction = float(n) / size(rvX)
 		end if
 
-	end function Kurt
+	end function Kurt4
+
+
+	! Compute the population kurtosis of a signal
+	function Kurt8(rvX, rMeanIn, rStdDevIn, rValidFraction) result(rKurtosis)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: rvX				! Signal, whose kurtosis is needed
+		real(8), intent(in), optional		:: rMeanIn			! Mean value, as computed by "Mean" function (optional, recomputed if missing)
+		real(8), intent(in), optional		:: rStdDevIn		! Standard deviation, as computed by "StdDev" function (optional, recomputed if missing)
+		real(8), intent(out), optional		:: rValidFraction	! Fraction of valid to total signal data (optional)
+		real(8)								:: rKurtosis
+
+		! Locals
+		integer	:: n
+		real(8)	:: rMean
+		real(8)	:: rStdDev
+		real(8)	:: m4
+
+		! Check something is to be made
+		if(size(rvX) <= 0) then
+			rMean = NaN_8
+			return
+		end if
+
+		! Compute the arithmetic mean, if missing; or, get its value
+		n = count(.valid.rvX)
+		if(present(rMeanIn)) then
+			rMean = rMeanIn
+		else
+			if(n > 0) then
+				rMean = sum(rvX, mask = .valid.rvX) / n
+			else
+				rMean = NaN_8
+			end if
+		end if
+		if(present(rStdDevIn)) then
+			rStdDev = rStdDevIn
+		else
+			if(n > 0) then
+				rStdDev = sqrt(sum((rvX - rMean)**2, mask = .valid.rvX) / n)
+			else
+				rStdDev = NaN_8
+			end if
+		end if
+
+		! Compute the skewness
+		if(n > 0) then
+			m4        = sum((rvX - rMean)**4, mask = .valid.rvX) / n
+			rKurtosis = m4 / rStdDev**4 - 3.d0
+		else
+			rKurtosis = NaN_8
+		end if
+
+		! Compute diagnostic quantities, if present
+		if(present(rValidFraction)) then
+			rValidFraction = float(n) / size(rvX)
+		end if
+
+	end function Kurt8
 
 
 	! FB validation index
@@ -693,7 +977,7 @@ contains
 			end if
         end do
 
-		! Convert counts to FAC2
+		! Convert counts to FB
 		rFB = rDifferences / (0.5 * rSums)
 
 	end function FB_4
@@ -821,7 +1105,7 @@ contains
 			end if
         end do
 
-		! Convert counts to FAC2
+		! Convert counts to NMSE
 		rNMSE = rDifferences / (0.5 * rSums)
 
 	end function NMSE_4
@@ -885,7 +1169,7 @@ contains
 			end if
         end do
 
-		! Convert counts to FB
+		! Convert counts to NMSE
 		rNMSE = rDifferences / rSums
 
 	end function NMSE_8
@@ -1064,11 +1348,12 @@ contains
     ! Compute the sampling covariance between two signal samples; these samples should
     ! be the same size, and "error-paired", that is, whenever rvX(i) == NaN,
     ! then rvY(i) == NaN, and vice-versa.
-	function Cov(rvX, rvY) result(rCov)
+	function Cov4(rvX, rvY, iMode) result(rCov)
 
 		! Routine arguments
 		real, dimension(:), intent(in)	:: rvX
 		real, dimension(:), intent(in)	:: rvY
+		integer, intent(in), optional	:: iMode
 		real							:: rCov
 
 		! Locals
@@ -1077,6 +1362,7 @@ contains
 		real(8)	:: rSumX
 		real(8)	:: rSumY
 		real(8)	:: rSumXY
+		integer	:: iModeValue
 
         ! Check it makes sense to proceed
         if(size(rvX) /= size(rvY)) then
@@ -1087,10 +1373,18 @@ contains
         do i = 1, size(rvX)
         	if((.valid.rvX(i)) .and. (.valid.rvY(i))) n = n + 1
         end do
-        if(n <= 1) then
-            rCov = NaN
-            return
-        end if
+
+		! Get mode - or assign default
+		if(present(iMode)) then
+			if(iMode /= SIGMA_SAMPLE .and. iMode /= SIGMA_POPULATION) then
+				rCov = NaN
+				return
+			else
+				iModeValue = iMode
+			end if
+		else
+			iModeValue = SIGMA_POPULATION
+		end if
 
 		! Accumulate sums
 		rSumX  = 0.d0
@@ -1105,12 +1399,153 @@ contains
         end do
 
 		! Convert counts to covariance
-		rCov = rSumXY/(n-1) - (rSumX/n)*(rSumY/n)*(float(n)/(n-1))
+		if(iModeValue == SIGMA_SAMPLE) then
+			if(n <= 0) then
+				rCov = NaN
+				return
+			end if
+			rCov = rSumXY/(n-1) - (rSumX/n)*(rSumY/n)*(float(n)/(n-1))
+		elseif(iModeValue == SIGMA_POPULATION) then
+			if(n <= 1) then
+				rCov = NaN
+				return
+			end if
+			rCov = rSumXY/n - (rSumX/n)*(rSumY/n)
+		end if
 
-	end function Cov
+	end function Cov4
 
 
-	function QuantileScalar(rvX, rQuantile, iType) result(rQvalue)
+    ! Compute the sampling covariance between two signal samples; these samples should
+    ! be the same size, and "error-paired", that is, whenever rvX(i) == NaN,
+    ! then rvY(i) == NaN, and vice-versa.
+	function Cov8(rvX, rvY, iMode) result(rCov)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: rvX
+		real(8), dimension(:), intent(in)	:: rvY
+		integer, intent(in), optional		:: iMode
+		real(8)								:: rCov
+
+		! Locals
+        integer :: n
+        integer :: i
+		real(8)	:: rSumX
+		real(8)	:: rSumY
+		real(8)	:: rSumXY
+		integer	:: iModeValue
+
+        ! Check it makes sense to proceed
+        if(size(rvX) /= size(rvY)) then
+        	rCov = NaN_8
+        	return
+        end if
+        n = 0
+        do i = 1, size(rvX)
+        	if((.valid.rvX(i)) .and. (.valid.rvY(i))) n = n + 1
+        end do
+
+		! Get mode - or assign default
+		if(present(iMode)) then
+			if(iMode /= SIGMA_SAMPLE .and. iMode /= SIGMA_POPULATION) then
+				rCov = NaN_8
+				return
+			else
+				iModeValue = iMode
+			end if
+		else
+			iModeValue = SIGMA_POPULATION
+		end if
+
+		! Accumulate sums
+		rSumX  = 0.d0
+		rSumY  = 0.d0
+		rSumXY = 0.d0
+        do i = 1, size(rvX)
+        	if((.valid.rvX(i)) .and. (.valid.rvY(i))) then
+        		rSumX  = rSumX + rvX(i)
+        		rSumY  = rSumY + rvY(i)
+        		rSumXY = rSumXY + rvX(i)*rvY(i)
+        	end if
+        end do
+
+		! Convert counts to covariance
+		if(iModeValue == SIGMA_SAMPLE) then
+			if(n <= 0) then
+				rCov = NaN_8
+				return
+			end if
+			rCov = rSumXY/(n-1) - (rSumX/n)*(rSumY/n)*(float(n)/(n-1))
+		elseif(iModeValue == SIGMA_POPULATION) then
+			if(n <= 1) then
+				rCov = NaN_8
+				return
+			end if
+			rCov = rSumXY/n - (rSumX/n)*(rSumY/n)
+		end if
+
+	end function Cov8
+
+
+	! Pearson linear correlation coefficient
+	function Corr4(rvX, rvY) result(rCorr)
+
+		! Routine arguments
+		real, dimension(:), intent(inout)	:: rvX
+		real, dimension(:), intent(inout)	:: rvY
+		real								:: rCorr
+
+		! Locals
+		real	:: rCov
+		real	:: rSigmaX
+		real	:: rSigmaY
+
+		! Ensure validity in both vectors
+		call PairInvalidate4(rvX, rvY)
+
+		! Compute the correlation coefficient
+		rSigmaX = StdDev4(rvX, iMode=SIGMA_POPULATION)
+		rSigmaY = StdDev4(rvY, iMode=SIGMA_POPULATION)
+		if(abs(rSigmaX*rSigmaY) < 1.e-6) then
+			rCorr = NaN
+		else
+			rCov = Cov(rvX, rvY, iMode=SIGMA_POPULATION)
+			rCorr = rCov / (rSigmaX*rSigmaY)
+		end if
+
+	end function Corr4
+
+
+	! Pearson linear correlation coefficient
+	function Corr8(rvX, rvY) result(rCorr)
+
+		! Routine arguments
+		real(8), dimension(:), intent(inout)	:: rvX
+		real(8), dimension(:), intent(inout)	:: rvY
+		real(8)									:: rCorr
+
+		! Locals
+		real(8)	:: rCov
+		real(8)	:: rSigmaX
+		real(8)	:: rSigmaY
+
+		! Ensure validity in both vectors
+		call PairInvalidate8(rvX, rvY)
+
+		! Compute the correlation coefficient
+		rSigmaX = StdDev8(rvX, iMode=SIGMA_POPULATION)
+		rSigmaY = StdDev8(rvY, iMode=SIGMA_POPULATION)
+		if(abs(rSigmaX*rSigmaY) < 1.d-6) then
+			rCorr = NaN_8
+		else
+			rCov = Cov(rvX, rvY, iMode=SIGMA_POPULATION)
+			rCorr = rCov / (rSigmaX*rSigmaY)
+		end if
+
+	end function Corr8
+
+
+	function QuantileScalar4(rvX, rQuantile, iType) result(rQvalue)
 
 		! Routine argument
 		real, dimension(:), intent(in)	:: rvX			! Data vector
@@ -1164,7 +1599,7 @@ contains
 			rQvalue = NaN
 			return
 		end if
-		call quicksort(rvXsorted)
+		call quicksort4(rvXsorted)
 
 		! Assign actual quantile type
 		if(present(iType)) then
@@ -1329,10 +1764,232 @@ contains
 			rQvalue = NaN
 		end select
 
-	end function QuantileScalar
+	end function QuantileScalar4
 
 
-	function QuantileVector(rvX, rvQuantile, iType) result(rvQvalue)
+	function QuantileScalar8(rvX, rQuantile, iType) result(rQvalue)
+
+		! Routine argument
+		real(8), dimension(:), intent(in)	:: rvX			! Data vector
+		real(8), intent(in)					:: rQuantile	! Quantile fraction (in [0.,1.] interval, inclusive)
+		integer, intent(in), optional		:: iType		! Quantile type (QUANT_POPULATION, QUANT_1, ..., QUANT_9; see constant declaration for meaning)
+		real(8)								:: rQvalue		! Quantile value
+
+		! Locals
+		real(8), dimension(:), allocatable	:: rvXsorted
+		integer								:: iQuantileType
+		real(8)								:: h
+		real(8)								:: m
+		integer								:: n
+		real(8)								:: p
+		integer								:: j
+		real(8)								:: g
+		real(8)								:: gamma
+
+		! Check something is to be made
+		if(size(rvX) == 1) then
+			rQvalue = rvX(1)
+			return
+		elseif(size(rvX) < 1) then
+			rQvalue = NaN_8
+			return
+		end if
+		if(all(.invalid.rvX)) then
+			rQvalue = NaN_8
+			return
+		end if
+		if(.invalid.rQuantile) then
+			rQvalue = NaN_8
+			return
+		end if
+
+		! Answer for trivial cases
+		if(rQuantile <= 0.) then
+			rQvalue = minval(rvX, mask=.valid.rvX)
+			return
+		elseif(rQuantile >= 1.) then
+			rQvalue = maxval(rvX, mask=.valid.rvX)
+			return
+		end if
+
+		! Contract data vector to valid data only, and sort it
+		rvXsorted = GetValidOnly(rvX)
+		if(size(rvXsorted) == 1) then
+			rQvalue = rvXsorted(1)
+			return
+		elseif(size(rvXsorted) < 1) then
+			rQvalue = NaN_8
+			return
+		end if
+		call quicksort8(rvXsorted)
+
+		! Assign actual quantile type
+		if(present(iType)) then
+			iQuantileType = iType
+			if(iQuantileType == QUANT_POPULATION .and. size(rvXsorted) < size(rvx)) iQuantileType = QUANT_8
+		else
+			iQuantileType = QUANT_8
+		end if
+
+		! Compute the quantile value
+		n = size(rvXsorted)
+		p = rQuantile
+
+		select case(iQuantileType)
+		case(QUANT_POPULATION)
+			h = n * p
+			if(floor(h) == ceiling(h)) then
+				! h is integer
+				j = floor(h)
+				if(j < 1) then
+					rQvalue = rvXsorted(1)
+				elseif(j >= n) then
+					rQvalue = rvXsorted(n)
+				else
+					rQvalue = 0.5d0*(rvXsorted(j) + rvXsorted(j + 1))
+				end if
+			else
+				! h is not integer
+				j = ceiling(h)
+				if(j < 1) then
+					rQvalue = rvXsorted(1)
+				elseif(j >= n) then
+					rQvalue = rvXsorted(n)
+				else
+					rQvalue = rvXsorted(j)
+				end if
+			end if
+		case(QUANT_1)
+			h = n * p
+			j = ceiling(h)
+			if(j < 1) then
+				rQvalue = rvXsorted(1)
+			elseif(j > n) then
+				rQvalue = rvXsorted(n)
+			else
+				rQvalue = rvXsorted(ceiling(h))
+			end if
+		case(QUANT_2)
+			m = 0.d0
+			j = floor(n*p + m)
+			if(j >= 1 .and. j < n) then
+				g = n*p + m - j
+				if(g>1.d-6) then
+					gamma = 1.d0
+				else
+					gamma = 0.5d0
+				end if
+				rQvalue = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+			elseif(j < 1) then
+				rQvalue = rvXsorted(1)
+			else
+				rQvalue = rvXsorted(n)
+			end if
+		case(QUANT_3)
+			j = nint(n * p)
+			if(j < 1) then
+				rQvalue = rvXsorted(1)
+			elseif(j > n) then
+				rQvalue = rvXsorted(n)
+			else
+				rQvalue = rvXsorted(j)
+			end if
+		case(QUANT_3_SAS)
+			m = -0.5d0
+			j = floor(n*p + m)
+			if(j >= 1 .and. j < n) then
+				g = n*p + m - j
+				if(g<1.d-6 .and. mod(j,2)==0) then
+					gamma = 1.d0
+				else
+					gamma = 0.d0
+				end if
+				rQvalue = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+			elseif(j < 1) then
+				rQvalue = rvXsorted(1)
+			else
+				rQvalue = rvXsorted(n)
+			end if
+		case(QUANT_4)
+			m = 0.d0
+			j = floor(n*p + m)
+			if(j >= 1 .and. j < n) then
+				g = n*p + m - j
+				gamma = g
+				rQvalue = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+			elseif(j < 1) then
+				rQvalue = rvXsorted(1)
+			else
+				rQvalue = rvXsorted(n)
+			end if
+		case(QUANT_5)
+			m = 1.d0/2.d0
+			j = floor(n*p + m)
+			if(j >= 1 .and. j < n) then
+				g = n*p + m - j
+				gamma = g
+				rQvalue = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+			elseif(j < 1) then
+				rQvalue = rvXsorted(1)
+			else
+				rQvalue = rvXsorted(n)
+			end if
+		case(QUANT_6)
+			m = 0.d0
+			j = floor((n+1)*p + m)
+			if(j >= 1 .and. j < n) then
+				g = (n+1)*p + m - j
+				gamma = g
+				rQvalue = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+			elseif(j < 1) then
+				rQvalue = rvXsorted(1)
+			else
+				rQvalue = rvXsorted(n)
+			end if
+		case(QUANT_7)
+			m = 1.d0
+			j = floor((n-1)*p + m)
+			if(j >= 1 .and. j < n) then
+				g = (n-1)*p + m - j
+				gamma = g
+				rQvalue = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+			elseif(j < 1) then
+				rQvalue = rvXsorted(1)
+			else
+				rQvalue = rvXsorted(n)
+			end if
+		case(QUANT_8)
+			m = 1.d0/3.d0
+			j = floor((n+1.d0/3.d0)*p + m)
+			if(j >= 1 .and. j < n) then
+				g = (n+1.d0/3.d0)*p + m - j
+				gamma = g
+				rQvalue = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+			elseif(j < 1) then
+				rQvalue = rvXsorted(1)
+			else
+				rQvalue = rvXsorted(n)
+			end if
+		case(QUANT_9)
+			m = 3.d0/8.d0
+			j = floor((n+1.d0/4.d0)*p + m)
+			if(j >= 1 .and. j < n) then
+				g = (n+1.d0/4.d0)*p + m - j
+				gamma = g
+				rQvalue = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+			elseif(j < 1) then
+				rQvalue = rvXsorted(1)
+			else
+				rQvalue = rvXsorted(n)
+			end if
+		case default
+			rQvalue = NaN_8
+		end select
+
+	end function QuantileScalar8
+
+
+	function QuantileVector4(rvX, rvQuantile, iType) result(rvQvalue)
 
 		! Routine argument
 		real, dimension(:), intent(in)		:: rvX			! Data vector
@@ -1377,7 +2034,7 @@ contains
 			rvQvalue = NaN
 			return
 		end if
-		call quicksort(rvXsorted)
+		call quicksort4(rvXsorted)
 
 		! Assign actual quantile type
 		if(present(iType)) then
@@ -1569,7 +2226,247 @@ contains
 
 		end do
 
-	end function QuantileVector
+	end function QuantileVector4
+
+
+	function QuantileVector8(rvX, rvQuantile, iType) result(rvQvalue)
+
+		! Routine argument
+		real(8), dimension(:), intent(in)		:: rvX			! Data vector
+		real(8), dimension(:), intent(in)		:: rvQuantile	! Quantile fraction (in [0.,1.] interval, inclusive)
+		integer, intent(in), optional			:: iType		! Quantile type (QUANT_POPULATION, QUANT_1, ..., QUANT_9; see constant declaration for meaning)
+		real(8), dimension(size(rvQuantile))	:: rvQvalue		! Quantile value
+
+		! Locals
+		real(8), dimension(:), allocatable	:: rvXsorted
+		integer								:: iQuantileType
+		real(8)								:: h
+		integer								:: iQuantile
+		real(8)								:: m
+		integer								:: n
+		real(8)								:: p
+		integer								:: j
+		real(8)								:: g
+		real(8)								:: gamma
+
+		! Check something is to be made
+		if(size(rvQuantile) <= 0) then
+			return	! No defined return value can be assigned here - rvQvalue does not exist
+		end if
+		if(size(rvX) == 1) then
+			rvQvalue = rvX(1)
+			return
+		elseif(size(rvX) < 1) then
+			rvQvalue = NaN_8
+			return
+		end if
+		if(all(.invalid.rvX)) then
+			rvQvalue = NaN_8
+			return
+		end if
+
+		! Contract data vector to valid data only, and sort it
+		rvXsorted = GetValidOnly(rvX)
+		if(size(rvXsorted) == 1) then
+			rvQvalue = rvXsorted(1)
+			return
+		elseif(size(rvXsorted) < 1) then
+			rvQvalue = NaN_8
+			return
+		end if
+		call quicksort8(rvXsorted)
+
+		! Assign actual quantile type
+		if(present(iType)) then
+			iQuantileType = iType
+			if(iQuantileType == QUANT_POPULATION .and. size(rvXsorted) < size(rvX)) iQuantileType = QUANT_8
+		else
+			iQuantileType = QUANT_8
+		end if
+
+		! Main loop: iterate over quantiles
+		do iQuantile = 1, size(rvQuantile)
+
+			! Check something is to be made
+			if(.invalid.rvQuantile(iQuantile)) then
+				rvQvalue(iQuantile) = NaN_8
+				cycle
+			end if
+
+			! Answer for trivial cases
+			if(rvQuantile(iQuantile) <= 0.) then
+				rvQvalue(iQuantile) = minval(rvX, mask=.valid.rvX)
+				cycle
+			elseif(rvQuantile(iQuantile) >= 1.) then
+				rvQvalue(iQuantile) = maxval(rvX, mask=.valid.rvX)
+				cycle
+			end if
+
+			! Compute the quantile value
+			n = size(rvXsorted)
+			p = rvQuantile(iQuantile)
+
+			! Compute the value of h
+			select case(iQuantileType)
+			case(QUANT_POPULATION)
+				h = n * p
+				if(floor(h) == ceiling(h)) then
+					! h is integer
+					j = floor(h)
+					if(j < 1) then
+						rvQvalue(iQuantile) = rvXsorted(1)
+					elseif(j >= n) then
+						rvQvalue(iQuantile) = rvXsorted(n)
+					else
+						rvQvalue(iQuantile) = 0.5*(rvXsorted(j) + rvXsorted(j + 1))
+					end if
+				else
+					! h is not integer
+					j = ceiling(h)
+					if(j < 1) then
+						rvQvalue(iQuantile) = rvXsorted(1)
+					elseif(j >= n) then
+						rvQvalue(iQuantile) = rvXsorted(n)
+					else
+						rvQvalue(iQuantile) = rvXsorted(j)
+					end if
+				end if
+			case(QUANT_1)
+				h = n * p
+				j = ceiling(h)
+				if(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				elseif(j > n) then
+					rvQvalue(iQuantile) = rvXsorted(n)
+				else
+					rvQvalue(iQuantile) = rvXsorted(j)
+				end if
+			case(QUANT_2)
+				m = 0.d0
+				j = floor(n*p + m)
+				if(j >= 1 .and. j < n) then
+					g = n*p + m - j
+					if(g>1.d-6) then
+						gamma = 1.d0
+					else
+						gamma = 0.5d0
+					end if
+					rvQvalue(iQuantile) = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					rvQvalue(iQuantile) = rvXsorted(n)
+				end if
+			case(QUANT_3)
+				j = nint(n * p)
+				if(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				elseif(j > n) then
+					rvQvalue(iQuantile) = rvXsorted(n)
+				else
+					rvQvalue(iQuantile) = rvXsorted(j)
+				end if
+			case(QUANT_3_SAS)
+				m = -0.5d0
+				j = floor(n*p + m)
+				if(j >= 1 .and. j < n) then
+					g = n*p + m - j
+					if(g<1.d-6 .and. mod(j,2)==0) then
+						gamma = 1.d0
+					else
+						gamma = 0.d0
+					end if
+					rvQvalue(iQuantile) = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					rvQvalue(iQuantile) = rvXsorted(n)
+				end if
+			case(QUANT_4)
+				m = 0.d0
+				j = floor(n*p + m)
+				if(j >= 1 .and. j < n) then
+					g = n*p + m - j
+					gamma = g
+					rvQvalue(iQuantile) = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					rvQvalue(iQuantile) = rvXsorted(n)
+				end if
+				if(rvQuantile(iQuantile) < 1./size(rvXsorted)) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					h = size(rvXsorted) * rvQuantile(iQuantile)
+					rvQvalue(iQuantile) = rvXsorted(floor(h)) + (h - floor(h))*(rvXsorted(floor(h)+1) - rvXsorted(floor(h)))
+				end if
+			case(QUANT_5)
+				m = 1.d0/2.d0
+				j = floor(n*p + m)
+				if(j >= 1 .and. j < n) then
+					g = n*p + m - j
+					gamma = g
+					rvQvalue(iQuantile) = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					rvQvalue(iQuantile) = rvXsorted(n)
+				end if
+			case(QUANT_6)
+				m = 0.d0
+				j = floor((n+1)*p + m)
+				if(j >= 1 .and. j < n) then
+					g = (n+1)*p + m - j
+					gamma = g
+					rvQvalue(iQuantile) = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					rvQvalue(iQuantile) = rvXsorted(n)
+				end if
+			case(QUANT_7)
+				m = 1.d0
+				j = floor((n-1)*p + m)
+				if(j >= 1 .and. j < n) then
+					g = (n-1)*p + m - j
+					gamma = g
+					rvQvalue(iQuantile) = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					rvQvalue(iQuantile) = rvXsorted(n)
+				end if
+			case(QUANT_8)
+				m = 1.d0/3.d0
+				j = floor((n+1.d0/3.d0)*p + m)
+				if(j >= 1 .and. j < n) then
+					g = (n+1.d0/3.d0)*p + m - j
+					gamma = g
+					rvQvalue(iQuantile) = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					rvQvalue(iQuantile) = rvXsorted(n)
+				end if
+			case(QUANT_9)
+				m = 3.d0/8.d0
+				j = floor((n+1.d0/4.d0)*p + m)
+				if(j >= 1 .and. j < n) then
+					g = (n+1.d0/4.d0)*p + m - j
+					gamma = g
+					rvQvalue(iQuantile) = (1.d0-gamma)*rvXsorted(j) + gamma*rvXsorted(j+1)
+				elseif(j < 1) then
+					rvQvalue(iQuantile) = rvXsorted(1)
+				else
+					rvQvalue(iQuantile) = rvXsorted(n)
+				end if
+			case default
+				rvQvalue(iQuantile) = NaN_8
+			end select
+
+		end do
+
+	end function QuantileVector8
 
 
 	! Compute the autocovariance of a signal up the specified number of lags,
@@ -2261,9 +3158,113 @@ contains
 
 	end function SimpleLinearRegression8
 
-	! ********************************
-	! * Members of Time<series class *
-	! ********************************
+
+	! Compute the simple regression through the origin.
+
+	function RegressionThroughTheOrigin4(rvX, rvY, rMultiplier, rvEstimatedY) result(iRetCode)
+
+		! Routine argument
+		real, dimension(:), intent(in)							:: rvX			! Index signal (typically time, in floating point form)
+		real, dimension(:), intent(in)							:: rvY			! Experimental values to regress on
+		real, intent(out)										:: rMultiplier	! Multiplier of trend line
+		real, dimension(:), allocatable, optional, intent(out)	:: rvEstimatedY	! Estimated signal
+		integer													:: iRetCode
+
+		! Locals
+		integer	:: n
+		real	:: rSxx
+		real	:: rSxy
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check input parameters
+		if(size(rvX) <= 0 .or. size(rvY) <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(rvX) /= size(rvY)) then
+			iRetCode = 2
+			return
+		end if
+		if(any(.invalid.rvX) .or. any(.invalid.rvY)) then
+			iRetCode = 3
+			return
+		end if
+
+		! Compute counts and sums
+		n    = size(rvX)
+		rSxx = dot_product(rvX,rvX)
+		if(abs(rSxx) <= 1.e-6) then
+			rMultiplier = NaN
+		else
+			rSxy = dot_product(rvX,rvY)
+			rMultiplier = rSxy / rSxx
+		end if
+
+		! Estimate data
+		if(present(rvEstimatedY)) then
+			if(allocated(rvEstimatedY)) deallocate(rvEstimatedY)
+			allocate(rvEstimatedY(size(rvX)))
+			rvEstimatedY = rMultiplier * rvX
+		end if
+
+	end function RegressionThroughTheOrigin4
+
+	function RegressionThroughTheOrigin8(rvX, rvY, rMultiplier, rvEstimatedY) result(iRetCode)
+
+		! Routine argument
+		real(8), dimension(:), intent(in)							:: rvX			! Index signal (typically time, in floating point form)
+		real(8), dimension(:), intent(in)							:: rvY			! Experimental values to regress on
+		real(8), intent(out)										:: rMultiplier	! Multiplier of trend line
+		real(8), dimension(:), allocatable, optional, intent(out)	:: rvEstimatedY	! Estimated signal
+		integer														:: iRetCode
+
+		! Locals
+		integer	:: n
+		real(8)	:: rSxx
+		real(8)	:: rSxy
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check input parameters
+		if(size(rvX) <= 0 .or. size(rvY) <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(rvX) /= size(rvY)) then
+			iRetCode = 2
+			return
+		end if
+		if(any(.invalid.rvX) .or. any(.invalid.rvY)) then
+			iRetCode = 3
+			return
+		end if
+
+		! Compute counts and sums
+		n    = size(rvX)
+		rSxx = dot_product(rvX,rvX)
+		if(abs(rSxx) <= 1.d-6) then
+			rMultiplier = NaN_8
+			iRetCode = 4
+		else
+			rSxy = dot_product(rvX,rvY)
+			rMultiplier = rSxy / rSxx
+		end if
+
+		! Estimate data
+		if(present(rvEstimatedY)) then
+			if(allocated(rvEstimatedY)) deallocate(rvEstimatedY)
+			allocate(rvEstimatedY(size(rvX)))
+			rvEstimatedY = rMultiplier * rvX
+		end if
+
+	end function RegressionThroughTheOrigin8
+
+	! *******************************
+	! * Members of TimeSeries class *
+	! *******************************
 
 	function tsCreateEmpty(this, n) result(iRetCode)
 
@@ -4703,7 +5704,7 @@ contains
 	! License: GPLv3
 	! Gist: https://gist.github.com/t-nissie/479f0f16966925fa29ea
 	!
-	recursive subroutine quicksort(a)
+	recursive subroutine quicksort4(a)
 
 		! Routine arguments
 		real, dimension(:), intent(inout)	:: a
@@ -4735,10 +5736,53 @@ contains
 		end do
 
 		! Recursion phase
-		if (first < i - 1) call quicksort(a(first : i - 1))
-		if (j + 1 < last)  call quicksort(a(j + 1 : last))
+		if (first < i - 1) call quicksort4(a(first : i - 1))
+		if (j + 1 < last)  call quicksort4(a(j + 1 : last))
 
-	end subroutine quicksort
+	end subroutine quicksort4
+
+
+	! quicksort.f -*-f90-*-
+	! Author: t-nissie, some tweaks by 1AdAstra1, and some others by Mauri Favaron
+	! License: GPLv3
+	! Gist: https://gist.github.com/t-nissie/479f0f16966925fa29ea
+	!
+	recursive subroutine quicksort8(a)
+
+		! Routine arguments
+		real(8), dimension(:), intent(inout)	:: a
+
+		! Locals
+		real(8)	:: x, t
+		integer :: first = 1, last
+		integer :: i, j
+
+		! Initialization
+		last = size(a)
+		if(last <= 1) return	! Nothing to do
+		x = a( (first+last) / 2 )
+		i = first
+		j = last
+
+		! Exploration phase
+		do
+			do while (a(i) < x)
+				i=i+1
+			end do
+			do while (x < a(j))
+				j=j-1
+			end do
+			if (i >= j) exit
+			t = a(i);  a(i) = a(j);  a(j) = t
+			i=i+1
+			j=j-1
+		end do
+
+		! Recursion phase
+		if (first < i - 1) call quicksort8(a(first : i - 1))
+		if (j + 1 < last)  call quicksort8(a(j + 1 : last))
+
+	end subroutine quicksort8
 
 
 	! Computes the rank index of an array
