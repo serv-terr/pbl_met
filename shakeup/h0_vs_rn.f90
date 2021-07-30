@@ -30,6 +30,7 @@ program h0_vs_rn
     real(8)                             :: rFB
     real(8)                             :: rNMSE
     real(8)                             :: rFAC2
+    real(8)                             :: rR
     real                                :: averagingPeriod
     type(DateTime)                      :: tDateTime
     character(len=23)                   :: sTimeStamp
@@ -83,9 +84,22 @@ program h0_vs_rn
     ! Regress H0 on Rn, to compute 'alpha' (the regression multiplier); the offset, in this case,
     ! acts as an error indication: ideally, its value is 0.
     print *, "Get Rn and H0 readings"
-    iRetCode = SimpleLinearRegression(rvValidRn, rvValidH0, rAlpha, rOffset, rvEstimatedH0)
+    iRetCode = SimpleLinearRegression(rvValidRn, rvValidH0, rAlpha, rOffset)
     if(iRetCode /= 0) then
         print *, "h0_vs_rn:: error: Regression not computed - Return code = ", iRetCode
+        stop
+    end if
+
+    ! Check for an excessive offet (indicating some physical error)
+    if(abs(rOffset) > 10.d0) then
+        print *, "h0_vs_rn:: error: Regression offset absolute value exceeds 10: check senors"
+        stop
+    end if
+
+    ! Re-compute regression, this time through the origin
+    iRetCode = RegressionThroughTheOrigin(rvValidRn, rvValidH0, rAlpha, rvEstimatedH0)
+    if(iRetCode /= 0) then
+        print *, "h0_vs_rn:: error: Regression through the origin not computed - Return code = ", iRetCode
         stop
     end if
 
@@ -94,6 +108,7 @@ program h0_vs_rn
     rFAC2 = FAC2(rvValidH0, rvEstimatedH0, rFactorIn=10.d0, lvIncluded = lvIncluded)
     rFB   = FB(rvValidH0, rvEstimatedH0)
     rNMSE = NMSE(rvValidH0, rvEstimatedH0)
+    rR    = Corr(rvValidH0, rvEstimatedH0)
 
     ! Write hourly report
     print *, "Print hourly data"
@@ -121,6 +136,8 @@ program h0_vs_rn
     print *, 'FB     = ', rFB
     print *, 'NMSE   = ', rNMSE
     print *, 'FAC10  = ', rFAC2
+    print *, 'R      = ', rR
+    print *, 'R^2    = ', rR**2
 
     deallocate(rvH0)
     deallocate(rvRn)
