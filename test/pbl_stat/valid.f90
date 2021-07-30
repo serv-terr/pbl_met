@@ -576,6 +576,104 @@ program test_validate
     deallocate(rvO8, rvP8)
     deallocate(rvO4, rvP4)
 
-  
+    ! Test 2. Opposite vectors
+    allocate(rvO4(16), rvP4(16))
+    allocate(rvO8(16), rvP8(16))
+    call random_number(rvO4)
+    rvP4 = -rvO4
+    call random_number(rvO8)
+    rvP8 = -rvO8
+    rR_4 = Corr(rvO4, rvP4)
+    rR_8 = Corr(rvO8, rvP8)
+    print *, "Test 2"
+    print *, "R(rvX,-rvX) = ", rR_4, "   Expected: -1.0"
+    print *, "R(rvX,-rvX) = ", rR_8, "   Expected: -1.0"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 3. Independent uncorrelated vectors
+    allocate(rvO4(65536), rvP4(65536))
+    allocate(rvO8(65536), rvP8(65536))
+    call random_number(rvO4)
+    call random_number(rvP4)
+    call random_number(rvO8)
+    call random_number(rvP8)
+    rR_4 = Corr(rvO4, rvP4)
+    rR_8 = Corr(rvO8, rvP8)
+    print *, "Test 3"
+    print *, "R(rvX,rvY) = ", rR_4, "   Expected: about 0.0"
+    print *, "R(rvX,rvY) = ", rR_8, "   Expected: about 0.0"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 4. Identical vectors with NaN
+    allocate(rvO4(16), rvP4(16))
+    allocate(rvO8(16), rvP8(16))
+    call random_number(rvO4)
+    rvP4 = rvO4
+    rvP4( 3) = NaN
+    rvO4(13) = NaN
+    call random_number(rvO8)
+    rvP8 = rvO8
+    rvP8( 3) = NaN
+    rvO8(13) = NaN
+    rR_4 = Corr(rvO4, rvP4)
+    rR_8 = Corr(rvO8, rvP8)
+    print *, "Test 4"
+    print *, "R(rvX,rvX) = ", rR_4, "   Expected: 1.0"
+    print *, "R(rvX,rvX) = ", rR_8, "   Expected: 1.0"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 5. Vactor and NaN
+    allocate(rvO4(16), rvP4(16))
+    allocate(rvO8(16), rvP8(16))
+    call random_number(rvO4)
+    rvP4 = NaN
+    call random_number(rvO8)
+    rvP8 = NaN_8
+    rR_4 = Corr(rvO4, rvP4)
+    rR_8 = Corr(rvO8, rvP8)
+    print *, "Test 5"
+    print *, "R(rvX,NaN) = ", rR_4, "   Expected: NaN"
+    print *, "R(rvX,NaN) = ", rR_8, "   Expected: NaN"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 6. Vactor and NaN
+    allocate(rvO4(16), rvP4(16))
+    allocate(rvO8(16), rvP8(16))
+    call random_number(rvP4)
+    rvO4 = NaN
+    call random_number(rvP8)
+    rvO8 = NaN_8
+    rR_4 = Corr(rvO4, rvP4)
+    rR_8 = Corr(rvO8, rvP8)
+    print *, "Test 6"
+    print *, "R(NaN,rvY) = ", rR_4, "   Expected: NaN"
+    print *, "R(NaN,rvY) = ", rR_8, "   Expected: NaN"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
+
+    ! Test 7. Identical vectors
+    allocate(rvO4(16), rvP4(32))
+    allocate(rvO8(32), rvP8(16))
+    call random_number(rvO4)
+    call random_number(rvP4)
+    call random_number(rvO8)
+    call random_number(rvP8)
+    rR_4 = Corr(rvO4, rvP4)
+    rR_8 = Corr(rvO8, rvP8)
+    print *, "Test 7"
+    print *, "R(rvX,rvX) = ", rR_4, "   Expected: NaN"
+    print *, "R(rvX,rvX) = ", rR_8, "   Expected: NaN"
+    print *
+    deallocate(rvO8, rvP8)
+    deallocate(rvO4, rvP4)
 
 end program test_validate
