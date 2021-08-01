@@ -17,12 +17,19 @@ module pbl_stat
     private
 
     ! Public interface
-    ! 1. Off-range and invalid data management
+	! 1. Data management
+    ! 1.1. Off-range and invalid data management
     public	:: RangeInvalidate
     public	:: PairInvalidate
     public	:: RangeClip
     public	:: GetValidOnly
+	! 1.2. Sampling
+	public	:: Sample
+	public	:: SAMPLING_WITH_REPETITIONS
+	public	:: SAMPLING_WITHOUT_REPETITIONS
+	! 1.3. Conditional extraction
     ! 2. Basic statistics
+	! 2.1. Regular
     public	:: Mean
     public	:: StdDev
     public  :: Cov
@@ -32,6 +39,7 @@ module pbl_stat
     public	:: Kurt
 	public	:: SIGMA_SAMPLE
 	public	:: SIGMA_POPULATION
+	! 2.2. Directional
 	! 3. US-EPA validation statistics
 	public	:: FB
 	public	:: NMSE
@@ -158,6 +166,8 @@ module pbl_stat
 
     ! Constants
 
+	integer, parameter	:: SAMPLING_WITH_REPETITIONS    = 1
+	integer, parameter	:: SAMPLING_WITHOUT_REPETITIONS = 2
 	integer, parameter	:: SIGMA_SAMPLE		 =     1
 	integer, parameter	:: SIGMA_POPULATION  =     2
     integer, parameter	:: TDELTA_YEARMONTH  =    -3
@@ -206,6 +216,12 @@ module pbl_stat
     	module procedure	:: GetValidOnly4
     	module procedure	:: GetValidOnly8
     end interface GetValidOnly
+
+	interface Sample
+		module procedure	:: SampleI4
+		module procedure	:: SampleR4
+		module procedure	:: SampleR8
+	end interface Sample
 
     interface Mean
     	module procedure	:: Mean4
@@ -479,6 +495,187 @@ contains
 		end do
 
 	end function GetValidOnly8
+
+
+	! Generate the index set of a random sample, using algorithm S in
+	!
+	!	Knuth DE, (1998), The Art of Computer Programming, Volume 2: Seminumerical Algorithms, Cambridge University Press
+	!
+	function SampleI4(n, m, ivSample, iSampleType) result(iRetCode)
+
+		! Routine arguments
+		integer, intent(in)								:: n			! Population size (positive, greater than 'm' or equal)
+		integer, intent(in)								:: m			! Sample size (positive)
+		integer, dimension(:), allocatable, intent(out)	:: ivSample		! The resulting sample index set
+		integer, intent(in), optional					:: iSampleType 	! SAMPLING_WITH_REPETITIONS or SAMPLING_WITHOUT_REPETITIONS
+		integer											:: iRetCode
+
+		! Locals
+		integer	:: iType
+		integer	:: iProcessedRecords	! t in Knuth's book
+		integer	:: iSelectedRecords		! m in Knuth's book
+		real(8)	:: rU
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check parameters
+		if(m <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(n < m) then
+			iRetCode = 2
+			return
+		end if
+
+		! Set sampling type and check it
+		if(present(iSampleType)) then
+			iType = iSampleType
+		else
+			iType = SAMPLING_WITHOUT_REPETITIONS
+		end if
+		if(iType /= SAMPLING_WITH_REPETITIONS .and. iType /= SAMPLING_WITHOUT_REPETITIONS) then
+			iRetCode = 3
+			return
+		end if
+
+		! Reserve result space
+		if(allocated(ivSample)) deallocate(ivSample)
+		allocate(ivSample(m))
+
+		! Dispatch based on sampling type
+		if(iType == SAMPLING_WITHOUT_REPETITIONS) then
+
+			! Algorithm S in Knuth TAOCP - Vol 2 (revised, using modern control syntax and
+			! taking into account Fortran vector indices are 1-based)
+			iProcessedRecords = 0
+			iSelectedRecords  = 0
+			do
+				call random_number(rU)
+				if((n - iProcessedRecords) * rU >= m - iSelectedRecords) then
+					! Skip index value
+					iProcessedRecords = iProcessedRecords + 1
+				else
+					! Add index value to sample
+					iProcessedRecords = iProcessedRecords + 1
+					iSelectedRecords  = iSelectedRecords  + 1
+					ivSample(iSelectedRecords) = iProcessedRecords
+					if(iSelectedRecords >= m) exit
+				end if
+			end do
+
+		else
+
+			! Straightforward implementation
+			do iSelectedRecords = 1, m
+				call random_number(rU)
+				ivSample(iSelectedRecords) = rU * n + 1
+			end do
+
+		end if
+
+	end function SampleI4
+
+
+	function SampleR4(rvPopulation, m, rvSample, iSampleType) result(iRetCode)
+
+		! Routine arguments
+		real, dimension(:), allocatable, intent(out)	:: rvPopulation	! The vector containing data from which to sample from
+		integer, intent(in)								:: m			! Population size (positive)
+		real, dimension(:), allocatable, intent(out)	:: rvSample		! The resulting sample index set
+		integer, intent(in), optional					:: iSampleType 	! SAMPLING_WITH_REPETITIONS or SAMPLING_WITHOUT_REPETITIONS
+		integer											:: iRetCode
+
+		! Locals
+		integer	:: iType
+		integer	:: iErrCode
+		integer	:: iProcessedRecords	! t in Knuth's book
+		integer	:: iSelectedRecords		! m in Knuth's book
+		real(8)	:: rU
+		integer	:: n					! Population size
+		integer, dimension(:), allocatable	:: ivSampleIdx
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check parameters
+		if(m <= 0) then
+			iRetCode = 1
+			return
+		end if
+		n = size(rvPopulation)
+		if(n < m) then
+			iRetCode = 2
+			return
+		end if
+
+		! Generate sample index
+		iErrCode = SampleI4(n, m, ivSampleIdx)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+
+		! Extract sample
+		if(allocated(rvSample)) deallocate(rvSample)
+		allocate(rvSample(m))
+		rvSample = rvPopulation(ivSampleIdx)
+
+		! Release resources
+		deallocate(ivSampleIdx)
+
+	end function SampleR4
+
+
+	function SampleR8(rvPopulation, m, rvSample, iSampleType) result(iRetCode)
+
+		! Routine arguments
+		real(8), dimension(:), allocatable, intent(out)	:: rvPopulation	! The vector containing data from which to sample from
+		integer, intent(in)								:: m			! Population size (positive)
+		real(8), dimension(:), allocatable, intent(out)	:: rvSample		! The resulting sample index set
+		integer, intent(in), optional					:: iSampleType 	! SAMPLING_WITH_REPETITIONS or SAMPLING_WITHOUT_REPETITIONS
+		integer											:: iRetCode
+
+		! Locals
+		integer	:: iType
+		integer	:: iErrCode
+		integer	:: iProcessedRecords	! t in Knuth's book
+		integer	:: iSelectedRecords		! m in Knuth's book
+		real(8)	:: rU
+		integer	:: n					! Population size
+		integer, dimension(:), allocatable	:: ivSampleIdx
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check parameters
+		if(m <= 0) then
+			iRetCode = 1
+			return
+		end if
+		n = size(rvPopulation)
+		if(n < m) then
+			iRetCode = 2
+			return
+		end if
+
+		! Generate sample index
+		iErrCode = SampleI4(n, m, ivSampleIdx)
+		if(iErrCode /= 0) then
+			iRetCode = 3
+			return
+		end if
+
+		! Extract sample
+		if(allocated(rvSample)) deallocate(rvSample)
+		allocate(rvSample(m))
+		rvSample = rvPopulation(ivSampleIdx)
+
+		! Release resources
+		deallocate(ivSampleIdx)
+
+	end function SampleR8
 
 
 	! Compute the mean of a signal
