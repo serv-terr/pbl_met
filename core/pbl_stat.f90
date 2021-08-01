@@ -581,7 +581,7 @@ contains
 	function SampleR4(rvPopulation, m, rvSample, iSampleType) result(iRetCode)
 
 		! Routine arguments
-		real, dimension(:), allocatable, intent(out)	:: rvPopulation	! The vector containing data from which to sample from
+		real, dimension(:), intent(in)					:: rvPopulation	! The vector containing data from which to sample from
 		integer, intent(in)								:: m			! Population size (positive)
 		real, dimension(:), allocatable, intent(out)	:: rvSample		! The resulting sample index set
 		integer, intent(in), optional					:: iSampleType 	! SAMPLING_WITH_REPETITIONS or SAMPLING_WITHOUT_REPETITIONS
@@ -610,10 +610,21 @@ contains
 			return
 		end if
 
-		! Generate sample index
-		iErrCode = SampleI4(n, m, ivSampleIdx)
-		if(iErrCode /= 0) then
+		! Set sampling type and check it
+		if(present(iSampleType)) then
+			iType = iSampleType
+		else
+			iType = SAMPLING_WITHOUT_REPETITIONS
+		end if
+		if(iType /= SAMPLING_WITH_REPETITIONS .and. iType /= SAMPLING_WITHOUT_REPETITIONS) then
 			iRetCode = 3
+			return
+		end if
+
+		! Generate sample index
+		iErrCode = SampleI4(n, m, ivSampleIdx, iSampleType = iType)
+		if(iErrCode /= 0) then
+			iRetCode = 4
 			return
 		end if
 
@@ -631,7 +642,7 @@ contains
 	function SampleR8(rvPopulation, m, rvSample, iSampleType) result(iRetCode)
 
 		! Routine arguments
-		real(8), dimension(:), allocatable, intent(out)	:: rvPopulation	! The vector containing data from which to sample from
+		real(8), dimension(:), intent(in)				:: rvPopulation	! The vector containing data from which to sample from
 		integer, intent(in)								:: m			! Population size (positive)
 		real(8), dimension(:), allocatable, intent(out)	:: rvSample		! The resulting sample index set
 		integer, intent(in), optional					:: iSampleType 	! SAMPLING_WITH_REPETITIONS or SAMPLING_WITHOUT_REPETITIONS
@@ -660,10 +671,21 @@ contains
 			return
 		end if
 
-		! Generate sample index
-		iErrCode = SampleI4(n, m, ivSampleIdx)
-		if(iErrCode /= 0) then
+		! Set sampling type and check it
+		if(present(iSampleType)) then
+			iType = iSampleType
+		else
+			iType = SAMPLING_WITHOUT_REPETITIONS
+		end if
+		if(iType /= SAMPLING_WITH_REPETITIONS .and. iType /= SAMPLING_WITHOUT_REPETITIONS) then
 			iRetCode = 3
+			return
+		end if
+
+		! Generate sample index
+		iErrCode = SampleI4(n, m, ivSampleIdx, iSampleType = iType)
+		if(iErrCode /= 0) then
+			iRetCode = 4
 			return
 		end if
 
