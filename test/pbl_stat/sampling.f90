@@ -8,8 +8,10 @@ program test_sampling
     ! Locals
     integer, dimension(:), allocatable  :: ivSampleIdx
     real, dimension(:), allocatable     :: rvP4
+    real, dimension(:), allocatable     :: rvA4
     real, dimension(:), allocatable     :: rvS4
     real(8), dimension(:), allocatable  :: rvP8
+    real(8), dimension(:), allocatable  :: rvA8
     real(8), dimension(:), allocatable  :: rvS8
     integer                             :: iRetCode
     integer                             :: n, m
@@ -273,6 +275,98 @@ program test_sampling
     iRetCode = Sample(rvP8, m, rvS8, iSampleType = -8)
     print *, "Sample: ", m, " values"
     print *, "Expected return code /= 0 - Actual = ", iRetCode
+    print *
+
+    ! Test of selection - real*4
+
+    ! Test 1 - Without repetitions, as of default
+    n = 10
+    print *, "Test 1"
+    if(allocated(rvP4)) deallocate(rvP4)
+    allocate(rvP4(n))
+    if(allocated(rvA4)) deallocate(rvA4)
+    allocate(rvA4(n))
+    do i = 1, n
+        rvP4(i) = i
+    end do
+    rvA4 = 0.
+    rvA4(5) = 1.
+    rvA4(6) = 2.
+    print *, "Expected return code = 0"
+    iRetCode = Select(rvP4, rvA4, 0.5, NaN, rvS4)
+    print *, iRetCode, ' - ', size(rvS4), ' - ', rvS4
+    print *
+
+    ! Test 2 - Without repetitions, as of default
+    n = 10
+    print *, "Test 2"
+    if(allocated(rvP4)) deallocate(rvP4)
+    allocate(rvP4(n))
+    if(allocated(rvA4)) deallocate(rvA4)
+    allocate(rvA4(n))
+    do i = 1, n
+        rvP4(i) = i
+    end do
+    rvA4 = 0.
+    rvA4(5) = 1.
+    rvA4(6) = 2.
+    print *, "Expected return code = 0"
+    iRetCode = Select(rvP4, rvA4, NaN, 0.5, rvS4)
+    print *, iRetCode, ' - ', size(rvS4), ' - ', rvS4
+    print *
+
+    ! Test 3 - Without repetitions, as of default
+    n = 10
+    print *, "Test 3"
+    if(allocated(rvP4)) deallocate(rvP4)
+    allocate(rvP4(n))
+    if(allocated(rvA4)) deallocate(rvA4)
+    allocate(rvA4(n))
+    do i = 1, n
+        rvP4(i) = i
+    end do
+    rvA4 = 0.
+    rvA4(5) = 1.
+    rvA4(6) = 2.
+    print *, "Expected return code = 0"
+    iRetCode = Select(rvP4, rvA4, 0.5, 1.5, rvS4)
+    print *, iRetCode, ' - ', size(rvS4), ' - ', rvS4
+    print *
+
+    ! Test 4 - Without repetitions, as of default
+    n = 10
+    print *, "Test 4"
+    if(allocated(rvP4)) deallocate(rvP4)
+    allocate(rvP4(n))
+    if(allocated(rvA4)) deallocate(rvA4)
+    allocate(rvA4(n))
+    do i = 1, n
+        rvP4(i) = i
+    end do
+    rvA4 = 0.
+    rvA4(5) = 1.
+    rvA4(6) = 2.
+    print *, "Expected return code = 0"
+    iRetCode = Select(rvP4, rvA4, 1.0, 1.0, rvS4)
+    print *, iRetCode, ' - ', size(rvS4), ' - ', rvS4
+    print *
+
+    ! Test 4 - Without repetitions, as of default
+    n = 10
+    print *, "Test 4"
+    if(allocated(rvP4)) deallocate(rvP4)
+    allocate(rvP4(n))
+    if(allocated(rvA4)) deallocate(rvA4)
+    allocate(rvA4(n))
+    do i = 1, n
+        rvP4(i) = i
+    end do
+    rvA4 = 0.
+    rvA4(5) = 1.
+    rvA4(6) = 2.
+    print *, "Expected return code = 0"
+    iRetCode = Select(rvP4, rvA4, 3.0, NaN, rvS4)
+    print *, iRetCode, ' - ', size(rvS4), ' - ', rvS4
     print *
 
 end program test_sampling
