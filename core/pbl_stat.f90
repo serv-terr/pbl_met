@@ -936,10 +936,8 @@ contains
 			do i = 1, n
 				if(.not.ieee_is_nan(rvAuxiliary(i))) then
 					if(rvAuxiliary(i) >= rMin) then
-						if(rvAuxiliary(i) <= rMax) then
-							j = j + 1
-							rvOutput(j) = rvInput(i)
-						end if
+						j = j + 1
+						rvOutput(j) = rvInput(i)
 					end if
 				end if
 			end do
@@ -947,10 +945,8 @@ contains
 			do i = 1, n
 				if(.not.ieee_is_nan(rvAuxiliary(i))) then
 					if(rMin <= rvAuxiliary(i) .and. rvAuxiliary(i) <= rMax) then
-						if(rvAuxiliary(i) <= rMax) then
-							j = j + 1
-							rvOutput(j) = rvInput(i)
-						end if
+						j = j + 1
+						rvOutput(j) = rvInput(i)
 					end if
 				end if
 			end do
