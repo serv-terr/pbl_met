@@ -27,6 +27,8 @@ module pbl_stat
 	public	:: Sample
 	public	:: SAMPLING_WITH_REPETITIONS
 	public	:: SAMPLING_WITHOUT_REPETITIONS
+	! 1.3. Selection
+	public	:: Select
 	! 1.3. Conditional extraction
     ! 2. Basic statistics
 	! 2.1. Regular
@@ -222,6 +224,11 @@ module pbl_stat
 		module procedure	:: SampleR4
 		module procedure	:: SampleR8
 	end interface Sample
+
+	interface Select
+		module procedure	:: Select4
+		module procedure	:: Select8
+	end interface Select
 
     interface Mean
     	module procedure	:: Mean4
@@ -698,6 +705,258 @@ contains
 		deallocate(ivSampleIdx)
 
 	end function SampleR8
+
+
+	function Select4(rvInput, rvAuxiliary, rMinVal, rMaxVal, rvOutput) result(iRetCode)
+
+		! Routine arguments
+		real, dimension(:), intent(in)						:: rvInput
+		real, dimension(:), intent(in)						:: rvAuxiliary
+		real, intent(in), optional							:: rMinVal
+		real, intent(in), optional							:: rMaxVal
+		real, dimension(:), allocatable, intent(out)		:: rvOutput
+		integer												:: iRetCode
+
+		! Locals
+		real	:: rMin
+		real	:: rMax
+		real	:: rHold
+		integer	:: i
+		integer	:: j
+		integer	:: iNumSelected
+		integer	:: n
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check parameters
+		if(size(rvInput) <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(rvAuxiliary) /= size(rvInput)) then
+			iRetCode = 2
+			return
+		end if
+
+		! Get selector parameters
+		if(present(rMinVal)) then
+			rMin = rMinVal
+		else
+			rMin = NaN
+		end if
+		if(present(rMaxVal)) then
+			rMax = rMaxVal
+		else
+			rMax = NaN
+		end if
+		if(ieee_is_nan(rMin) .and. ieee_is_nan(rMax)) then
+			iRetCode = 3
+			return
+		end if
+
+		! Ensure limit ordering
+		if(.not. ieee_is_nan(rMin) .and. .not. ieee_is_nan(rMax)) then
+			if(rMin > rMax) then
+				rHold = rMin
+				rMin  = rMax
+				rMax  = rHold
+			end if
+		end if
+
+		! Dispatch based on cases
+		n = size(rvInput)
+		iNumSelected = 0
+		if(ieee_is_nan(rMin)) then
+			do i = 1, n
+				if(.not.ieee_is_nan(rvAuxiliary(i))) then
+					if(rvAuxiliary(i) <= rMax) iNumSelected = iNumSelected + 1
+				end if
+			end do
+		elseif(ieee_is_nan(rMax)) then
+			do i = 1, n
+				if(.not.ieee_is_nan(rvAuxiliary(i))) then
+					if(rvAuxiliary(i) >= rMin) iNumSelected = iNumSelected + 1
+				end if
+			end do
+		else
+			do i = 1, n
+				if(.not.ieee_is_nan(rvAuxiliary(i))) then
+					if(rMin <= rvAuxiliary(i) .and. rvAuxiliary(i) <= rMax) iNumSelected = iNumSelected + 1
+				end if
+			end do
+		end if
+		! iNumSelected may be 0 on exit: this is normal, and will yield zero-length
+		! (empty) vectors
+
+		! Allocate answer
+		if(allocated(rvOutput)) deallocate(rvOutput)
+		allocate(rvOutput(iNumSelected))
+		if(iNumSelected <= 0) then
+			iRetCode = -1	! Warning: null vectors
+			return			! (then nothing to do)
+		end if
+
+		! Transfer data
+		j = 0
+		if(ieee_is_nan(rMin)) then
+			do i = 1, n
+				if(.not.ieee_is_nan(rvAuxiliary(i))) then
+					if(rvAuxiliary(i) <= rMax) then
+						j = j + 1
+						rvOutput(j) = rvInput(i)
+					end if
+				end if
+			end do
+		elseif(ieee_is_nan(rMax)) then
+			do i = 1, n
+				if(.not.ieee_is_nan(rvAuxiliary(i))) then
+					if(rvAuxiliary(i) >= rMin) then
+						j = j + 1
+						rvOutput(j) = rvInput(i)
+					end if
+				end if
+			end do
+		else
+			do i = 1, n
+				if(.not.ieee_is_nan(rvAuxiliary(i))) then
+					if(rMin <= rvAuxiliary(i) .and. rvAuxiliary(i) <= rMax) then
+						j = j + 1
+						rvOutput(j) = rvInput(i)
+					end if
+				end if
+			end do
+		end if
+
+	end function Select4
+
+
+	function Select8(rvInput, rvAuxiliary, rMinVal, rMaxVal, rvOutput) result(iRetCode)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)						:: rvInput
+		real(8), dimension(:), intent(in)						:: rvAuxiliary
+		real(8), intent(in), optional							:: rMinVal
+		real(8), intent(in), optional							:: rMaxVal
+		real(8), dimension(:), allocatable, intent(out)		:: rvOutput
+		integer												:: iRetCode
+
+		! Locals
+		real(8)	:: rMin
+		real(8)	:: rMax
+		real(8)	:: rHold
+		integer	:: i
+		integer	:: j
+		integer	:: iNumSelected
+		integer	:: n
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check parameters
+		if(size(rvInput) <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(rvAuxiliary) /= size(rvInput)) then
+			iRetCode = 2
+			return
+		end if
+
+		! Get selector parameters
+		if(present(rMinVal)) then
+			rMin = rMinVal
+		else
+			rMin = NaN_8
+		end if
+		if(present(rMaxVal)) then
+			rMax = rMaxVal
+		else
+			rMax = NaN_8
+		end if
+		if(ieee_is_nan(rMin) .and. ieee_is_nan(rMax)) then
+			iRetCode = 3
+			return
+		end if
+
+		! Ensure limit ordering
+		if(.not. ieee_is_nan(rMin) .and. .not. ieee_is_nan(rMax)) then
+			if(rMin > rMax) then
+				rHold = rMin
+				rMin  = rMax
+				rMax  = rHold
+			end if
+		end if
+
+		! Dispatch based on cases
+		n = size(rvInput)
+		iNumSelected = 0
+		if(ieee_is_nan(rMin)) then
+			do i = 1, n
+				if(.not.ieee_is_nan(rvAuxiliary(i))) then
+					if(rvAuxiliary(i) <= rMax) iNumSelected = iNumSelected + 1
+				end if
+			end do
+		elseif(ieee_is_nan(rMax)) then
+			do i = 1, n
+				if(.not.ieee_is_nan(rvAuxiliary(i))) then
+					if(rvAuxiliary(i) >= rMin) iNumSelected = iNumSelected + 1
+				end if
+			end do
+		else
+			do i = 1, n
+				if(.not.ieee_is_nan(rvAuxiliary(i))) then
+					if(rMin <= rvAuxiliary(i) .and. rvAuxiliary(i) <= rMax) iNumSelected = iNumSelected + 1
+				end if
+			end do
+		end if
+		! iNumSelected may be 0 on exit: this is normal, and will yield zero-length
+		! (empty) vectors
+
+		! Allocate answer
+		if(allocated(rvOutput)) deallocate(rvOutput)
+		allocate(rvOutput(iNumSelected))
+		if(iNumSelected <= 0) then
+			iRetCode = -1	! Warning: null vectors
+			return			! (then nothing to do)
+		end if
+
+		! Transfer data
+		j = 0
+		if(ieee_is_nan(rMin)) then
+			do i = 1, n
+				if(.not.ieee_is_nan(rvAuxiliary(i))) then
+					if(rvAuxiliary(i) <= rMax) then
+						j = j + 1
+						rvOutput(j) = rvInput(i)
+					end if
+				end if
+			end do
+		elseif(ieee_is_nan(rMax)) then
+			do i = 1, n
+				if(.not.ieee_is_nan(rvAuxiliary(i))) then
+					if(rvAuxiliary(i) >= rMin) then
+						if(rvAuxiliary(i) <= rMax) then
+							j = j + 1
+							rvOutput(j) = rvInput(i)
+						end if
+					end if
+				end if
+			end do
+		else
+			do i = 1, n
+				if(.not.ieee_is_nan(rvAuxiliary(i))) then
+					if(rMin <= rvAuxiliary(i) .and. rvAuxiliary(i) <= rMax) then
+						if(rvAuxiliary(i) <= rMax) then
+							j = j + 1
+							rvOutput(j) = rvInput(i)
+						end if
+					end if
+				end if
+			end do
+		end if
+
+	end function Select8
 
 
 	! Compute the mean of a signal
