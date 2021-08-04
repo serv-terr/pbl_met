@@ -29,6 +29,8 @@ module pbl_stat
 	public	:: SAMPLING_WITHOUT_REPETITIONS
 	! 1.3. Selection
 	public	:: Select
+	public	:: SelectionSet4
+	public	:: SelectionSet8
 	! 1.3. Conditional extraction
     ! 2. Basic statistics
 	! 2.1. Regular
@@ -166,6 +168,28 @@ module pbl_stat
 		procedure, public	:: evaluate				=> dfEvaluate
 	end type TwoDimensionalField
 
+
+	type SelectionItem4
+		real, dimension(:), allocatable	:: rvValue
+	end type SelectionItem4
+
+
+	type SelectionSet4
+		integer, dimension(:), allocatable				:: ivEqVal
+		type(SelectionItem4), dimension(:), allocatable	:: tvItem
+	end type SelectionSet4
+
+
+	type SelectionItem8
+		real(8), dimension(:), allocatable	:: rvValue
+	end type SelectionItem8
+
+
+	type SelectionSet8
+		integer, dimension(:), allocatable				:: ivEqVal
+		type(SelectionItem8), dimension(:), allocatable	:: tvItem
+	end type SelectionSet8
+
     ! Constants
 
 	integer, parameter	:: SAMPLING_WITH_REPETITIONS    = 1
@@ -229,6 +253,8 @@ module pbl_stat
 		module procedure	:: Select4
 		module procedure	:: Select8
 		module procedure	:: Select48
+		module procedure	:: SelectI4_4
+		module procedure	:: SelectI4_8
 	end interface Select
 
     interface Mean
@@ -1078,6 +1104,161 @@ contains
 		end if
 
 	end function Select48
+
+
+	function SelectI4_4(rvInput, ivAuxiliary, ivEqVal, tSelSet) result(iRetCode)
+
+		! Routine arguments
+		real, dimension(:), intent(in)						:: rvInput
+		integer, dimension(:), intent(in)					:: ivAuxiliary
+		integer, dimension(:), intent(in)					:: ivEqVal
+		type(SelectionSet4), intent(out)					:: tSelSet
+		integer												:: iRetCode
+
+		! Locals
+		integer	:: i
+		integer	:: j
+		integer	:: k
+		integer	:: iNumSelected
+		integer	:: n
+		integer, dimension(:), allocatable	:: ivNumData
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check parameters
+		if(size(rvInput) <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(ivAuxiliary) /= size(rvInput)) then
+			iRetCode = 2
+			return
+		end if
+		if(size(ivEqVal) <= 0) then
+			iRetCode = 3
+			return
+		end if
+
+		! Reserve workspace
+		allocate(ivNumData(size(ivEqVal)))
+		ivNumData = 0
+
+		! Count data per class
+		n = size(rvInput)
+		do i = 1, n
+			do j = 1, size(ivEqVal)
+				if(ivAuxiliary(i) == ivEqVal(j)) ivNumData(j) = ivNumData(j) + 1
+			end do
+		end do
+		! ivNumSelected may be 0 on exit: this is normal, and will yield zero-length
+		! (empty) vectors
+
+		! Allocate answer
+		if(allocated(tSelSet % ivEqVal)) deallocate(tSelSet % ivEqVal)
+		allocate(tSelSet % ivEqVal(size(ivEqVal)))
+		tSelSet % ivEqVal = ivEqVal
+		if(allocated(tSelSet % tvItem)) then
+			do j = 1, size(ivEqVal)
+				if(allocated(tSelSet % tvItem(j) % rvValue)) deallocate(tSelSet % tvItem(j) % rvValue)
+			end do
+			deallocate(tSelSet % tvItem)
+		end if
+		if(allocated(tSelSet % tvItem)) deallocate(tSelSet % tvItem)
+		allocate(tSelSet % tvItem(size(ivEqVal)))
+		do j = 1, size(ivEqVal)
+			allocate(tSelSet % tvItem(j) % rvValue(ivNumData(j)))
+		end do
+
+		! Transfer data
+		ivNumData = 0
+		do i = 1, n
+			do j = 1, size(ivEqVal)
+				if(ivAuxiliary(i) == ivEqVal(j)) then
+					ivNumData(j) = ivNumData(j) + 1
+					tSelSet % tvItem(j) % rvValue(ivNumData(j)) = rvInput(i)
+				end if
+			end do
+		end do
+
+	end function SelectI4_4
+
+
+	function SelectI4_8(rvInput, ivAuxiliary, ivEqVal, tSelSet) result(iRetCode)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)					:: rvInput
+		integer, dimension(:), intent(in)					:: ivAuxiliary
+		integer, dimension(:), intent(in)					:: ivEqVal
+		type(SelectionSet8), intent(out)					:: tSelSet
+		integer												:: iRetCode
+
+		! Locals
+		integer	:: i
+		integer	:: j
+		integer	:: iNumSelected
+		integer	:: n
+		integer, dimension(:), allocatable	:: ivNumData
+
+		! Assume success (will falsify on failure)
+		iRetCode = 0
+
+		! Check parameters
+		if(size(rvInput) <= 0) then
+			iRetCode = 1
+			return
+		end if
+		if(size(ivAuxiliary) /= size(rvInput)) then
+			iRetCode = 2
+			return
+		end if
+		if(size(ivEqVal) <= 0) then
+			iRetCode = 3
+			return
+		end if
+
+		! Reserve workspace
+		allocate(ivNumData(size(ivEqVal)))
+		ivNumData = 0
+
+		! Count data per class
+		n = size(rvInput)
+		do i = 1, n
+			do j = 1, size(ivEqVal)
+				if(ivAuxiliary(i) == ivEqVal(j)) ivNumData(j) = ivNumData(j) + 1
+			end do
+		end do
+		! ivNumSelected may be 0 on exit: this is normal, and will yield zero-length
+		! (empty) vectors
+
+		! Allocate answer
+		if(allocated(tSelSet % ivEqVal)) deallocate(tSelSet % ivEqVal)
+		allocate(tSelSet % ivEqVal(size(ivEqVal)))
+		tSelSet % ivEqVal = ivEqVal
+		if(allocated(tSelSet % tvItem)) then
+			do j = 1, size(ivEqVal)
+				if(allocated(tSelSet % tvItem(j) % rvValue)) deallocate(tSelSet % tvItem(j) % rvValue)
+			end do
+			deallocate(tSelSet % tvItem)
+		end if
+		if(allocated(tSelSet % tvItem)) deallocate(tSelSet % tvItem)
+		allocate(tSelSet % tvItem(size(ivEqVal)))
+		do j = 1, size(ivEqVal)
+			allocate(tSelSet % tvItem(j) % rvValue(ivNumData(j)))
+		end do
+
+		! Transfer data
+		ivNumData = 0
+		do i = 1, n
+			do j = 1, size(ivEqVal)
+				if(ivAuxiliary(i) == ivEqVal(j)) then
+					ivNumData(j) = ivNumData(j) + 1
+					tSelSet % tvItem(j) % rvValue(ivNumData(j)) = rvInput(i)
+				end if
+			end do
+		end do
+
+	end function SelectI4_8
 
 
 	! Compute the mean of a signal

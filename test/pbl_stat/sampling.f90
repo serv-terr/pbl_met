@@ -13,6 +13,8 @@ program test_sampling
     real(8), dimension(:), allocatable  :: rvP8
     real(8), dimension(:), allocatable  :: rvA8
     real(8), dimension(:), allocatable  :: rvS8
+    integer, dimension(:), allocatable  :: ivA
+    integer, dimension(:), allocatable  :: ivEqVal
     integer                             :: iRetCode
     integer                             :: n, m
     integer                             :: i
@@ -22,6 +24,8 @@ program test_sampling
     real(8)                             :: rBaseTime
     real(8)                             :: rDateFrom
     real(8)                             :: rDateTo
+    type(SelectionSet4)                 :: tSel
+    type(SelectionSet8)                 :: tSel8
 
     ! Tests of sampling index
 
@@ -637,7 +641,7 @@ program test_sampling
 
     ! Test of selection - real*4 - real*8
 
-    ! Test 1 - Without repetitions, as of default
+    ! Test 1
     n = 10
     print *, "Test 1"
     if(allocated(rvP4)) deallocate(rvP4)
@@ -655,7 +659,7 @@ program test_sampling
     print *, iRetCode, ' - ', size(rvS4), ' - ', rvS4
     print *
 
-    ! Test 2 - Without repetitions, as of default
+    ! Test 2
     n = 10
     print *, "Test 2"
     if(allocated(rvP4)) deallocate(rvP4)
@@ -800,7 +804,7 @@ program test_sampling
     print *, iRetCode
     print *
 
-   ! Example 1
+    ! Example 1
     n = 48
     print *, "Example 1"
     if(allocated(rvP4)) deallocate(rvP4)
@@ -820,6 +824,246 @@ program test_sampling
     print *, "Expected return code = 0"
     iRetCode = Select(rvP4, rvA8, rDateFrom, rDateTo, rvS4)
     print *, iRetCode, ' - ', size(rvS4), ' - ', rvS4
+    print *
+
+    ! Test of selection - integer auxiliary, real*4
+
+    ! Test 1
+    n = 10
+    print *, "Test 1_4"
+    if(allocated(rvP4)) deallocate(rvP4)
+    allocate(rvP4(n))
+    if(allocated(ivA)) deallocate(ivA)
+    allocate(ivA(n))
+    if(allocated(ivEqVal)) deallocate(ivEqVal)
+    allocate(ivEqVal(2))
+    do i = 1, n
+        rvP4(i) = i
+    end do
+    ivA = 0
+    ivA(1) = 1
+    ivA(2) = 1
+    ivEqVal(1) = -1
+    ivEqVal(2) =  1
+    print *, "Expected return code = 0"
+    iRetCode = Select(rvP4, ivA, ivEqVal, tSel)
+    print *, 'iRetCode = ', iRetCode
+    print *, 'Classes  =  ', size(tSel % ivEqVal)
+    do i = 1, size(tSel % ivEqVal)
+        print *, '   Class ', i, ' Ref.value = ', tSel % ivEqVal(i), ' Num data = ', size(tSel % tvItem(i) % rvValue)
+        if(size(tSel % tvItem(i) % rvValue) > 0) print *, '    ', tSel % tvItem(i) % rvValue
+    end do
+    print *
+    n = 10
+    print *, "Test 1_8"
+    if(allocated(rvP8)) deallocate(rvP8)
+    allocate(rvP8(n))
+    if(allocated(ivA)) deallocate(ivA)
+    allocate(ivA(n))
+    if(allocated(ivEqVal)) deallocate(ivEqVal)
+    allocate(ivEqVal(2))
+    do i = 1, n
+        rvP8(i) = i
+    end do
+    ivA = 0
+    ivA(1) = 1
+    ivA(2) = 1
+    ivEqVal(1) = -1
+    ivEqVal(2) =  1
+    print *, "Expected return code = 0"
+    iRetCode = Select(rvP8, ivA, ivEqVal, tSel8)
+    print *, 'iRetCode = ', iRetCode
+    print *, 'Classes  =  ', size(tSel8 % ivEqVal)
+    do i = 1, size(tSel8 % ivEqVal)
+        print *, '   Class ', i, ' Ref.value = ', tSel8 % ivEqVal(i), ' Num data = ', size(tSel8 % tvItem(i) % rvValue)
+        if(size(tSel8 % tvItem(i) % rvValue) > 0) print *, '    ', tSel8 % tvItem(i) % rvValue
+    end do
+    print *
+
+    ! Test 2
+    n = 10
+    print *, "Test 2_4"
+    if(allocated(rvP4)) deallocate(rvP4)
+    allocate(rvP4(n))
+    if(allocated(ivA)) deallocate(ivA)
+    allocate(ivA(n))
+    if(allocated(ivEqVal)) deallocate(ivEqVal)
+    allocate(ivEqVal(5))
+    do i = 1, n
+        rvP4(i) = i
+    end do
+    ivA = 0
+    ivA(1) = 1
+    ivA(2) = 1
+    ivA(3) = 2
+    ivA(4) = 2
+    ivA(5) = 3
+    ivA(6) = 3
+    ivA(7) = 4
+    ivA(8) = 5
+    ivA(9) = 1
+    ivEqVal(1) =  0
+    ivEqVal(2) =  1
+    ivEqVal(3) =  2
+    ivEqVal(4) =  3
+    ivEqVal(5) =  4
+    print *, "Expected return code = 0"
+    iRetCode = Select(rvP4, ivA, ivEqVal, tSel)
+    print *, 'iRetCode = ', iRetCode
+    print *, 'Classes  =  ', size(tSel % ivEqVal)
+    do i = 1, size(tSel % ivEqVal)
+        print *, '   Class ', i, ' Ref.value = ', tSel % ivEqVal(i), ' Num data = ', size(tSel % tvItem(i) % rvValue)
+        if(size(tSel % tvItem(i) % rvValue) > 0) print *, '    ', tSel % tvItem(i) % rvValue
+    end do
+    print *
+    n = 10
+    print *, "Test 2_8"
+    if(allocated(rvP8)) deallocate(rvP8)
+    allocate(rvP8(n))
+    if(allocated(ivA)) deallocate(ivA)
+    allocate(ivA(n))
+    if(allocated(ivEqVal)) deallocate(ivEqVal)
+    allocate(ivEqVal(5))
+    do i = 1, n
+        rvP8(i) = i
+    end do
+    ivA = 0
+    ivA(1) = 1
+    ivA(2) = 1
+    ivA(3) = 2
+    ivA(4) = 2
+    ivA(5) = 3
+    ivA(6) = 3
+    ivA(7) = 4
+    ivA(8) = 5
+    ivA(9) = 1
+    ivEqVal(1) =  0
+    ivEqVal(2) =  1
+    ivEqVal(3) =  2
+    ivEqVal(4) =  3
+    ivEqVal(5) =  4
+    print *, "Expected return code = 0"
+    iRetCode = Select(rvP8, ivA, ivEqVal, tSel8)
+    print *, 'iRetCode = ', iRetCode
+    print *, 'Classes  =  ', size(tSel8 % ivEqVal)
+    do i = 1, size(tSel8 % ivEqVal)
+        print *, '   Class ', i, ' Ref.value = ', tSel8 % ivEqVal(i), ' Num data = ', size(tSel8 % tvItem(i) % rvValue)
+        if(size(tSel8 % tvItem(i) % rvValue) > 0) print *, '    ', tSel8 % tvItem(i) % rvValue
+    end do
+    print *
+
+    ! Test 3
+    n = 10
+    print *, "Test 3_4"
+    if(allocated(rvP4)) deallocate(rvP4)
+    allocate(rvP4(n))
+    if(allocated(ivA)) deallocate(ivA)
+    allocate(ivA(n))
+    if(allocated(ivEqVal)) deallocate(ivEqVal)
+    allocate(ivEqVal(0))
+    do i = 1, n
+        rvP4(i) = i
+    end do
+    ivA = 0
+    ivA(1) = 1
+    ivA(2) = 1
+    ivA(3) = 2
+    ivA(4) = 2
+    ivA(5) = 3
+    ivA(6) = 3
+    ivA(7) = 4
+    ivA(8) = 5
+    ivA(9) = 1
+    print *, "Expected return code /= 0"
+    iRetCode = Select(rvP4, ivA, ivEqVal, tSel)
+    print *, 'iRetCode = ', iRetCode
+    print *
+    n = 10
+    print *, "Test 3_8"
+    if(allocated(rvP8)) deallocate(rvP8)
+    allocate(rvP8(n))
+    if(allocated(ivA)) deallocate(ivA)
+    allocate(ivA(n))
+    if(allocated(ivEqVal)) deallocate(ivEqVal)
+    allocate(ivEqVal(0))
+    do i = 1, n
+        rvP8(i) = i
+    end do
+    ivA = 0
+    ivA(1) = 1
+    ivA(2) = 1
+    ivA(3) = 2
+    ivA(4) = 2
+    ivA(5) = 3
+    ivA(6) = 3
+    ivA(7) = 4
+    ivA(8) = 5
+    ivA(9) = 1
+    print *, "Expected return code /= 0"
+    iRetCode = Select(rvP8, ivA, ivEqVal, tSel8)
+    print *, 'iRetCode = ', iRetCode
+    print *
+
+    ! Test 4
+    n = 10
+    print *, "Test 4_4"
+    if(allocated(rvP4)) deallocate(rvP4)
+    allocate(rvP4(n))
+    if(allocated(ivA)) deallocate(ivA)
+    allocate(ivA(n-1))
+    if(allocated(ivEqVal)) deallocate(ivEqVal)
+    allocate(ivEqVal(5))
+    do i = 1, n
+        rvP4(i) = i
+    end do
+    ivA = 0
+    print *, "Expected return code /= 0"
+    iRetCode = Select(rvP4, ivA, ivEqVal, tSel)
+    print *, 'iRetCode = ', iRetCode
+    print *
+    n = 10
+    print *, "Test 4_8"
+    if(allocated(rvP8)) deallocate(rvP8)
+    allocate(rvP8(n))
+    if(allocated(ivA)) deallocate(ivA)
+    allocate(ivA(n-1))
+    if(allocated(ivEqVal)) deallocate(ivEqVal)
+    allocate(ivEqVal(5))
+    do i = 1, n
+        rvP8(i) = i
+    end do
+    ivA = 0
+    print *, "Expected return code /= 0"
+    iRetCode = Select(rvP8, ivA, ivEqVal, tSel8)
+    print *, 'iRetCode = ', iRetCode
+    print *
+
+    ! Test 5
+    n = 0
+    print *, "Test 5_4"
+    if(allocated(rvP4)) deallocate(rvP4)
+    allocate(rvP4(n))
+    if(allocated(ivA)) deallocate(ivA)
+    allocate(ivA(1))
+    if(allocated(ivEqVal)) deallocate(ivEqVal)
+    allocate(ivEqVal(5))
+    ivA = 0
+    print *, "Expected return code /= 0"
+    iRetCode = Select(rvP4, ivA, ivEqVal, tSel)
+    print *, 'iRetCode = ', iRetCode
+    print *
+    n = 0
+    print *, "Test 5_8"
+    if(allocated(rvP8)) deallocate(rvP8)
+    allocate(rvP8(n))
+    if(allocated(ivA)) deallocate(ivA)
+    allocate(ivA(1))
+    if(allocated(ivEqVal)) deallocate(ivEqVal)
+    allocate(ivEqVal(5))
+    ivA = 0
+    print *, "Expected return code /= 0"
+    iRetCode = Select(rvP8, ivA, ivEqVal, tSel8)
+    print *, 'iRetCode = ', iRetCode
     print *
 
 end program test_sampling
