@@ -44,6 +44,8 @@ module pbl_stat
 	public	:: SIGMA_SAMPLE
 	public	:: SIGMA_POPULATION
 	! 2.2. Directional
+	public	:: AngleMean
+	!public	:: AngleMeanClassed
 	! 3. US-EPA validation statistics
 	public	:: FB
 	public	:: NMSE
@@ -288,6 +290,11 @@ module pbl_stat
     	module procedure	:: Kurt4
     	module procedure	:: Kurt8
     end interface Kurt
+
+	interface AngleMean
+		module procedure	:: AngleMean4
+		module procedure	:: AngleMean8
+	end interface AngleMean
 
     interface SimpleLinearRegression
     	module procedure	:: SimpleLinearRegression4
@@ -1697,6 +1704,92 @@ contains
 		end if
 
 	end function Kurt8
+
+
+	! Directional sample mean
+	function AngleMean4(rvDir) result(rDirMean)
+
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvDir
+		real							:: rDirMean
+
+		! Locals
+		integer	:: i
+		integer	:: iNumValid
+		real	:: rS
+		real	:: rC
+
+		! Constants
+		real, parameter	:: PI = atan(1.)*4.
+
+		! Check parameters
+		if(size(rvDir) <= 0.) then
+			rDirMean = NaN
+			return
+		end if
+
+		! Calculate directional mean
+		iNumValid = 0
+		rS = 0.
+		rC = 0.
+		do i = 1, size(rvDir)
+			if(.not.ieee_is_nan(rvDir(i))) then
+				iNumValid = iNumValid + 1
+				rS = rS + sin(rvDir(i)*PI/180.)
+				rC = rC + cos(rvDir(i)*PI/180.)
+			end if
+		end do
+		if(iNumValid <= 0) then
+			rDirMean = NaN
+			return
+		end if
+		rDirMean = atan2(rS, rC) * 180./PI
+		if(rDirMean < 0.) rDirMean = rDirMean + 360.
+
+	end function AngleMean4
+
+
+	! Directional sample mean
+	function AngleMean8(rvDir) result(rDirMean)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: rvDir
+		real(8)								:: rDirMean
+
+		! Locals
+		integer	:: i
+		integer	:: iNumValid
+		real(8)	:: rS
+		real(8)	:: rC
+
+		! Constants
+		real(8), parameter	:: PI = atan(1.d0)*4.d0
+
+		! Check parameters
+		if(size(rvDir) <= 0.) then
+			rDirMean = NaN_8
+			return
+		end if
+
+		! Calculate directional mean
+		iNumValid = 0
+		rS = 0.d0
+		rC = 0.d0
+		do i = 1, size(rvDir)
+			if(.not.ieee_is_nan(rvDir(i))) then
+				iNumValid = iNumValid + 1
+				rS = rS + sin(rvDir(i)*PI/180.d0)
+				rC = rC + cos(rvDir(i)*PI/180.d0)
+			end if
+		end do
+		if(iNumValid <= 0) then
+			rDirMean = NaN_8
+			return
+		end if
+		rDirMean = atan2(rS, rC) * 180.d0/PI
+		if(rDirMean < 0.) rDirMean = rDirMean + 360.d0
+
+	end function AngleMean8
 
 
 	! FB validation index
