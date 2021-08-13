@@ -45,6 +45,7 @@ module pbl_stat
 	public	:: SIGMA_POPULATION
 	! 2.2. Directional
 	public	:: AngleMean
+	public	:: AngleMoment
 	!public	:: AngleMeanClassed
 	! 3. US-EPA validation statistics
 	public	:: FB
@@ -295,6 +296,11 @@ module pbl_stat
 		module procedure	:: AngleMean4
 		module procedure	:: AngleMean8
 	end interface AngleMean
+
+	interface AngleMoment
+		module procedure	:: AngleMoment4
+		module procedure	:: AngleMoment8
+	end interface AngleMoment
 
     interface SimpleLinearRegression
     	module procedure	:: SimpleLinearRegression4
@@ -1723,7 +1729,7 @@ contains
 		real, parameter	:: PI = atan(1.)*4.
 
 		! Check parameters
-		if(size(rvDir) <= 0.) then
+		if(size(rvDir) <= 0) then
 			rDirMean = NaN
 			return
 		end if
@@ -1766,7 +1772,7 @@ contains
 		real(8), parameter	:: PI = atan(1.d0)*4.d0
 
 		! Check parameters
-		if(size(rvDir) <= 0.) then
+		if(size(rvDir) <= 0) then
 			rDirMean = NaN_8
 			return
 		end if
@@ -1790,6 +1796,114 @@ contains
 		if(rDirMean < 0.) rDirMean = rDirMean + 360.d0
 
 	end function AngleMean8
+
+
+	! Directional sample moment of order 'rP'
+	function AngleMoment4(rvDir, rP, rMean) result(rDirMoment)
+
+		! Routine arguments
+		real, dimension(:), intent(in)	:: rvDir
+		real, intent(in)				:: rP
+		real, intent(in), optional		:: rMean
+		real							:: rDirMoment
+
+		! Locals
+		integer	:: i
+		integer	:: iNumValid
+		real	:: rS
+		real	:: rC
+		real	:: rAvg
+
+		! Constants
+		real, parameter	:: PI = atan(1.)*4.
+
+		! Check parameters
+		if(size(rvDir) <= 0) then
+			rDirMoment = NaN
+			return
+		end if
+
+		! Get angle mean
+		if(present(rMean)) then
+			rAvg = rMean
+		else
+			rAvg = AngleMean4(rvDir)
+		end if
+
+		! Calculate directional mean
+		iNumValid = 0
+		rS = 0.
+		rC = 0.
+		do i = 1, size(rvDir)
+			if(.not.ieee_is_nan(rvDir(i))) then
+				iNumValid = iNumValid + 1
+				rS = rS + sin(rP*(rvDir(i)-rAvg)*PI/180.)
+				rC = rC + cos(rP*(rvDir(i)-rAvg)*PI/180.)
+			end if
+		end do
+		if(iNumValid <= 0) then
+			rDirMoment = NaN
+			return
+		end if
+		rDirMoment = atan2(rS, rC) * 180./PI
+		if(rDirMoment < 0.) rDirMoment = rDirMoment + 360.
+		if(rDirMoment >= 360.) rDirMoment = rDirMoment - 360.
+
+	end function AngleMoment4
+
+
+	! Directional sample moment of order 'rP'
+	function AngleMoment8(rvDir, rP, rMean) result(rDirMoment)
+
+		! Routine arguments
+		real(8), dimension(:), intent(in)	:: rvDir
+		real(8), intent(in)					:: rP
+		real(8), intent(in), optional		:: rMean
+		real(8)								:: rDirMoment
+
+		! Locals
+		integer	:: i
+		integer	:: iNumValid
+		real(8)	:: rS
+		real(8)	:: rC
+		real(8)	:: rAvg
+
+		! Constants
+		real(8), parameter	:: PI = atan(1.d0)*4.d0
+
+		! Check parameters
+		if(size(rvDir) <= 0) then
+			rDirMoment = NaN_8
+			return
+		end if
+
+		! Get angle mean
+		if(present(rMean)) then
+			rAvg = rMean
+		else
+			rAvg = AngleMean8(rvDir)
+		end if
+
+		! Calculate directional mean
+		iNumValid = 0
+		rS = 0.
+		rC = 0.
+		do i = 1, size(rvDir)
+			if(.not.ieee_is_nan(rvDir(i))) then
+				iNumValid = iNumValid + 1
+				rS = rS + sin(rP*(rvDir(i)-rAvg)*PI/180.)
+				rC = rC + cos(rP*(rvDir(i)-rAvg)*PI/180.)
+			end if
+		end do
+		if(iNumValid <= 0) then
+			rDirMoment = NaN_8
+			return
+		end if
+		rDirMoment = atan2(rS, rC) * 180./PI
+		if(rDirMoment < 0.d0) rDirMoment = rDirMoment + 360.d0
+		if(rDirMoment >= 360.d0) rDirMoment = rDirMoment - 360.d0
+
+	end function AngleMoment8
 
 
 	! FB validation index
@@ -5989,21 +6103,38 @@ contains
 
 		! Locals
 		integer								:: iErrCode
-		integer								:: iNumItemsPerDay
 		integer								:: iNumDays
+		integer								:: iNumItemsPerDay
 		integer								:: iCurDay
+		integer								:: iDay
 		integer								:: i
+		integer								:: j
 		real(8)								:: rDeltaTime
 		integer								:: iIsWellSpaced
+		integer								:: iFirstDayIdx
+		integer								:: iLastDayIdx
+		integer								:: iFirstDay
+		integer								:: iLastDay
+		integer								:: iThisDayBegin
+		integer								:: iThisDayEnd
 		integer								:: iNumData
 		integer								:: iNumGaps
-		real(8)								:: rBaseDay
-		real(8)								:: rWindowBegin
-		real(8)								:: rWindowEnd
+		real(8)								:: rMeanResidual
+		integer								:: iNumResiduals
+		integer								:: iValidIdx
+		integer								:: iInitialGapIdx
+		integer								:: iFinalGapIdx
+		integer								:: iInitialValidIdx
+		integer								:: iFinalValidIdx
+		real(8)								:: rInitialValue
+		real(8)								:: rFinalValue
+		real(8)								:: rCurrentValue
 		integer, dimension(:), allocatable	:: ivNumValues
-		logical, dimension(:), allocatable	:: lvCurDay
+		real(8), dimension(:), allocatable	:: rvAvgValues
+		integer, dimension(:), allocatable	:: ivDay
+		integer, dimension(:), allocatable	:: ivDayBegin
+		integer, dimension(:), allocatable	:: ivDayEnd
 		integer, dimension(:), allocatable	:: ivTimeIndex
-		real(8), dimension(:), allocatable	:: rvSumValues
 
 		! Constants
 		real(8), parameter	:: ONE_HOUR = 3600.d0
@@ -6019,39 +6150,42 @@ contains
 		end if
 		iIsWellSpaced = this % timeIsWellSpaced(rDeltaTime, iNumGaps)
 		if(iIsWellSpaced /= 0) then
-			iRetCode = 1
-			return
-		end if
-
-		! Reserve workspace
-		iNumData = size(this % rvTimeStamp)
-		if(allocated(lvOriginal)) deallocate(lvOriginal)
-		allocate(lvOriginal(iNumData))
-		allocate(lvCurDay(iNumData))
-
-		! How many data come in a day?
-		if(rDeltaTime <= 0.d0) then
 			iRetCode = 2
 			return
 		end if
-		iNumItemsPerDay = floor(ONE_DAY / rDeltaTime)
-
-		! How many days in data set?
-		rBaseDay = timeFloorDay(this % rvTimeStamp(1))
-		iNumDays = floor((timeFloorDay(this % rvTimeStamp(iNumData)) - rBaseDay + ONE_DAY) / ONE_DAY) + 1
-		if(iNumDays <= 0) then
+		if(rDeltaTime <= 0.d0) then
 			iRetCode = 3
 			return
 		end if
+		iNumItemsPerDay = int(ONE_DAY / rDeltaTime)
+
+		! Reserve workspace
+		iNumData = size(this % rvTimeStamp)
+		allocate(ivDay(iNumData))
+		ivDay = floor(this % rvTimeStamp / ONE_DAY)
+		ivDay = ivDay - minval(ivDay) + 1
+
+		! Compute begin and end of each day
+		iNumDays = maxval(ivDay)
+		allocate(ivDayBegin(iNumDays), ivDayEnd(iNumDays))
+		ivDayBegin(1)      = 1
+		ivDayEnd(iNumDays) = iNumData
+		iDay = 1
+		do i = 1, iNumData - 1
+			if(ivDay(i) /= ivDay(i+1)) then
+				ivDayEnd(iDay)   = i
+				iDay             = iDay + 1
+				ivDayBegin(iDay) = i + 1
+			end if
+		end do
 
 		! Reserve temporary workspace
-		allocate(ivNumValues(iNumItemsPerDay), rvSumValues(iNumItemsPerDay), STAT=iErrCode)
+		allocate(ivNumValues(iNumItemsPerDay), rvAvgValues(iNumItemsPerDay), STAT=iErrCode)
 		if(iErrCode /= 0) then
+			deallocate(ivDayBegin, ivDayEnd)
 			iRetCode = 4
 			return
 		end if
-		rvSumValues = 0.
-		ivNumValues = 0
 
 		! Encode time to typical-day index
 		iErrCode = timeEncode(this % rvTimeStamp, int(ONE_DAY, kind=4), int(rDeltaTime, kind=4), ivTimeIndex)
@@ -6064,35 +6198,152 @@ contains
 		do iCurDay = 1, iNumDays
 
 			! Delimit day
-			rWindowBegin = rBaseDay
-			rWindowEnd   = rWindowBegin + ONE_DAY
-			lvCurDay     = this % rvTimeStamp >= rWindowBegin .and. this % rvTimeStamp <= rWindowEnd
+			iThisDayBegin = ivDayBegin(iCurDay)
+			iThisDayEnd   = ivDayEnd(iCurDay)
 
 			! Check whether something is to be made on this day
-			iNumGaps = count((.invalid.this % rvValue) .and. lvCurDay)
+			iNumGaps = count(.invalid.this % rvValue(iThisDayBegin:iThisDayEnd))
 			if(iNumGaps > 0) then
 
 				! Update counters for the typical day
-				rWindowBegin = rBaseDay + (iCurDay-1)*ONE_DAY - iDaysRadius*ONE_DAY
-				rWindowEnd   = rBaseDay + (iCurDay-1)*ONE_DAY + (iDaysRadius+1)*ONE_DAY
-				do i = 1, size(this % rvTimeStamp)
-					if(this % rvTimeStamp(i) >= rWindowBegin .and. this % rvTimeStamp(i) <= rWindowEnd) then
-						if(ivTimeIndex(i) > 0) then
-							ivNumValues(ivTimeIndex(i)) = ivNumValues(ivTimeIndex(i)) + 1
-							rvSumValues(ivTimeIndex(i)) = rvSumValues(ivTimeIndex(i)) + this % rvValue(i)
-						end if
+				iFirstDay    = max(iCurDay - iDaysRadius, 1)
+				iLastDay     = min(iCurDay + iDaysRadius, iNumDays)
+				iFirstDayIdx = ivDayBegin(iFirstDay)
+				iLastDayIdx  = ivDayEnd(iLastDay)
+				rvAvgValues  = 0.d0
+				ivNumValues  = 0
+				do i = iFirstDayIdx, iLastDayIdx
+					j = ivTimeIndex(i)
+					if(j > 0) then
+						ivNumValues(j) = ivNumValues(j) + 1
+						rvAvgValues(j) = rvAvgValues(j) + this % rvValue(i)
 					end if
 				end do
 
 				! Render the typical day
+				where(ivNumValues > 0)
+					rvAvgValues = rvAvgValues / ivNumValues
+				elsewhere
+					rvAvgValues = NaN_8
+				endwhere
+
+				! Calculate the mean residual
+				rMeanResidual = 0.d0
+				iNumResiduals = 0
+				do i = iFirstDayIdx, iLastDayIdx
+					j = ivTimeIndex(i)
+					if(j > 0 .and. .valid.this % rvValue(i) .and. .valid.rvAvgValues(j)) then
+						rMeanResidual = rMeanResidual + (this % rvValue(i) - rvAvgValues(j))
+						iNumResiduals = iNumResiduals + 1
+					end if
+				end do
+				if(iNumResiduals > 0) then
+					rMeanResidual = rMeanResidual / iNumResiduals
+				else
+					rMeanResidual = NaN_8
+				end if
+
+				! Fill value gaps in current day, using typical day and residual (if it exists)
+				if(.valid.rMeanResidual) then
+					do i = iFirstDayIdx, iLastDayIdx
+						j = ivTimeIndex(i)
+						if(j > 0 .and. .not.(.valid.this % rvValue(i))) then
+							this % rvValue(i) = rvAvgValues(j) + rMeanResidual
+						end if
+					end do
+				else
+					do i = iFirstDayIdx, iLastDayIdx
+						j = ivTimeIndex(i)
+						if(j > 0 .and. .not.(.valid.this % rvValue(i))) then
+							this % rvValue(i) = rvAvgValues(j)
+						end if
+					end do
+				end if
+
+				! If some data is still invalid, fill it by linear interpolation or replication
+				iNumGaps = count(.invalid.this % rvValue(iThisDayBegin:iThisDayEnd))
+				if(iNumGaps > 0 .and. iNumGaps < (iThisDayEnd - iThisDayBegin + 1)) then
+
+					! Initial gaps, if any
+					if(.not..valid.this % rvValue(iThisDayBegin)) then
+						! Find first valid, if any
+						iValidIdx = 0
+						do i = iThisDayBegin+1, iThisDayEnd
+							if(.valid.this % rvValue(i)) then
+								iValidIdx = i
+								exit
+							end if
+						end do
+						if(iValidIdx > 0) then
+							this % rvValue(iThisDayBegin:(iValidIdx-1)) = this % rvValue(iValidIdx)
+						end if
+					end if
+
+					! Final gaps, if any
+					if(.not..valid.this % rvValue(iThisDayEnd)) then
+						! Find first valid, if any
+						iValidIdx = 0
+						do i = iThisDayEnd-1, iThisDayBegin, -1
+							if(.valid.this % rvValue(i)) then
+								iValidIdx = i
+								exit
+							end if
+						end do
+						if(iValidIdx > 0) then
+							this % rvValue((iValidIdx+1):iThisDayEnd) = this % rvValue(iValidIdx)
+						end if
+					end if
+
+					! Intermediate gaps
+					if(.valid.this % rvValue(iThisDayBegin) .and. .valid.this % rvValue(iThisDayEnd)) then
+						do
+
+							! Find start of gap block
+							iInitialGapIdx = 0
+							do i = iThisDayBegin+1, iThisDayEnd-1
+								if(.not..valid.this % rvValue(i)) then
+									iInitialGapIdx = i
+									exit
+								end if
+							end do
+							if(iInitialGapIdx <= 0) exit	! Nothing more to do: all gaps have been filled
+
+							! Find end of gap block
+							iFinalGapIdx = 0
+							do i = iInitialGapIdx+1, iThisDayEnd-1
+								if(.valid.this % rvValue(i)) then
+									iFinalGapIdx = i-1
+									exit
+								end if
+							end do
+							! iFinalGapIdx cannot be zero, because of the preceding fillings
+
+							! If both gap begin and end are well defined, interpolate linearly
+							if(iInitialGapIdx > 0 .and. iFinalGapIdx > 0) then
+								iInitialValidIdx = iInitialGapIdx - 1
+								iFinalValidIdx   = iFinalGapIdx + 1
+								rInitialValue    = this % rvValue(iInitialValidIdx)
+								rFinalValue      = this % rvValue(iFinalValidIdx)
+								do j = iInitialGapIdx, iFinalGapIdx
+									rCurrentValue = rInitialValue + &
+										(rFinalValue - rInitialValue) * &
+										real(j - iInitialValidIdx, kind=8) / &
+										real(iFinalValidIdx - iInitialValidIdx, kind=8)
+									this % rvValue(j) = rCurrentValue
+								end do
+							end if
+
+						end do
+					end if
+
+				end if
 
 			end if
 
 		end do
 
 		! Leave
-		deallocate(ivNumValues, rvSumValues)
-		deallocate(lvCurDay)
+		deallocate(ivNumValues, rvAvgValues, ivDayBegin, ivDayEnd, ivDay)
 
 	end function tsFillGaps
 
