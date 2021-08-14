@@ -137,8 +137,8 @@ module pbl_stat
     	procedure, public	:: movingAverage					=> tsMovingAverage
     	procedure, public	:: movingStdDev						=> tsMovingStdDev
     	! Gap fillers
-    	procedure, public	:: fillGaps							=> tsFillGaps
-    	procedure, public	:: fillDirGaps						=> tsFillDirGaps
+    	procedure, public	:: fillGaps							=> tsFillGaps				! Value interpreted as a real scalar
+    	procedure, public	:: fillDirGaps						=> tsFillDirGaps			! Value interpreted as an angle in degrees
     end type TimeSeries
 
 
@@ -6457,7 +6457,13 @@ contains
 		end do
 
 		! Reserve temporary workspace
-		allocate(ivNumValues(iNumItemsPerDay), rvAvgValues(iNumItemsPerDay), STAT=iErrCode)
+		allocate( &
+			ivNumValues(iNumItemsPerDay), &
+			rvAvgValues(iNumItemsPerDay), &
+			rvAvgS(iNumItemsPerDay), &
+			rvAvgC(iNumItemsPerDay), &
+			STAT=iErrCode &
+		)
 		if(iErrCode /= 0) then
 			deallocate(ivDayBegin, ivDayEnd)
 			iRetCode = 4
@@ -6527,9 +6533,12 @@ contains
 
 				! Render the typical day
 				where(ivNumValues > 0)
-					rvAvgValues = (180./PI) * atan2(rvAvgS, rvAvgC) / ivNumValues
+					rvAvgValues = (180./PI) * atan2(rvAvgS/ivNumValues, rvAvgC/ivNumValues)
 				elsewhere
 					rvAvgValues = NaN_8
+				endwhere
+				where(rvAvgValues < 0.)
+					rvAvgValues = rvAvgValues + 360.
 				endwhere
 
 				! Fill value gaps in current day
@@ -6619,6 +6628,7 @@ contains
 										real(j - iInitialValidIdx, kind=8) / &
 										real(iFinalValidIdx - iInitialValidIdx, kind=8)
 									this % rvValue(j) = (180./PI) * atan2(rCurrentS, rCurrentC)
+									if(this % rvValue(j) < 0.) this % rvValue(j) = this % rvValue(j) + 360.
 									if(present(lvOriginal)) lvOriginal(j) = .false.
 								end do
 							end if
