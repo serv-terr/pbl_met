@@ -41,6 +41,7 @@ module pbl_thermo
  	public	:: ClearSkyRg_Simple			! Simple estimate of global solar radiation under clear sky conditions
 	public	:: ClearSkyRg_Accurate			! More accurate estimate of global solar radiation under clear sky conditions
 	public	:: GlobalRadiation				! Global radiation estimate, obtained by correcting the clear sky estimate by cloud cover
+	public	:: ExtraterrestrialRadiation_Old! Estimate of extraterrestrial radiation (i.e., global radiation above the Earth atmosphere) (deprecated)
 	public	:: ExtraterrestrialRadiation	! Estimate of extraterrestrial radiation (i.e., global radiation above the Earth atmosphere)
 	public	:: NetRadiation					! Estimate of solar net radiation
 	public	:: CloudCover					! Estimate cloud cover using estimated and measured global radiatiobs
@@ -71,6 +72,12 @@ module pbl_thermo
 	    module procedure RhoCp_4
 	    module procedure RhoCp_8
 	end interface RhoCp
+
+	interface ExtraterrestrialRadiation
+		module procedure ExtraterrestrialRadiation_New_1
+		module procedure ExtraterrestrialRadiation_New_2
+		module procedure ExtraterrestrialRadiation_New_3
+	end interface ExtraterrestrialRadiation
 
 contains
 
@@ -471,7 +478,7 @@ contains
 	!
 	!	ra					Extraterrestrial radiation (W/m2)
 	!
-	function ExtraterrestrialRadiation(timeStamp, averagingPeriod, lat, lon, zone) result(ra)
+	function ExtraterrestrialRadiation_Old(timeStamp, averagingPeriod, lat, lon, zone) result(ra)
 
 		implicit none
 
@@ -575,39 +582,21 @@ contains
 		! Clip to interval [0,+infinity), as radiation cannot be negative
 		ra = max(ra, 0.)
 
-	end function ExtraterrestrialRadiation
+	end function ExtraterrestrialRadiation_Old
 
 
-	! Accurate estimate of extraterrestrial solar radiation, new
-	!
-	! Input:
-	!
-	!	timeStamp			Time stamp, in floating point form
-	!
-	!	averagingPeriod		Length of averaging period (s)
-	!
-	!	lat					Local latitude (degrees, positive northwards)
-	!
-	!	lon					Local longitude (degrees, positive eastwards)
-	!
-	!	zone				Time zone number (hours, positive Eastwards, in range 0 to 23)
-	!
-	! Output:
-	!
-	!	ra					Extraterrestrial radiation (W/m2)
-	!
-	function ExtraterrestrialRadiation_New(rTimeStamp, rAvgPeriod, rTimeStep, rLat, rLon, rZone) result(rRa)
+	function ExtraterrestrialRadiation_New_1(rTimeStamp, rAvgPeriod, rTimeStepIn, rLat, rLon, rZone) result(rRa)
 
 		implicit none
 
 		! Routine arguments
-		real(8), intent(in)	:: rTimeStamp
-		real, intent(in)	:: rAvgPeriod
-		real, intent(in)	:: rTimeStep
-		real, intent(in)	:: rLat
-		real, intent(in)	:: rLon
-		real, intent(in)	:: rZone
-		real				:: rRa
+		real(8), intent(in)			:: rTimeStamp
+		real, intent(in)			:: rAvgPeriod
+		real, intent(in), optional	:: rTimeStepIn
+		real, intent(in)			:: rLat
+		real, intent(in)			:: rLon
+		real, intent(in)			:: rZone
+		real						:: rRa
 
 		! Locals
 		type(DateTime)	:: tDateTime
@@ -629,10 +618,38 @@ contains
 		real			:: rSunRise
 		real			:: rSunSet
 		real			:: rCosThetaZ
+		integer			:: iNumData
+		integer			:: iData
+		real			:: rTimeStep
 
 		! Constants
 		real, parameter	:: SOLAR_CONSTANT = 1367.0		! W/m2
 		real, parameter	:: PI             = atan(1.)*4.
+
+		! Set options
+		if(present(rTimeStepIn)) then
+			rTimeStep = rTimeStepIn
+		else
+			rTimeStep = 10.
+		end if
+
+		! Check input parameters
+		if(rAvgPeriod <= 0. .or. rTimeStep > rAvgPeriod) then
+			rRa = NaN
+			return
+		end if
+		if(rLat < -90. .or. rLat > +90.) then
+			rRa = NaN
+			return
+		end if
+		if(rLon < 0. .or. rLon >= 360.0) then
+			rRa = NaN
+			return
+		end if
+		if(rZone < 0. .or. rZone > 23.) then
+			rRa = NaN
+			return
+		end if
 
 		! Get date and time
 		iErrCode = tDateTime % fromEpoch(rTimeStamp)
@@ -646,11 +663,256 @@ contains
 		iHour      = tDateTime % iHour
 		iMinute    = tDateTime % iMinute
 		iSecond    = tDateTime % rSecond
-		iDayOfYear = DoY(iYear, iMonth, iDay)
+
+		! Compute radiation
+		rRa = ExtraterrestrialRadiation_Core( &
+			iYear, &
+			iMonth, &
+			iDay, &
+			iHour, &
+			iMinute, &
+			iSecond, &
+			rAvgPeriod, &
+			rTimeStep, &
+			rLat, &
+			rLon, &
+			rZone &
+		)
+
+	end function ExtraterrestrialRadiation_New_1
+
+
+	function ExtraterrestrialRadiation_New_2(sTimeStamp, rAvgPeriod, rTimeStepIn, rLat, rLon, rZone) result(rRa)
+
+		implicit none
+
+		! Routine arguments
+		character(len=*), intent(in)	:: sTimeStamp
+		real, intent(in)				:: rAvgPeriod
+		real, intent(in), optional		:: rTimeStepIn
+		real, intent(in)				:: rLat
+		real, intent(in)				:: rLon
+		real, intent(in)				:: rZone
+		real							:: rRa
+
+		! Locals
+		integer			:: iErrCode
+		integer			:: iYear, iMonth, iDay, iHour, iMinute, iSecond
+		real			:: rTime
+		real			:: rSolarTime
+		integer			:: iDayOfYear
+		real			:: rLongitude
+		real			:: rTimeZone
+		real			:: rTimeStep
+		real			:: rB
+		real			:: rEccentricityFactor
+		real			:: rSolarDeclination
+		real			:: rEqTime
+		real			:: rThetaZ
+		real			:: rOmega
+		real			:: rOmega1
+		real			:: rOmega2
+		real			:: rSunRise
+		real			:: rSunSet
+		real			:: rCosThetaZ
+		integer			:: iNumData
+		integer			:: iData
+
+		! Constants
+		real, parameter	:: SOLAR_CONSTANT = 1367.0		! W/m2
+		real, parameter	:: PI             = atan(1.)*4.
+
+		! Check input parameters
+		if(rAvgPeriod <= 0. .or. rTimeStep > rAvgPeriod) then
+			rRa = NaN
+			return
+		end if
+		if(rLat < -90. .or. rLat > +90.) then
+			rRa = NaN
+			return
+		end if
+		if(rLon < 0. .or. rLon >= 360.0) then
+			rRa = NaN
+			return
+		end if
+		if(rZone < 0. .or. rZone > 23.) then
+			rRa = NaN
+			return
+		end if
+
+		! Set options
+		if(present(rTimeStepIn)) then
+			rTimeStep = rTimeStepIn
+		else
+			rTimeStep = 10.
+		end if
+
+		! Get date and time
+		read(sTimeStamp, "(i4,5(1x,i2))", iostat=iErrCode) iYear, iMonth, iDay, iHour, iMinute, iSecond
+		if(iErrCode /= 0) then
+			rRa = NaN
+			return
+		end if
+
+		! Compute radiation
+		rRa = ExtraterrestrialRadiation_Core( &
+			iYear, &
+			iMonth, &
+			iDay, &
+			iHour, &
+			iMinute, &
+			iSecond, &
+			rAvgPeriod, &
+			rTimeStep, &
+			rLat, &
+			rLon, &
+			rZone &
+		)
+
+	end function ExtraterrestrialRadiation_New_2
+
+
+	function ExtraterrestrialRadiation_New_3(tTimeStamp, rAvgPeriod, rTimeStepIn, rLat, rLon, rZone) result(rRa)
+
+		implicit none
+
+		! Routine arguments
+		type(DateTime), intent(in)	:: tTimeStamp
+		real, intent(in)			:: rAvgPeriod
+		real, intent(in), optional	:: rTimeStepIn
+		real, intent(in)			:: rLat
+		real, intent(in)			:: rLon
+		real, intent(in)			:: rZone
+		real						:: rRa
+
+		! Locals
+		integer			:: iErrCode
+		integer			:: iYear, iMonth, iDay, iHour, iMinute, iSecond
+		real			:: rTime
+		real			:: rSolarTime
+		integer			:: iDayOfYear
+		real			:: rLongitude
+		real			:: rTimeZone
+		real			:: rB
+		real			:: rEccentricityFactor
+		real			:: rSolarDeclination
+		real			:: rEqTime
+		real			:: rThetaZ
+		real			:: rOmega
+		real			:: rOmega1
+		real			:: rOmega2
+		real			:: rSunRise
+		real			:: rSunSet
+		real			:: rCosThetaZ
+		integer			:: iNumData
+		integer			:: iData
+		real			:: rTimeStep
+
+		! Constants
+		real, parameter	:: SOLAR_CONSTANT = 1367.0		! W/m2
+		real, parameter	:: PI             = atan(1.)*4.
+
+		! Set options
+		if(present(rTimeStepIn)) then
+			rTimeStep = rTimeStepIn
+		else
+			rTimeStep = 10.
+		end if
+
+		! Check input parameters
+		if(rAvgPeriod <= 0. .or. rTimeStep > rAvgPeriod) then
+			rRa = NaN
+			return
+		end if
+		if(rLat < -90. .or. rLat > +90.) then
+			rRa = NaN
+			return
+		end if
+		if(rLon < 0. .or. rLon >= 360.0) then
+			rRa = NaN
+			return
+		end if
+		if(rZone < 0. .or. rZone > 23.) then
+			rRa = NaN
+			return
+		end if
+
+		! Get date and time
+		iYear      = tTimeStamp % iYear
+		iMonth     = tTimeStamp % iMonth
+		iDay       = tTimeStamp % iDay
+		iHour      = tTimeStamp % iHour
+		iMinute    = tTimeStamp % iMinute
+		iSecond    = tTimeStamp % rSecond
+
+		! Compute radiation
+		rRa = ExtraterrestrialRadiation_Core( &
+			iYear, &
+			iMonth, &
+			iDay, &
+			iHour, &
+			iMinute, &
+			iSecond, &
+			rAvgPeriod, &
+			rTimeStep, &
+			rLat, &
+			rLon, &
+			rZone &
+		)
+
+	end function ExtraterrestrialRadiation_New_3
+
+
+	function ExtraterrestrialRadiation_Core( &
+		iYear, iMonth, iDay, iHour, iMinute, iSecond, &
+		rAvgPeriod, rTimeStep, &
+		rLat, rLon, rZone &
+	) result(rRa)
+
+		implicit none
+
+		! Routine arguments
+		integer, intent(in)				:: iYear
+		integer, intent(in)				:: iMonth
+		integer, intent(in)				:: iDay
+		integer, intent(in)				:: iHour
+		integer, intent(in)				:: iMinute
+		integer, intent(in)				:: iSecond
+		real, intent(in)				:: rAvgPeriod
+		real, intent(in)				:: rTimeStep
+		real, intent(in)				:: rLat
+		real, intent(in)				:: rLon
+		real, intent(in)				:: rZone
+		real							:: rRa
+
+		! Locals
+		real			:: rTime
+		real			:: rSolarTime
+		integer			:: iDayOfYear
+		real			:: rLongitude
+		real			:: rTimeZone
+		real			:: rB
+		real			:: rEccentricityFactor
+		real			:: rSolarDeclination
+		real			:: rEqTime
+		real			:: rThetaZ
+		real			:: rOmega
+		real			:: rOmega1
+		real			:: rOmega2
+		real			:: rSunRise
+		real			:: rSunSet
+		real			:: rCosThetaZ
+		integer			:: iNumData
+		integer			:: iData
+
+		! Constants
+		real, parameter	:: SOLAR_CONSTANT = 1367.0		! W/m2
+		real, parameter	:: PI             = atan(1.)*4.
 
 		! Equation of Time (hours); Eccentricity factor; 
-		rB      = (iDayOfYear - 1) * 2.*PI/365.0
-		rEqTime = 3.82*(0.000075 + 0.001868*cos(rB) - 0.032077*sin(rB) - 0.014615*cos(2.*rB) - 0.04089*sin(2.*rB))
+		iDayOfYear = DoY(iYear, iMonth, iDay)
+		rB         = (iDayOfYear - 1) * 2.*PI/365.0
+		rEqTime    = 3.82*(0.000075 + 0.001868*cos(rB) - 0.032077*sin(rB) - 0.014615*cos(2.*rB) - 0.04089*sin(2.*rB))
 		rEccentricityFactor = 1.00011 + 0.034221*cos(rB) + 0.00128*sin(rB) + 0.00719*cos(2.*rB) + 0.000077*sin(2.*rB)
 		rSolarDeclination   = 0.006918 - 0.399912*cos(rB) + 0.070257*sin(rB) - 0.006758*cos(2.*rB) + &
 							  0.000907*sin(2.*rB) - 0.002697*cos(3.*rB) + 0.00148*sin(3.*rB)
@@ -662,27 +924,29 @@ contains
 		! Compute time at sunrise and sunset
 		rOmega1 = +abs(acos(-tan(rLat*PI/180.)*tan(rSolarDeclination)))
 		rOmega2 = -rOmega1
-		rSunRise = 12. - 2.*PI*rOmega1/24.
-		rSunSet  = 12. - 2.*PI*rOmega2/24.
+		rSunRise = 12. - 24.0 * rOmega1 / (2.*PI)
+		rSunSet  = 12. - 24.0 * rOmega2 / (2.*PI)
 
-		! Calculate standard (clock) and solar time
-		rTime = iHour + iMinute/60.0 + iSecond/3600.0
-		rSolarTime = rTime + (4./60.)*(15.*rTimeZone - rLongitude) + rEqTime
+		! Compute the mean extraterrestrial radiation within the current averaging block
+		iNumData = rAvgPeriod / rTimeStep
+		rRa = 0.
+		do iData = 1, iNumData
 
-		! Check there is something to do
-		if(rSolarTime < rSunRise .or. rSolarTime > rSunSet) then
-			rRa = 0.
-			return
-		else
-			rOmega     = (12. - rSolarTime)*2.*PI/24.
-			rCosThetaZ = acos(cos(rLat*PI/180.) * cos(rSolarDeclination) * cos(rOmega) + sin(rLat*PI/180.) * sin(rSolarDeclination))
-			rRa        = SOLAR_CONSTANT * rEccentricityFactor * rCosThetaZ
-		end if
+			! Calculate standard (clock) and solar time
+			rTime = iHour + iMinute/60.0 + iSecond/3600.0
+			rSolarTime = rTime + (4./60.)*(15.*rTimeZone - rLongitude) + rEqTime
 
-		! Clip to interval [0,+infinity), as radiation cannot be negative
-		rRa = max(rRa, 0.)
+			! Check there is something to do
+			if(rSolarTime >= rSunRise .and. rSolarTime <= rSunSet) then
+				rOmega     = (12. - rSolarTime)*2.*PI/24.
+				rCosThetaZ = cos(rLat*PI/180.) * cos(rSolarDeclination) * cos(rOmega) + sin(rLat*PI/180.) * sin(rSolarDeclination)
+				rRa        = rRa + SOLAR_CONSTANT * rEccentricityFactor * rCosThetaZ
+			end if
 
-	end function ExtraterrestrialRadiation_New
+		end do
+		rRa = rRa / iNumData
+
+	end function ExtraterrestrialRadiation_Core
 
 
 	! Estimation of net radiation not using cloud cover, as from ASCE standardized reference evapotranspiration equation.
