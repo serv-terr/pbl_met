@@ -118,7 +118,7 @@ contains
 	!
 	!	lon					Local longitude (degrees, positive eastwards)
 	!
-	!	zone				Time zone number (hours, positive Eastwards, in range -12 to 12)
+	!	zone				Time zone number (hours, positive Eastwards, in range 0 to 23)
 	!
 	!	Pa					Local pressure, that is, pressure not reduced to mean sea level (hPa)
 	!
@@ -576,6 +576,113 @@ contains
 		ra = max(ra, 0.)
 
 	end function ExtraterrestrialRadiation
+
+
+	! Accurate estimate of extraterrestrial solar radiation, new
+	!
+	! Input:
+	!
+	!	timeStamp			Time stamp, in floating point form
+	!
+	!	averagingPeriod		Length of averaging period (s)
+	!
+	!	lat					Local latitude (degrees, positive northwards)
+	!
+	!	lon					Local longitude (degrees, positive eastwards)
+	!
+	!	zone				Time zone number (hours, positive Eastwards, in range 0 to 23)
+	!
+	! Output:
+	!
+	!	ra					Extraterrestrial radiation (W/m2)
+	!
+	function ExtraterrestrialRadiation_New(rTimeStamp, rAvgPeriod, rTimeStep, rLat, rLon, rZone) result(rRa)
+
+		implicit none
+
+		! Routine arguments
+		real(8), intent(in)	:: rTimeStamp
+		real, intent(in)	:: rAvgPeriod
+		real, intent(in)	:: rTimeStep
+		real, intent(in)	:: rLat
+		real, intent(in)	:: rLon
+		real, intent(in)	:: rZone
+		real				:: rRa
+
+		! Locals
+		type(DateTime)	:: tDateTime
+		integer			:: iErrCode
+		integer			:: iYear, iMonth, iDay, iHour, iMinute, iSecond
+		real			:: rTime
+		real			:: rSolarTime
+		integer			:: iDayOfYear
+		real			:: rLongitude
+		real			:: rTimeZone
+		real			:: rB
+		real			:: rEccentricityFactor
+		real			:: rSolarDeclination
+		real			:: rEqTime
+		real			:: rThetaZ
+		real			:: rOmega
+		real			:: rOmega1
+		real			:: rOmega2
+		real			:: rSunRise
+		real			:: rSunSet
+		real			:: rCosThetaZ
+
+		! Constants
+		real, parameter	:: SOLAR_CONSTANT = 1367.0		! W/m2
+		real, parameter	:: PI             = atan(1.)*4.
+
+		! Get date and time
+		iErrCode = tDateTime % fromEpoch(rTimeStamp)
+		if(iErrCode /= 0) then
+			rRa = NaN
+			return
+		end if
+		iYear      = tDateTime % iYear
+		iMonth     = tDateTime % iMonth
+		iDay       = tDateTime % iDay
+		iHour      = tDateTime % iHour
+		iMinute    = tDateTime % iMinute
+		iSecond    = tDateTime % rSecond
+		iDayOfYear = DoY(iYear, iMonth, iDay)
+
+		! Equation of Time (hours); Eccentricity factor; 
+		rB      = (iDayOfYear - 1) * 2.*PI/365.0
+		rEqTime = 3.82*(0.000075 + 0.001868*cos(rB) - 0.032077*sin(rB) - 0.014615*cos(2.*rB) - 0.04089*sin(2.*rB))
+		rEccentricityFactor = 1.00011 + 0.034221*cos(rB) + 0.00128*sin(rB) + 0.00719*cos(2.*rB) + 0.000077*sin(2.*rB)
+		rSolarDeclination   = 0.006918 - 0.399912*cos(rB) + 0.070257*sin(rB) - 0.006758*cos(2.*rB) + &
+							  0.000907*sin(2.*rB) - 0.002697*cos(3.*rB) + 0.00148*sin(3.*rB)
+
+		! Compute actual longitude and time zone
+		rLongitude = 360.0 - rLon
+		rTimeZone  =  24.0 - rZone
+
+		! Compute time at sunrise and sunset
+		rOmega1 = +abs(acos(-tan(rLat*PI/180.)*tan(rSolarDeclination)))
+		rOmega2 = -rOmega1
+		rSunRise = 12. - 2.*PI*rOmega1/24.
+		rSunSet  = 12. - 2.*PI*rOmega2/24.
+
+		! Calculate standard (clock) and solar time
+		rTime = iHour + iMinute/60.0 + iSecond/3600.0
+		rSolarTime = rTime + (4./60.)*(15.*rTimeZone - rLongitude) + rEqTime
+
+		! Check there is something to do
+		if(rSolarTime < rSunRise .or. rSolarTime > rSunSet) then
+			rRa = 0.
+			return
+		else
+			rOmega     = (12. - rSolarTime)*2.*PI/24.
+			rCosThetaZ = acos(cos(rLat*PI/180.) * cos(rSolarDeclination) * cos(rOmega) + sin(rLat*PI/180.) * sin(rSolarDeclination))
+			rRa        = SOLAR_CONSTANT * rEccentricityFactor * rCosThetaZ
+		end if
+
+		! Clip to interval [0,+infinity), as radiation cannot be negative
+		rRa = max(rRa, 0.)
+
+	end function ExtraterrestrialRadiation_New
 
 
 	! Estimation of net radiation not using cloud cover, as from ASCE standardized reference evapotranspiration equation.
