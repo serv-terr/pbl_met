@@ -933,7 +933,7 @@ contains
 		do iData = 1, iNumData
 
 			! Calculate standard (clock) and solar time
-			rTime = iHour + iMinute/60.0 + iSecond/3600.0
+			rTime = iHour + iMinute/60.0 + iSecond/3600.0 + (iData-1)*rTimeStep/3600.0
 			rSolarTime = rTime + (4./60.)*(15.*rTimeZone - rLongitude) + rEqTime
 
 			! Check there is something to do
