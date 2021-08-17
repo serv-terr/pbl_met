@@ -373,4 +373,240 @@ program test_gap_filling
         print *, i-1, abs(rTimeStamp2 - rTimeStamp1), rValue1, rValue2, lvOriginal(i)
     end do
     
+    ! Test 1D: Some gaps, on a random signal with mean 0.0
+
+    ! Initialize data: no gaps for the moment
+    call random_number(rvData)
+    rvData = rvData - 0.5
+    do i = 1,n
+        rvData(i) = rvData(i) + dir(i)
+    end do
+    where(rvData < 0.)
+        rvData = rvData + 360.
+    endwhere
+    where(rvData > 360.)
+        rvData = rvData - 360.
+    endwhere
+
+    ! Set some values to invalid
+    rvData(12:16) = NaN
+
+    ! Use vectors to form time series
+    iRetCode = tOriginalTimeSeries % createFromTimeAndDataVectors(rvTimeStamp, rvData)
+    if(iRetCode /= 0) then
+        print *, 'Time series 1 not created. Return code = ', iRetCode
+        stop
+    end if
+
+    ! Gnerate processed series
+    iRetCode = tProcessedTimeSeries % createFromTimeAndDataVectors(rvTimeStamp, rvData)
+    if(iRetCode /= 0) then
+        print *, 'Time series 2 not created. Return code = ', iRetCode
+        stop
+    end if
+
+    ! Fill gaps
+    iRetCode = tProcessedTimeSeries % FillDirGaps(30, lvOriginal)
+    if(iRetCode /= 0) then
+        print *, 'Gaps not filled. Return code = ', iRetCode
+        stop
+    end if
+
+    ! Compare data on day 1
+    print *
+    print *, 'Test 1D,DeltaTime,Original,Processed'
+    do i = 1, 24
+        iRetCode = tOriginalTimeSeries % getSingleItem(i, rTimeStamp1, rValue1)
+        iRetCode = tProcessedTimeSeries % getSingleItem(i, rTimeStamp2, rValue2)
+        print *, i, rValue1, rValue2, lvOriginal(i)
+    end do
+
+    ! Test 2D: Systematic gaps on start of day
+
+    ! Initialize data: no gaps for the moment
+    call random_number(rvData)
+    rvData = rvData - 0.5
+    do i = 1,n
+        rvData(i) = rvData(i) + dir(i)
+    end do
+    where(rvData < 0.)
+        rvData = rvData + 360.
+    endwhere
+    where(rvData > 360.)
+        rvData = rvData - 360.
+    endwhere
+
+    ! Set some values to invalid
+    rvData(1:3) = NaN
+    do i = 1, n, 24
+        rvData(i) = NaN
+    end do
+    do i = 2, n, 24
+        rvData(i) = NaN
+    end do
+    do i = 3, n, 24
+        rvData(i) = NaN
+    end do
+
+    ! Use vectors to form time series
+    iRetCode = tOriginalTimeSeries % createFromTimeAndDataVectors(rvTimeStamp, rvData)
+    if(iRetCode /= 0) then
+        print *, 'Time series 1 not created. Return code = ', iRetCode
+        stop
+    end if
+
+    ! Gnerate processed series
+    iRetCode = tProcessedTimeSeries % createFromTimeAndDataVectors(rvTimeStamp, rvData)
+    if(iRetCode /= 0) then
+        print *, 'Time series 2 not created. Return code = ', iRetCode
+        stop
+    end if
+
+    ! Fill gaps
+    iRetCode = tProcessedTimeSeries % FillDirGaps(30, lvOriginal)
+    if(iRetCode /= 0) then
+        print *, 'Gaps not filled. Return code = ', iRetCode
+        stop
+    end if
+
+    ! Compare data on day 1
+    print *
+    print *, 'Test 2D,DeltaTime,Original,Processed'
+    do i = 1, 24
+        iRetCode = tOriginalTimeSeries % getSingleItem(i, rTimeStamp1, rValue1)
+        iRetCode = tProcessedTimeSeries % getSingleItem(i, rTimeStamp2, rValue2)
+        print *, i, rValue1, rValue2, lvOriginal(i)
+    end do
+
+    ! Test 3D: Systematic gaps on end of day
+
+    ! Initialize data: no gaps for the moment
+    call random_number(rvData)
+    rvData = rvData - 0.5
+    do i = 1,n
+        rvData(i) = rvData(i) + dir(i)
+    end do
+    where(rvData < 0.)
+        rvData = rvData + 360.
+    endwhere
+    where(rvData > 360.)
+        rvData = rvData - 360.
+    endwhere
+
+    ! Set some values to invalid
+    rvData(22:24) = NaN
+    do i = 22, n, 24
+        rvData(i) = NaN
+    end do
+    do i = 23, n, 24
+        rvData(i) = NaN
+    end do
+    do i = 24, n, 24
+        rvData(i) = NaN
+    end do
+
+    ! Use vectors to form time series
+    iRetCode = tOriginalTimeSeries % createFromTimeAndDataVectors(rvTimeStamp, rvData)
+    if(iRetCode /= 0) then
+        print *, 'Time series 1 not created. Return code = ', iRetCode
+        stop
+    end if
+
+    ! Gnerate processed series
+    iRetCode = tProcessedTimeSeries % createFromTimeAndDataVectors(rvTimeStamp, rvData)
+    if(iRetCode /= 0) then
+        print *, 'Time series 2 not created. Return code = ', iRetCode
+        stop
+    end if
+
+    ! Fill gaps
+    iRetCode = tProcessedTimeSeries % FillDirGaps(30, lvOriginal)
+    if(iRetCode /= 0) then
+        print *, 'Gaps not filled. Return code = ', iRetCode
+        stop
+    end if
+
+    ! Compare data on day 1
+    print *
+    print *, 'Test 3D,DeltaTime,Original,Processed'
+    do i = 1, 24
+        iRetCode = tOriginalTimeSeries % getSingleItem(i, rTimeStamp1, rValue1)
+        iRetCode = tProcessedTimeSeries % getSingleItem(i, rTimeStamp2, rValue2)
+        print *, i, rValue1, rValue2, lvOriginal(i)
+    end do
+
+    ! Test 4D: Systematic gaps on center of day
+
+    ! Initialize data: no gaps for the moment
+    call random_number(rvData)
+    rvData = rvData - 0.5
+    do i = 1,n
+        rvData(i) = rvData(i) + dir(i)
+    end do
+    where(rvData < 0.)
+        rvData = rvData + 360.
+    endwhere
+    where(rvData > 360.)
+        rvData = rvData - 360.
+    endwhere
+
+    ! Set some values to invalid
+    rvData(12:14) = NaN
+    do i = 12, n, 24
+        rvData(i) = NaN
+    end do
+    do i = 13, n, 24
+        rvData(i) = NaN
+    end do
+    do i = 14, n, 24
+        rvData(i) = NaN
+    end do
+
+    ! Use vectors to form time series
+    iRetCode = tOriginalTimeSeries % createFromTimeAndDataVectors(rvTimeStamp, rvData)
+    if(iRetCode /= 0) then
+        print *, 'Time series 1 not created. Return code = ', iRetCode
+        stop
+    end if
+
+    ! Gnerate processed series
+    iRetCode = tProcessedTimeSeries % createFromTimeAndDataVectors(rvTimeStamp, rvData)
+    if(iRetCode /= 0) then
+        print *, 'Time series 2 not created. Return code = ', iRetCode
+        stop
+    end if
+
+    ! Fill gaps
+    iRetCode = tProcessedTimeSeries % FillDirGaps(30, lvOriginal)
+    if(iRetCode /= 0) then
+        print *, 'Gaps not filled. Return code = ', iRetCode
+        stop
+    end if
+
+    ! Compare data on day 1
+    print *
+    print *, 'Test 4D,DeltaTime,Original,Processed'
+    do i = 1, 24
+        iRetCode = tOriginalTimeSeries % getSingleItem(i, rTimeStamp1, rValue1)
+        iRetCode = tProcessedTimeSeries % getSingleItem(i, rTimeStamp2, rValue2)
+        print *, i, rValue1, rValue2, lvOriginal(i)
+    end do
+
+contains
+
+    function dir(i) result(rAngle)
+
+        ! Routine arguments
+        integer, intent(in) :: i
+        real                :: rAngle
+
+        ! Locals
+        integer :: j
+
+        ! Compute the information desired
+        j = mod(i-1,24)
+        rAngle = j/24. * 360.
+
+    end function dir
+    
 end program test_gap_filling
