@@ -12,12 +12,36 @@ ARFLAGC=cr
 ARPOST=
 endif
 
-pbl_met.lib : pbl_met.obj
-	$(AR) lib /OUT:pbl_met.lib pbl_met.obj
+pbl_met.lib : pbl_met.obj pbl_base.obj pbl_stat.obj pbl_time.obj pbl_thermo.obj pbl_evtrn.obj pbl_wind.obj pbl_simil.obj pbl_depth.obj
+	$(AR) lib /OUT:pbl_met.lib *.obj
 
-pbl_met.obj pbl_met.mod : pbl_met.f90
+pbl_met.obj pbl_met.mod : pbl_met.f90 pbl_base.mod pbl_stat.mod pbl_time.mod pbl_thermo.mod pbl_evtrn.mod pbl_wind.mod pbl_depth.mod
 	$(F90) $(FFLAGS) pbl_met.f90
 
+pbl_base.obj pbl_base.mod : pbl_base.f90
+	$(F90) $(FFLAGS) pbl_base.f90
+	
+pbl_stat.obj pbl_stat.mod : pbl_stat.f90 pbl_base.mod pbl_time.mod
+	$(F90) $(FFLAGS) pbl_stat.f90
+	
+pbl_time.obj pbl_time.mod : pbl_time.f90
+	$(F90) $(FFLAGS) pbl_time.f90
+	
+pbl_thermo.obj pbl_thermo.mod : pbl_thermo.f90 pbl_base.mod pbl_time.mod
+	$(F90) $(FFLAGS) pbl_thermo.f90
+	
+pbl_simil.obj pbl_simil.mod : pbl_simil.f90 pbl_base.mod pbl_thermo.mod pbl_wind.mod
+	$(F90) $(FFLAGS) pbl_simil.f90
+	
+pbl_depth.obj pbl_depth.mod : pbl_depth.f90 pbl_base.mod pbl_thermo.mod pbl_wind.mod pbl_simil.mod
+	$(F90) $(FFLAGS) pbl_depth.f90
+	
+pbl_evtrn.obj pbl_evtrn.mod : pbl_evtrn.f90 pbl_base.mod pbl_time.mod pbl_thermo.mod
+	$(F90) $(FFLAGS) pbl_evtrn.f90
+	
+pbl_wind.obj pbl_wind.mod : pbl_wind.f90 pbl_base.mod pbl_thermo.mod
+	$(F90) $(FFLAGS) pbl_wind.f90
+	
 .PHONY: clean
 clean:
 	del -f *.a
