@@ -57,11 +57,11 @@ module pbl_met
     public    :: FUN_STDEV
     public    :: FUN_MIN
     public    :: FUN_MAX
-    public    :: QUANT_POPULATION    ! Population quantile
+    public    :: QUANT_POPULATION   ! Population quantile
     public    :: QUANT_1            ! Sample quantile type 1 (R-1, SAS-3, Maple-1; inverse of edf)
     public    :: QUANT_2            ! Sample quantile type 2 (R-2, SAS-5, Maple-2; same as R-1, with averaging at discontinuities)
     public    :: QUANT_3            ! Sample quantile type 3 (R-3, Closest observation)
-    public    :: QUANT_3_R        ! Synonym of QUANT_3
+    public    :: QUANT_3_R          ! Synonym of QUANT_3
     public    :: QUANT_3_SAS        ! Sample quantile type 3 (SAS-2; Closest observation, but with an own definition of "closest integer")
     public    :: QUANT_4            ! Sample quantile type 4 (R-4, SAS-1, Maple-3; Linear interpolation of edf)
     public    :: QUANT_5            ! Sample quantile type 5 (R-5, Maple-4; piecewise linear function with nodes at midway of edf values)
@@ -69,8 +69,10 @@ module pbl_met
     public    :: QUANT_7            ! Sample quantile type 7 (R-7, Maple-6, Excel, NumPy; Linear interpolation of the modes of the order statistics for uniform distribution on [0,1])
     public    :: QUANT_8            ! Sample quantile type 8 (R-8, Maple-7; ***DEFAULT***; Linear interpolation of approximate medians of order statistics; Distribution-independent)
     public    :: QUANT_9            ! Sample quantile type 9 (R-9, Maple-8; Defined so that the resulting quantile estimates are approximately unbiased for the expected order statistics; Valid if data are normally distributed)
-    public    :: MA_ALLDATA        ! Use all available data when computing centered moving averages
-    public    :: MA_STRICT        ! Discard incomplete upper and lower time tails when computing centered moving averages
+    public    :: MA_ALLDATA         ! Use all available data when computing centered moving averages
+    public    :: MA_STRICT          ! Discard incomplete upper and lower time tails when computing centered moving averages
+    public    :: FILL_LINEAR        ! Perform linear gap filling
+    public    :: FILL_CIRCULAR      ! Perform circular gap filling
     ! 3. Wind-related
     public    :: WCONV_SAME
     public    :: WCONV_PROVENANCE_TO_FLOW
@@ -330,6 +332,8 @@ module pbl_met
     integer, parameter    :: QUANT_9           =     9
     integer, parameter    :: MA_ALLDATA        =     0
     integer, parameter    :: MA_STRICT         =     1
+    integer, parameter    :: FILL_LINEAR       =     1
+    integer, parameter    :: FILL_CIRCULAR     =     2
     ! 3. Wind related
     ! 3.1. Public
     integer, parameter    :: WCONV_SAME               = 0
@@ -474,19 +478,21 @@ module pbl_met
 
 
     type MultiSeries
-        real(8), dimension(:), allocatable, private                :: rvTimeStamp
-        character(len=16), dimension(:), allocatable, private    :: svColumn
-        real, dimension(:,:), allocatable, private                :: rmValue
+        real(8), dimension(:), allocatable, private             :: rvTimeStamp
+        character(len=16), dimension(:), allocatable, private   :: svColumn
+        real, dimension(:,:), allocatable, private              :: rmValue
     contains
         ! Constructors
-        procedure, public    :: createEmpty                        => msCreateEmpty
-        procedure, public    :: addTimeSeries                    => msAddTimeSeries
+        procedure, public    :: createEmpty                     => msCreateEmpty
+        procedure, public    :: addTimeSeries                   => msAddTimeSeries
         ! Selectors
-        procedure, public    :: getTimeSeries                    => msGetTimeSeries
-        procedure, public    :: getTimeStamp                        => msGetTimeStamp
-        procedure, public    :: getVector                        => msGetVector
+        procedure, public    :: getTimeSeries                   => msGetTimeSeries
+        procedure, public    :: getTimeStamp                    => msGetTimeStamp
+        procedure, public    :: getVector                       => msGetVector
         ! State interrogations
-        procedure, public    :: isEmpty                            => msIsEmpty
+        procedure, public    :: isEmpty                         => msIsEmpty
+        ! Gap filling
+        procedure, public    :: fillGaps                        => msFillGaps
     end type MultiSeries
 
 
@@ -12431,9 +12437,6 @@ contains
 
     end function dfEvaluate
 
-    ! ********************************
-    ! * Members of MultiSeries class *
-    ! ********************************
 
     function msCreateEmpty(this) result(iRetCode)
 
@@ -12737,6 +12740,102 @@ contains
         lIsEmpty = .not.allocated(this % rvTimeStamp)
 
     end function msIsEmpty
+
+
+    function msFillGaps(this, svColumn, ivFillingType, iDaysRadius) result(iRetCode)
+
+        ! Routine arguments
+        class(MultiSeries), intent(inout)           :: this
+        character(len=*), dimension(:), intent(in)  :: svColumn
+        integer, dimension(:), intent(in)           :: ivFillingType
+        integer, intent(in)                         :: iDaysRadius
+        integer                                     :: iRetCode
+
+        ! Locals
+        integer                             :: iErrCode
+        type(TimeSeries)                    :: tSeries
+        integer, dimension(:), allocatable  :: ivPos
+        real, dimension(:), allocatable     :: rvValue
+        integer                             :: i
+        integer                             :: j
+        integer                             :: n
+
+        ! Assume success (will falsify on failure)
+        iRetCode = 0
+
+        ! Check all this makes sense
+        if(this % isEmpty()) then
+            iRetCode = 1
+            return
+        end if
+        n = size(svColumn)
+        if(n <= 0 .or. size(ivFillingType) /= n) then
+            iRetCode = 2
+            return
+        end if
+
+        ! Find column in name set
+        allocate(ivPos(n))
+        ivPos = 0
+        do j = 1, n
+            do i = 1, size(this % rvTimeStamp)
+                if(svColumn(j) == this % svColumn(i)) then
+                    ivPos(j) = i
+                    exit
+                end if
+            end do
+            if(ivPos(j) <= 0) then
+                iRetCode = 3
+                return
+            end if
+            if(ivFillingType(j) /= FILL_LINEAR .and. ivFillingType(j) /= FILL_CIRCULAR) then
+                iRetCode = 4
+                return
+            end if
+        end do
+        
+        ! Process columns
+        do j = 1, n
+        
+            ! Get current column as time series
+            iErrCode = this % getTimeSeries(svColumn(j), tSeries)
+            if(iErrCode /= 0) then
+                iRetCode = 5
+                return
+            end if
+
+            ! Fill gaps in current time series
+            if(ivFillingType(j) == FILL_LINEAR) then
+                iErrCode = tSeries % fillGaps(iDaysRadius)
+                if(iErrCode /= 0) then
+                    iRetCode = 6
+                    return
+                end if
+            else
+                iErrCode = tSeries % fillDirGaps(iDaysRadius)
+                if(iErrCode /= 0) then
+                    iRetCode = 7
+                    return
+                end if
+            end if
+            
+            ! Extract data vector from time series and replace it in multiseries
+            iErrCode = tSeries % getValues(rvValue)
+            if(iErrCode /= 0) then
+                iRetCode = 8
+                return
+            end if
+            
+            ! Replace column with values just gathered
+            this % rmValue(:, ivPos(j)) = rvValue
+            
+        end do
+        
+        ! Leave
+        deallocate(rvValue)
+        deallocate(ivPos)
+
+    end function msFillGaps
 
 
     ! quicksort.f -*-f90-*-
@@ -16817,7 +16916,7 @@ contains
         integer                                                :: iRetCode
 
         ! Locals
-        integer    :: n
+        ! -none-
 
         ! Assume success (will falsify on failure)
         iRetCode = 0
@@ -16886,7 +16985,7 @@ contains
         integer                                            :: iRetCode
 
         ! Locals
-        integer    :: n
+        ! -none-
 
         ! Assume success (will falsify on failure)
         iRetCode = 0
@@ -17301,7 +17400,6 @@ contains
         integer                                :: iRetCode
 
         ! Locals
-        integer                                    :: iErrCode
         integer                                    :: iRotations
         integer                                    :: i
         integer                                    :: n
