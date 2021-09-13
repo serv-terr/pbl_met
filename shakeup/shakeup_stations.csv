@@ -1,2 +1,2 @@
-Station_Name, Lon,      Lat,       Zone, Elevation, Temp, RelH, Pres, Rg,   Rn,   Vel_Conv, Dir_Conv, Vel_Scalar, Dir_Unit, Vel_Sonic, Dir_Sonic, Temp_Sonic, Ustar, H0,   z_over_L, Tstar, Sigma_U, Sigma_V, Sigma_W, Sigma_T, TKE,   T_Surface
+Station_Name, Lon,      Lat,       Zone, Elevation, Temp, RelH, Prec, Rg,   Rn,   Vel_Conv, Dir_Conv, Vel_Scalar, Dir_Unit, Vel_Sonic, Dir_Sonic, Temp_Sonic, Ustar, H0,   z_over_L, Tstar, Sigma_U, Sigma_V, Sigma_W, Sigma_T, TKE,   T_Surface
 Parco_Nord,   9.206016, 45.542443, 1,    150.0,     4058, 4059, 4065, 4060, 4061, 14113,    4062,     4064,       14110,    5014,      5015,      11589,      5066,  5067, 11590,    11596, 11592,   11593,   11594,   11595,   11591, 4063

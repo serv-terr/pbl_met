@@ -180,15 +180,25 @@ contains
             end do
         end do
 
-        ! Ensure no two sensor IDs are the same
-        ! Note the little trick in 'jStation' loop: it starts on 'iStation', and
-        ! not 'iStation+1', to force a check no two IDs are repeated _on the same station_.
+        ! Ensure no two sensor IDs are the same on the same station
         do iStation = 1, iNumStations
-            do jStation = iStation, iNumStations
+            do iData = 1, iNumData
+                do jData = iData+1, iNumData
+                    if(this % imQuantityIdx(iData, iStation) == this % imQuantityIdx(jData, iStation)) then
+                        iRetCode = 13
+                        return
+                    end if
+                end do
+            end do
+        end do
+
+        ! Ensure no two sensor IDs are the same between any two different stations
+        do iStation = 1, iNumStations
+            do jStation = iStation+1, iNumStations
                 do iData = 1, iNumData
                     do jData = 1, iNumData
                         if(this % imQuantityIdx(iData, iStation) == this % imQuantityIdx(jData, jStation)) then
-                            iRetCode = 13
+                            iRetCode = 14
                             return
                         end if
                     end do
@@ -223,7 +233,6 @@ contains
         integer                         :: iRetCode
 
         ! Locals
-        integer     :: iErrCode
         integer     :: iStationIdx
         integer     :: i
 
@@ -254,6 +263,7 @@ contains
         ! Gather data
         rAlt  = this % rvLat(iStationIdx)
         rLon  = this % rvLon(iStationIdx)
+        rLat  = this % rvLat(iStationIdx)
         iZone = this % ivZone(iStationIdx)
         rAlt  = this % rvAlt(iStationIdx)
         if(present(iStationIdxOut)) iStationIdxOut = iStationIdx
@@ -271,7 +281,6 @@ contains
         integer                                         :: iRetCode
 
         ! Locals
-        integer :: iErrCode
         integer :: i
         integer :: j
         integer :: iStationIdx
@@ -451,6 +460,7 @@ contains
 
             iErrCode = tMultiSeries % addTimeSeries(svQuantityNames(iData), tSeries)
             if(iErrCode /= 0) then
+                print *, "shakeup:: error: Quantity no. ", iData, " not added to multiseries: return code = ", iErrCode
                 iRetCode = 11
                 return
             end if
@@ -570,7 +580,7 @@ contains
                 read(sBuffer, *) rValue, rQuality
             else
                 read(sBuffer, *) rValue
-                rQuality = -999.9
+                rQuality = 999.9
             end if
             if(lDisableQuality) then
                 if(rValue < -990.0) rValue = NaN

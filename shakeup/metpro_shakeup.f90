@@ -6,6 +6,7 @@
 program metpro_shakeup
 
     use DataSet
+    use model_meteo
     use pbl_met
 
     implicit none
@@ -60,41 +61,15 @@ program metpro_shakeup
     end if
     print *, "Data read and gap filled"
 
-    ! Reserve workspace
-    n = size(tData % time_stamp_begin)
-    allocate(rvTimeStamp(n), rvTemp(n), rvRelH(n), rvVel(n), rvDir(n), rvUstar(n), rvH0(n))
-
-    ! Gather input data
-    rvTimeStamp = tData % time_stamp_begin
-    rvTemp      = tData % temp
-    rvRelH      = tData % relh
-    rvVel       = tData % vel
-    rvDir       = tData % dir
-    rvUstar     = tData % Ustar
-    rvH0        = tData % H0
-    
-    ! Estimate mixing height using measured (and gap-filled) PBL parameters
-    iDeltaTime = 60
-    iRetCode = EstimateZi( &
-        rvTimeStamp, &
-        tData % zone, &
-        tData % lat, &
-        tData % lon, &
-        iDeltaTime, &
-        tData % Temp, &
-        rvUstar, &
-        rvH0, &
-        rvZi = rvZi &
-    )
+    ! Prepare Calpuff and Calmet meteorological data
+    iRetCode = calpuff(sOutputPrefix, tData, 3600, 10.0, 0.023)
     if(iRetCode /= 0) then
-        print *, "shakemet:: error: Mixing height estimation failed - Return code = ", iRetCode
+        print *, "shakemet:: error: Calpuff data files not produced - Return code = ", iRetCode
         stop
     end if
-    print *, "Mixing height estimated"
+    print *, "Output Calpuff/Calmet data files created"
     
     ! Leave
-    deallocate(rvZi)
-    deallocate(rvTimeStamp, rvTemp, rvRelH, rvVel, rvDir, rvUstar, rvH0)
     print *, "*** END JOB ***"
 
 end program metpro_shakeup
