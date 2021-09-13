@@ -205,11 +205,11 @@ module pbl_met
     PUBLIC    :: VirtualTemperature             ! Virtual temperature given water vapor pressure and air pressure
     PUBLIC    :: SonicTemperature               ! Estimate ultrasonic temperature given dry bulb temperature, relative humidity and pressure
     ! 15. Energy balance at ground-atmosphere contact (new method, as from ASCE Evapotranspiration Equation
-     public    :: ClearSkyRg_Simple             ! Simple estimate of global solar radiation under clear sky conditions
+    public    :: ClearSkyRg_Simple              ! Simple estimate of global solar radiation under clear sky conditions
     public    :: ClearSkyRg_Accurate_Old        ! More accurate estimate of global solar radiation under clear sky conditions (old version, deprecated)
     public    :: ClearSkyRg_Accurate            ! More accurate estimate of global solar radiation under clear sky conditions
     public    :: GlobalRadiation                ! Global radiation estimate, obtained by correcting the clear sky estimate by cloud cover
-    public    :: ExtraterrestrialRadiation_Old! Estimate of extraterrestrial radiation (i.e., global radiation above the Earth atmosphere) (deprecated)
+    public    :: ExtraterrestrialRadiation_Old  ! Estimate of extraterrestrial radiation (i.e., global radiation above the Earth atmosphere) (deprecated)
     public    :: ExtraterrestrialRadiation      ! Estimate of extraterrestrial radiation (i.e., global radiation above the Earth atmosphere)
     public    :: NetRadiation                   ! Estimate of solar net radiation
     public    :: CloudCover                     ! Estimate cloud cover using estimated and measured global radiatiobs
@@ -4997,10 +4997,10 @@ contains
 
         ! Routine arguments
         REAL, INTENT(IN)            :: Td        ! Dry bulb temperature (K)
-        REAL, INTENT(IN), OPTIONAL    :: Pa        ! Air pressure (hPa)
+        REAL, INTENT(IN), OPTIONAL  :: Pa        ! Air pressure (hPa)
         REAL                        :: rRhoCp    ! Product of air density and
-                                                ! constant-pressure thermal
-                                                ! capacity
+                                                 ! constant-pressure thermal
+                                                 ! capacity
 
         ! Locals
         REAL    :: Rho
@@ -12477,7 +12477,7 @@ contains
 
         ! Assume success (will falsify on failure)
         iRetCode = 0
-
+        
         ! Check input parameters
         if(tSeries % isEmpty()) then
             iRetCode = 1
@@ -18075,17 +18075,17 @@ contains
     function WindProfile(iglo,z,zr,vr,dir,z0,hmix,us,hlm,u,v) result(iRetCode)
     
         ! Routine arguments
-        integer, intent(in)                    :: iglo    ! Hemisphere (0: Southern, 1: Northern)
-        real(8), dimension(:), intent(in)    :: z    ! Heights above ground (m)
+        integer, intent(in)                    :: iglo  ! Hemisphere (0: Southern, 1: Northern)
+        real(8), dimension(:), intent(in)      :: z     ! Heights above ground (m)
         real(8), intent(in)                    :: zr    ! Wind measurement height above ground (m)
         real(8), intent(in)                    :: vr    ! Wind speed (m/s)
-        real(8), intent(in)                    :: dir    ! Wind direction (Â°)
+        real(8), intent(in)                    :: dir   ! Wind direction (Â°)
         real(8), intent(in)                    :: z0    ! Aerodynamic roughness length (m)
-        real(8), intent(in)                    :: hmix    ! Mixing height above ground (m)
+        real(8), intent(in)                    :: hmix  ! Mixing height above ground (m)
         real(8), intent(in)                    :: us    ! Friction velocity (m/s)
-        real(8), intent(in)                    :: hlm    ! Reciprocal of Obukhov length (1/m)
-        real(8), dimension(:), intent(out)    :: u    ! Wind component U (m/s)
-        real(8), dimension(:), intent(out)    :: v    ! Wind component V (m/s)
+        real(8), intent(in)                    :: hlm   ! Reciprocal of Obukhov length (1/m)
+        real(8), dimension(:), intent(out)     :: u     ! Wind component U (m/s)
+        real(8), dimension(:), intent(out)     :: v     ! Wind component V (m/s)
         integer                                :: iRetCode
         
         ! Locals
@@ -18280,6 +18280,7 @@ contains
                 u(n_PBL+1:) = -velmix*SIN(TO_RAD*dirmix)
                 v(n_PBL+1:) = -velmix*COS(TO_RAD*dirmix)
             end if
+            
         end if
 
     end function WindProfile
@@ -18289,16 +18290,16 @@ contains
     function TempProfile(z,z0,zr,Tr,gamma,hmix,Ts,us,hm,T) result(iRetCode)
 
         ! Routine arguments
-        real(8), dimension(:), intent(in)    :: z        ! Heights above ground (m)
-        real(8), intent(in)                    :: z0        ! Aerodynamic roughness length (m)
-        real(8), intent(in)                    :: zr        ! Temperature measurement measurement height above ground (m)
-        real(8), intent(in)                    :: Tr        ! Measured temperature (K)
+        real(8), dimension(:), intent(in)      :: z        ! Heights above ground (m)
+        real(8), intent(in)                    :: z0       ! Aerodynamic roughness length (m)
+        real(8), intent(in)                    :: zr       ! Temperature measurement measurement height above ground (m)
+        real(8), intent(in)                    :: Tr       ! Measured temperature (K)
         real(8), intent(in)                    :: gamma    ! Temperature lapse rate (above the PBL) (K/m)
-        real(8), intent(in)                    :: hmix        ! Mixing height above ground (m)
-        real(8), intent(in)                    :: Ts        ! Scale temperature (K)
-        real(8), intent(in)                    :: us        ! Friction velocity (m/s)
-        real(8), intent(in)                    :: hm        ! Reciprocal of Obukhov length (1/m)
-        real(8), dimension(:), intent(out)    :: T        ! Temperature (K)
+        real(8), intent(in)                    :: hmix     ! Mixing height above ground (m)
+        real(8), intent(in)                    :: Ts       ! Scale temperature (K)
+        real(8), intent(in)                    :: us       ! Friction velocity (m/s)
+        real(8), intent(in)                    :: hm       ! Reciprocal of Obukhov length (1/m)
+        real(8), dimension(:), intent(out)     :: T        ! Temperature (K)
         integer                                :: iRetCode
         
         ! Locals
