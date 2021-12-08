@@ -135,8 +135,10 @@ module pbl_met
     public    :: timeGetYearMonth              ! Extract a year-month value from a time stamp vector (may be used to obtain an index)
     public    :: timeSequence                  ! Generate a sequence of time stamps between two given initial and final time stamps
     ! 5. Round time stamps to various common steps
+    public    :: timeFloor                     ! Delta time aligned stamp of current time stamp
     public    :: timeFloorDay                  ! Day stamp of current time stamp
     public    :: timeFloorHour                 ! Hour stamp of current time stamp
+    public    :: timeCeiling                   ! Next delta time aligned stamp of current time stamp
     public    :: timeCeilingDay                ! Day stamp of next time stamp
     public    :: timeCeilingHour               ! Hour stamp of next time stamp
     ! 6. Data management
@@ -761,6 +763,16 @@ module pbl_met
         module procedure    :: timeCeilingHour1
         module procedure    :: timeCeilingHour2
     end interface timeCeilingHour
+
+    interface timeFloor
+        module procedure    :: timeFloor1
+        module procedure    :: timeFloor2
+    end interface timeFloor
+
+    interface timeCeiling
+        module procedure    :: timeCeiling1
+        module procedure    :: timeCeiling2
+    end interface timeCeiling
 
     interface AirPressure
         module procedure AirPressure1
@@ -3342,6 +3354,75 @@ contains
         rHourStamp = ceiling(rTimeStamp/ONE_HOUR) * ONE_HOUR
 
     end function timeCeilingHour2
+
+
+    function timeFloor1(iTimeStamp, iDeltaTime) result(iHourStamp)
+
+        ! Routine arguments
+        integer, intent(in)    :: iTimeStamp
+        integer, intent(in)    :: iDeltaTime
+        integer                :: iHourStamp
+
+        ! Locals
+        ! -none-
+
+        ! Compute the desired quantity
+        iHourStamp = iTimeStamp - mod(iTimeStamp, iDeltaTime)
+
+    end function timeFloor1
+
+
+    function timeFloor2(rTimeStamp, rDeltaTime) result(rHourStamp)
+
+        ! Routine arguments
+        real(8), intent(in)    :: rTimeStamp
+        real(8), intent(in)    :: rDeltaTime
+        real(8)                :: rHourStamp
+
+        ! Locals
+        ! -none-
+
+        ! Compute the desired quantity
+        rHourStamp = floor(rTimeStamp/rDeltaTime) * rDeltaTime
+
+    end function timeFloor2
+
+
+    function timeCeiling1(iTimeStamp, iDeltaTime) result(iHourStamp)
+
+        ! Routine arguments
+        integer, intent(in)    :: iTimeStamp
+        integer, intent(in)    :: iDeltaTime
+        integer                :: iHourStamp
+
+        ! Locals
+        integer    :: iTemporary
+
+        ! Compute the desired quantity
+        iTemporary = mod(iTimeStamp, iDeltaTime)
+        if(iTemporary /= 0) then
+            iHourStamp = iTimeStamp - iTemporary
+        else
+            iHourStamp = iTimeStamp
+        end if
+
+    end function timeCeiling1
+
+
+    function timeCeiling2(rTimeStamp, rDeltaTime) result(rHourStamp)
+
+        ! Routine arguments
+        real(8), intent(in)    :: rTimeStamp
+        real(8), intent(in)    :: rDeltaTime
+        real(8)                :: rHourStamp
+
+        ! Locals
+        ! -none-
+
+        ! Compute the desired quantity
+        rHourStamp = ceiling(rTimeStamp/rDeltaTime) * rDeltaTime
+
+    end function timeCeiling2
 
 
     function isSensible(tDateTime) result(lIsSensible)
