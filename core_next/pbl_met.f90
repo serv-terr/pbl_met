@@ -14816,9 +14816,9 @@ contains
     function sd_RemoveTrend(this, iAveragingTime, tTrend) result(iRetCode)
 
         ! Routine arguments
-        class(SonicData), intent(inout)                        :: this                ! Current ultrasonic anemometer data set
+        class(SonicData), intent(inout)                        :: this              ! Current ultrasonic anemometer data set
         integer, intent(in)                                    :: iAveragingTime    ! Averaging period (s, positive, proper divisor of 3600)
-        type(TrendData), intent(out), optional                :: tTrend            ! TrendData object to hold information about trend values, confidence limits, and more
+        type(TrendData), intent(out), optional                 :: tTrend            ! TrendData object to hold information about trend values, confidence limits, and more
         integer                                                :: iRetCode
 
         ! Locals
@@ -15269,17 +15269,17 @@ contains
 
         ! Routine arguments
         class(SonicData), intent(inout)                        :: this                ! Current ultrasonic anemometer data set
-        integer, intent(in)                                    :: iAveragingTime    ! Averaging period (s, positive, proper divisor of 3600)
-        integer, intent(in)                                    :: iMode            ! Computing mode (SPK_REMOVE invalidate spikes; SPK_CLIP clips them to the prescribed number of standard deviations from average)
-        real, intent(in), optional                            :: rNumStdDevIn        ! Number of standard deviations of distance to mean, beyond (below, if negative difference) past which data is considered a spike
-        type(SpikeCounts), intent(out), optional            :: tSpikeCounts        ! Counts of spikes
+        integer, intent(in)                                    :: iAveragingTime      ! Averaging period (s, positive, proper divisor of 3600)
+        integer, intent(in)                                    :: iMode               ! Computing mode (SPK_REMOVE invalidate spikes; SPK_CLIP clips them to the prescribed number of standard deviations from average)
+        real, intent(in), optional                             :: rNumStdDevIn        ! Number of standard deviations of distance to mean, beyond (below, if negative difference) past which data is considered a spike
+        type(SpikeCounts), intent(out), optional               :: tSpikeCounts        ! Counts of spikes
         integer                                                :: iRetCode
 
         ! Locals
         integer                                :: iErrCode
         real(8)                                :: rNumStdDev
-        integer, dimension(:), allocatable    :: ivTimeIndex
-        real(8), dimension(:), allocatable    :: rvAggregTimeStamp
+        integer, dimension(:), allocatable     :: ivTimeIndex
+        real(8), dimension(:), allocatable     :: rvAggregTimeStamp
         integer                                :: i
         integer                                :: n
         logical                                :: lIsQ
@@ -15531,15 +15531,15 @@ contains
     function sd_Averages(this, iAveragingTime, tEc) result(iRetCode)
 
         ! Routine arguments
-        class(SonicData), intent(in)                        :: this                ! Current ultrasonic anemometer data set
-        integer, intent(in)                                    :: iAveragingTime    ! Averaging period (s, positive, proper divisor of 3600)
-        type(EddyCovData), intent(out)                        :: tEc                ! Eddy covariance data, input fields only are output
-        integer                                                :: iRetCode
+        class(SonicData), intent(in)                          :: this              ! Current ultrasonic anemometer data set
+        integer, intent(in)                                   :: iAveragingTime    ! Averaging period (s, positive, proper divisor of 3600)
+        type(EddyCovData), intent(out)                        :: tEc               ! Eddy covariance data, input fields only are output
+        integer                                               :: iRetCode
 
         ! Locals
         integer                                :: iErrCode
-        integer, dimension(:), allocatable    :: ivTimeIndex
-        real(8), dimension(:), allocatable    :: rvAggregTimeStamp
+        integer, dimension(:), allocatable     :: ivTimeIndex
+        real(8), dimension(:), allocatable     :: rvAggregTimeStamp
         integer                                :: i
         integer                                :: iIndex
         integer                                :: iMaxBlock
@@ -15592,9 +15592,9 @@ contains
         tEc % rvTimeStamp = [(rBaseTime + (i-1)*real(iAveragingTime, kind=8), i = 1, iNumBlocks)]
 
         ! Check whether water and carbon dioxide processing is to be made
-        lIsQ = allocated(tEc % rvQ)
-        lIsC = allocated(tEc % rvQ) .and. allocated(tEc % rvC)
-
+        lIsQ = allocated(this % rvQ)
+        lIsC = allocated(this % rvQ) .and. allocated(this % rvC)
+        
         ! Compute the desired statistics
         ! -1- Phase one: Accumulate
         tEc % ivNumData = 0
@@ -15721,6 +15721,7 @@ contains
                 end if
             end if
         end do
+        print *, '-6-'
 
         ! Perfection status
         tEc % averagingTime = iAveragingTime
@@ -17465,7 +17466,7 @@ contains
     ! Minimalistic eddy covariance calculations, molded after
     ! EDDY.FOR, described in
     !
-    !    R.Sozzi, M.Favaron, "Sonic Anemometry and Thermometry: theoretical basis and data-processing software",
+    !    R.Sozzi, P.Favaron, "Sonic Anemometry and Thermometry: theoretical basis and data-processing software",
     !    Environmental Software, 11, 4, 1996
     !
     ! Actually, I've made many little changes (whose effect is purely aesthetical)
