@@ -537,34 +537,34 @@ module pbl_met
     ! Type for ultrasonic anemometer raw data.
     type SonicData
         ! State variables
-        logical, private                            :: isValid
+        logical, private                               :: isValid
         ! Input data
         real(8), dimension(:), allocatable, private    :: rvTimeStamp
-        real, dimension(:), allocatable, private    :: rvU
-        real, dimension(:), allocatable, private    :: rvV
-        real, dimension(:), allocatable, private    :: rvW
-        real, dimension(:), allocatable, private    :: rvT
-        real, dimension(:), allocatable, private    :: rvQ
-        real, dimension(:), allocatable, private    :: rvC
+        real, dimension(:), allocatable, private       :: rvU
+        real, dimension(:), allocatable, private       :: rvV
+        real, dimension(:), allocatable, private       :: rvW
+        real, dimension(:), allocatable, private       :: rvT
+        real, dimension(:), allocatable, private       :: rvQ
+        real, dimension(:), allocatable, private       :: rvC
         ! Derived quantities
         real(8), dimension(:), allocatable, private    :: rvVel
         real(8), dimension(:), allocatable, private    :: rvVel3D
-        real, dimension(:), allocatable, private    :: rvUnitU
-        real, dimension(:), allocatable, private    :: rvUnitV
+        real, dimension(:), allocatable, private       :: rvUnitU
+        real, dimension(:), allocatable, private       :: rvUnitV
     contains
         procedure    :: buildFromVectors    => sd_BuildFromVectors
-        procedure    :: getVectors       => sd_GetVectors
-        procedure    :: getSpeed         => sd_GetSpeed
+        procedure    :: getVectors          => sd_GetVectors
+        procedure    :: getSpeed            => sd_GetSpeed
         procedure    :: readSonicLib        => sd_ReadSonicLib
         procedure    :: readWindRecorder    => sd_ReadWindRecorder
-        procedure    :: readMeteoFlux    => sd_ReadMeteoFluxCoreUncompressed
-        procedure    :: writeSonicLib    => sd_WriteSonicLib
+        procedure    :: readMeteoFlux       => sd_ReadMeteoFluxCoreUncompressed
+        procedure    :: writeSonicLib       => sd_WriteSonicLib
         procedure    :: size                => sd_Size
-        procedure    :: valid            => sd_Valid
-        procedure    :: isWater            => sd_IsWater
-        procedure    :: isCarbonDioxide    => sd_IsCarbonDioxide
-        procedure    :: removeTrend        => sd_RemoveTrend
-        procedure    :: treatSpikes        => sd_TreatSpikes
+        procedure    :: valid               => sd_Valid
+        procedure    :: isWater             => sd_IsWater
+        procedure    :: isCarbonDioxide     => sd_IsCarbonDioxide
+        procedure    :: removeTrend         => sd_RemoveTrend
+        procedure    :: treatSpikes         => sd_TreatSpikes
         procedure    :: averages            => sd_Averages
     end type SonicData
 
@@ -622,85 +622,87 @@ module pbl_met
     ! Results of basic eddy covariance processing
     type EddyCovData
         ! Status section
-        logical, private                                    :: isPrimed            ! .true. when "averages" are available
-        logical, private                                    :: isFilled            ! .true. when eddy covariance data are available
-        integer, private                                    :: averagingTime    ! Averaging time, in seconds
+        logical, private                                      :: isPrimed           ! .true. when "averages" are available
+        logical, private                                      :: isFilled           ! .true. when eddy covariance data are available
+        integer, private                                      :: averagingTime      ! Averaging time, in seconds
         ! Common-to-all data
-        real(8), dimension(:), allocatable, private            :: rvTimeStamp        ! Time stamp averages
-        integer, dimension(:), allocatable, private            :: ivNumData        ! Number of (valid) data having contributed to the "averages"
+        real(8), dimension(:), allocatable, private           :: rvTimeStamp        ! Time stamp averages
+        integer, dimension(:), allocatable, private           :: ivNumData          ! Number of (valid) data having contributed to the "averages"
         ! Input section (data entering here through SonicData % averages(...) member function
-        real(8), dimension(:,:), allocatable, private        :: rmVel            ! Time series of mean velocities (m/s)
-        real(8), dimension(:), allocatable, private            :: rvT                ! Time series of mean temperatures (Â°C)
-        real(8), dimension(:), allocatable, private            :: rvQ                ! Time series of mean water concentration (mmol/mol)
-        real(8), dimension(:), allocatable, private            :: rvC                ! Time series of mean carbon dioxide concentrations (mmol/mol)
-        real(8), dimension(:,:,:), allocatable, private        :: raCovVel            ! Time series of momentum covariances (m2/s2)
-        real(8), dimension(:,:), allocatable, private        :: rmCovT            ! Time series of covariances between velocities and temperature (mÂ°C/s)
-        real(8), dimension(:), allocatable, private            :: rvVarT            ! Time series of temperature variances (Â°C2)
-        real(8), dimension(:,:), allocatable, private        :: rmCovQ            ! Time series of covariances between velocities and water (m mmol/mol s)
-        real(8), dimension(:), allocatable, private            :: rvVarQ            ! Time series of water variances (mmol2/mol2)
-        real(8), dimension(:,:), allocatable, private        :: rmCovC            ! Time series of covariances between velocities and carbon dioxide (m mmol/mol s)
-        real(8), dimension(:), allocatable, private            :: rvVarC            ! Time series of carbon dioxide variances (mmol2/mol2)
+        real(8), dimension(:,:), allocatable, private         :: rmVel              ! Time series of mean velocities (m/s)
+        real(8), dimension(:), allocatable, private           :: rvScalarVel        ! Time series of horizontal scalar wind speed (m/s)
+        real(8), dimension(:), allocatable, private           :: rvT                ! Time series of mean temperatures (°C)
+        real(8), dimension(:), allocatable, private           :: rvQ                ! Time series of mean water concentration (mmol/mol)
+        real(8), dimension(:), allocatable, private           :: rvC                ! Time series of mean carbon dioxide concentrations (mmol/mol)
+        real(8), dimension(:,:,:), allocatable, private       :: raCovVel           ! Time series of momentum covariances (m2/s2)
+        real(8), dimension(:,:), allocatable, private         :: rmCovT             ! Time series of covariances between velocities and temperature (mÂ°C/s)
+        real(8), dimension(:), allocatable, private           :: rvVarT             ! Time series of temperature variances (Â°C2)
+        real(8), dimension(:,:), allocatable, private         :: rmCovQ             ! Time series of covariances between velocities and water (m mmol/mol s)
+        real(8), dimension(:), allocatable, private           :: rvVarQ             ! Time series of water variances (mmol2/mol2)
+        real(8), dimension(:,:), allocatable, private         :: rmCovC             ! Time series of covariances between velocities and carbon dioxide (m mmol/mol s)
+        real(8), dimension(:), allocatable, private           :: rvVarC             ! Time series of carbon dioxide variances (mmol2/mol2)
         ! Output section (data entering here through EddyCovData % process(...) member function
         ! 1) Basic, rotated
-        real(8), dimension(:), allocatable, private            :: rvTheta            ! Time series of first rotation angles (Â°)
-        real(8), dimension(:), allocatable, private            :: rvPhi            ! Time series of second rotation angles (Â°)
-        real(8), dimension(:), allocatable, private            :: rvPsi            ! Time series of third rotation angles (Â°) (always 0 if two rotations selected in eddy covariance)
-        real(8), dimension(:,:), allocatable, private        :: rmRotVel            ! Time series of rotated mean velocities (m/s)
-        real(8), dimension(:,:,:), allocatable, private        :: raRotCovVel        ! Time series of rotated momentum covariances (m2/s2)
-        real(8), dimension(:,:), allocatable, private        :: rmRotCovT        ! Time series of rotated covariances between velocities and temperature (mÂ°C/s)
-        real(8), dimension(:,:), allocatable, private        :: rmRotCovQ        ! Time series of rotated covariances between velocities and water (m mmol/mol s)
-        real(8), dimension(:,:), allocatable, private        :: rmRotCovC        ! Time series of rotated covariances between velocities and carbon dioxide (m mmol/mol s)
+        real(8), dimension(:), allocatable, private           :: rvTheta            ! Time series of first rotation angles (Â°)
+        real(8), dimension(:), allocatable, private           :: rvPhi              ! Time series of second rotation angles (Â°)
+        real(8), dimension(:), allocatable, private           :: rvPsi              ! Time series of third rotation angles (Â°) (always 0 if two rotations selected in eddy covariance)
+        real(8), dimension(:,:), allocatable, private         :: rmRotVel           ! Time series of rotated mean velocities (m/s)
+        real(8), dimension(:,:,:), allocatable, private       :: raRotCovVel        ! Time series of rotated momentum covariances (m2/s2)
+        real(8), dimension(:,:), allocatable, private         :: rmRotCovT          ! Time series of rotated covariances between velocities and temperature (mÂ°C/s)
+        real(8), dimension(:,:), allocatable, private         :: rmRotCovQ          ! Time series of rotated covariances between velocities and water (m mmol/mol s)
+        real(8), dimension(:,:), allocatable, private         :: rmRotCovC          ! Time series of rotated covariances between velocities and carbon dioxide (m mmol/mol s)
         ! 2) Derived, precision anemometry
         ! 3) Derived, common turbulence indicators and energy fluxes
-        real(8), dimension(:), allocatable, private            :: rvUstar            ! Friction velocity, using both momentum fluxes (always valid) [m/s]
-        real(8), dimension(:), allocatable, private            :: rvUstar_3        ! Friction velocity, using one momentum flux only (may not be valid; computed only if third rotation angle is non-zero) [m/s]
-        real(8), dimension(:), allocatable, private            :: rvH0                ! Turbulent flux of sensible heat along the vertical [W/m2]
-        real(8), dimension(:), allocatable, private            :: rvHe                ! Turbulent flux of latent heat along the vertical [W/m2]
+        real(8), dimension(:), allocatable, private           :: rvUstar            ! Friction velocity, using both momentum fluxes (always valid) [m/s]
+        real(8), dimension(:), allocatable, private           :: rvUstar_3          ! Friction velocity, using one momentum flux only (may not be valid; computed only if third rotation angle is non-zero) [m/s]
+        real(8), dimension(:), allocatable, private           :: rvH0               ! Turbulent flux of sensible heat along the vertical [W/m2]
+        real(8), dimension(:), allocatable, private           :: rvHe               ! Turbulent flux of latent heat along the vertical [W/m2]
         ! 4) Derived, water and carbon dioxide related
-        real(8), dimension(:), allocatable, private            :: rvFqMolar        ! Water turbulent flux along the vertical [mmol/(m2 s)]
-        real(8), dimension(:), allocatable, private            :: rvFqMass            ! Water turbulent flux along the vertical [mg/(m2 s)]
-        real(8), dimension(:), allocatable, private            :: rvFcMolar        ! Carbon dioxide turbulent flux along the vertical [mmol/(m2 s)]
-        real(8), dimension(:), allocatable, private            :: rvFcMass            ! Carbon dioxide turbulent flux along the vertical [mg/(m2 s)]
+        real(8), dimension(:), allocatable, private           :: rvFqMolar          ! Water turbulent flux along the vertical [mmol/(m2 s)]
+        real(8), dimension(:), allocatable, private           :: rvFqMass           ! Water turbulent flux along the vertical [mg/(m2 s)]
+        real(8), dimension(:), allocatable, private           :: rvFcMolar          ! Carbon dioxide turbulent flux along the vertical [mmol/(m2 s)]
+        real(8), dimension(:), allocatable, private           :: rvFcMass           ! Carbon dioxide turbulent flux along the vertical [mg/(m2 s)]
     contains
         procedure    :: clean            => ec_Clean                    ! Make an EddyCovData object "clean", that is, with vectors unallocated and status logicals .false.
-        procedure    :: reserve             => ec_Allocate                ! Reserve workspace for vectors (all types)
-        procedure    :: dump                => ec_Dump                    ! Print contents of an EddyCovData object to screen (mainly for testing)
-        procedure    :: getSize            => ec_getSize                ! Get allocated size of an EddyCovData object
-        procedure    :: getAvgTime        => ec_getAvgTime            ! Get averaging time (as it is)
-        procedure    :: getNumValidInput    => ec_getNumValidInput        ! Count number of valid data in an EddyCovData object
-        procedure    :: getNumData        => ec_getNumData            ! Get a number of valid data used to form any mean value
-        procedure    :: getInputData        => ec_getInputData            ! Get a copy of input vectors
+        procedure    :: reserve          => ec_Allocate                 ! Reserve workspace for vectors (all types)
+        procedure    :: dump             => ec_Dump                     ! Print contents of an EddyCovData object to screen (mainly for testing)
+        procedure    :: getSize          => ec_getSize                  ! Get allocated size of an EddyCovData object
+        procedure    :: getAvgTime       => ec_getAvgTime               ! Get averaging time (as it is)
+        procedure    :: getNumValidInput => ec_getNumValidInput         ! Count number of valid data in an EddyCovData object
+        procedure    :: getNumData       => ec_getNumData               ! Get a number of valid data used to form any mean value
+        procedure    :: getInputData     => ec_getInputData             ! Get a copy of input vectors
         procedure    :: getWindVector    => ec_getWindVector            ! Get a copy of wind vector
-        procedure    :: getCovWind        => ec_GetCovWind            ! Get values from non-rotated velocity covariances (all)
+        procedure    :: getCovWind       => ec_GetCovWind               ! Get values from non-rotated velocity covariances (all)
         procedure    :: getInputGases    => ec_getInputGases            ! Get a copy of input gases vectors
         procedure    :: getOutputData    => ec_getOutputData            ! Get a copy of output vectors
-        procedure    :: getCovT            => ec_GetCovT                ! Get values from non-rotated velocity-temperature covariances
-        procedure    :: getVarT            => ec_GetVarT                ! Get values from temperature variance
-        procedure    :: getRotAngles        => ec_GetRotAngles            ! Get rotation angles
-        procedure    :: getUstar            => ec_GetUstar                ! Get friction velocity (according to the two most common definitions)
-        procedure    :: getOutputGases    => ec_getOutputGases        ! Get a copy of output gas vectors
-        procedure    :: getRotCovVel        => ec_GetRotCovVel            ! Get values from rotated velocity covariances (only those at row i, column j)
+        procedure    :: getCovT          => ec_GetCovT                  ! Get values from non-rotated velocity-temperature covariances
+        procedure    :: getVarT          => ec_GetVarT                  ! Get values from temperature variance
+        procedure    :: getRotAngles     => ec_GetRotAngles             ! Get rotation angles
+        procedure    :: getUstar         => ec_GetUstar                 ! Get friction velocity (according to the two most common definitions)
+        procedure    :: getOutputGases   => ec_getOutputGases           ! Get a copy of output gas vectors
+        procedure    :: getRotCovVel     => ec_GetRotCovVel             ! Get values from rotated velocity covariances (only those at row i, column j)
         procedure    :: getRotCovWind    => ec_GetRotCovWind            ! Get values from rotated velocity covariances (all)
-        procedure    :: getRotCovT        => ec_GetRotCovT            ! Get values from rotated velocity-temperature covariance on direction j (j=1 == X, j=2 == Y, j = 3 == Z)
+        procedure    :: getRotCovT       => ec_GetRotCovT               ! Get values from rotated velocity-temperature covariance on direction j (j=1 == X, j=2 == Y, j = 3 == Z)
         procedure    :: getRotCovTemp    => ec_GetRotCovTemp            ! Get values from rotated velocity-temperature covariances
-        procedure    :: getRotCovWater    => ec_GetRotCovWater        ! Get values from rotated velocity-water vapor covariances
-        procedure    :: getRotCovCo2        => ec_GetRotCovCo2            ! Get values from rotated velocity-carbon dioxide covariances
-        procedure    :: getWind            => ec_GetWind                ! Get wind in (Vel,Dir,W) form
-        procedure    :: getTemp            => ec_GetTemp                ! Get values from temperature vector
-        procedure    :: getH2O            => ec_GetH2o                ! Get water input vectors
-        procedure    :: getH2OFluxes        => ec_GetH2oFluxes            ! Get water fluxes vectors
-        procedure    :: getCO2Fluxes        => ec_GetCo2Fluxes            ! Get carbon dioxide fluxes vectors
-        procedure    :: getCO2            => ec_GetCo2                ! Get carbon dioxide vectors
+        procedure    :: getRotCovWater   => ec_GetRotCovWater           ! Get values from rotated velocity-water vapor covariances
+        procedure    :: getRotCovCo2     => ec_GetRotCovCo2             ! Get values from rotated velocity-carbon dioxide covariances
+        procedure    :: getWind          => ec_GetWind                  ! Get wind in (Vel,Dir,W) form
+        procedure    :: getScalarWind    => ec_GetScalarWind            ! Get scalar wind
+        procedure    :: getTemp          => ec_GetTemp                  ! Get values from temperature vector
+        procedure    :: getH2O           => ec_GetH2o                   ! Get water input vectors
+        procedure    :: getH2OFluxes     => ec_GetH2oFluxes             ! Get water fluxes vectors
+        procedure    :: getCO2Fluxes     => ec_GetCo2Fluxes             ! Get carbon dioxide fluxes vectors
+        procedure    :: getCO2           => ec_GetCo2                   ! Get carbon dioxide vectors
         procedure    :: getHeatFluxes    => ec_GetHeatFluxes            ! Get heat fluxes vectors
-        procedure    :: createEmpty        => ec_CreateEmpty            ! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
-        procedure    :: isClean            => ec_IsClean                ! Check whether an EddyCovData object is clean
-        procedure    :: isEmpty            => ec_IsEmpty                ! Check whether an EddyCovData object is empty
-        procedure    :: isReady            => ec_IsPrimed                ! Check whether an EddyCovData object is primed (contains some input)
-        procedure    :: isFull            => ec_IsFilled                ! Check whether an EddyCovData object is primed (contains some input and processed data)
-        procedure    :: isHourly            => ec_IsHourly                ! Check an EddyCovData object is hourly, or not
-        procedure    :: getTimeStamp        => ec_GetTimeStamp            ! Retrieve a copy of the object's internal time stamp
-        procedure    :: add                => ec_AddHourly                ! Add a hourly EddyCovData object to an existing multi-hourly one
-        procedure    :: process            => ec_Process                ! Perform basic wind and temperature processing
+        procedure    :: createEmpty      => ec_CreateEmpty              ! Create an empty EddyCovData object, that is, with allocated vectors but .false. status logicals; mainly for multi-hour e.c. sets
+        procedure    :: isClean          => ec_IsClean                  ! Check whether an EddyCovData object is clean
+        procedure    :: isEmpty          => ec_IsEmpty                  ! Check whether an EddyCovData object is empty
+        procedure    :: isReady          => ec_IsPrimed                 ! Check whether an EddyCovData object is primed (contains some input)
+        procedure    :: isFull           => ec_IsFilled                 ! Check whether an EddyCovData object is primed (contains some input and processed data)
+        procedure    :: isHourly         => ec_IsHourly                 ! Check an EddyCovData object is hourly, or not
+        procedure    :: getTimeStamp     => ec_GetTimeStamp             ! Retrieve a copy of the object's internal time stamp
+        procedure    :: add              => ec_AddHourly                ! Add a hourly EddyCovData object to an existing multi-hourly one
+        procedure    :: process          => ec_Process                  ! Perform basic wind and temperature processing
     end type EddyCovData
     
     type LapseRateSpec
@@ -13287,14 +13289,14 @@ contains
     ! Output:
     !
     !    polar :                    Wind vector in polar components form, with wind speed in position 1,
-    !                            wind direction in position 2 and Vz in position 3.
+    !                               wind direction in position 2 and Vz in position 3.
     !
     function CartesianToPolar3(cartesian, interpretation) result(polar)
 
         ! Routine arguments
         real, dimension(3), intent(in)    :: cartesian            ! Wind in cartesian form (u=cartesian(1), v=cartesian(2), w=cartesian(3))
         real, dimension(3)                :: polar                ! Wind in polar form (vel=polar(1), dir=polar(2), w=polar(3))
-        integer, intent(in), optional    :: interpretation
+        integer, intent(in), optional     :: interpretation
 
         ! Locals
         ! --none--
@@ -13317,6 +13319,7 @@ contains
             else
                 ! Same interpretation for input and output: no sign change
                 call veldirWind(cartesian(1), cartesian(2), polar(1), polar(2))
+                polar(3) = cartesian(3)
             end if
         else
             polar = [0., NaN, cartesian(3)]
@@ -13328,9 +13331,9 @@ contains
     function ClassVelScalar(vel, rvVel) result(iClass)
 
         ! Routine arguments
-        real, intent(in)                :: vel            ! Wind speed to classify
-        real, dimension(:), intent(in)    :: rvVel        ! Vector, containing upper class limits in increasing order
-        integer                            :: iClass        ! Speed class to which the wind belongs (-9999 if not assignable)
+        real, intent(in)                :: vel           ! Wind speed to classify
+        real, dimension(:), intent(in)  :: rvVel         ! Vector, containing upper class limits in increasing order
+        integer                         :: iClass        ! Speed class to which the wind belongs (-9999 if not assignable)
 
         ! Locals
         integer        :: n
@@ -13928,15 +13931,15 @@ contains
     function sd_BuildFromVectors(this, rvTimeStamp, rvU, rvV, rvW, rvT, rvQ, rvC) result(iRetCode)
 
         ! Routine arguments
-        class(SonicData), intent(out)                :: this
-        real(8), dimension(:), intent(in)            :: rvTimeStamp    ! Time stamp, in Epoch new form
-        real, dimension(:), intent(in)                :: rvU            ! Eastward wind component (m/s)
-        real, dimension(:), intent(in)                :: rvV            ! Northward wind component (m/s)
-        real, dimension(:), intent(in)                :: rvW            ! Verticalward wind component (m/s)
-        real, dimension(:), intent(in)                :: rvT            ! Sonic temperature (Â°C)
+        class(SonicData), intent(out)               :: this
+        real(8), dimension(:), intent(in)           :: rvTimeStamp    ! Time stamp, in Epoch new form
+        real, dimension(:), intent(in)              :: rvU            ! Eastward wind component (m/s)
+        real, dimension(:), intent(in)              :: rvV            ! Northward wind component (m/s)
+        real, dimension(:), intent(in)              :: rvW            ! Verticalward wind component (m/s)
+        real, dimension(:), intent(in)              :: rvT            ! Sonic temperature (Â°C)
         real, dimension(:), intent(in), optional    :: rvQ            ! Water vapor (mmol/mol)
         real, dimension(:), intent(in), optional    :: rvC            ! Carbon dioxide (mmol/mol) (if present, also water vapor must be present)
-        integer                                        :: iRetCode
+        integer                                     :: iRetCode
 
         ! Locals
         integer    ::nstamp, nu, nv, nw, nt, nq, nc, n
@@ -15597,13 +15600,14 @@ contains
         
         ! Compute the desired statistics
         ! -1- Phase one: Accumulate
-        tEc % ivNumData = 0
-        tEc % rmVel     = 0.d0
-        tEc % rvT       = 0.d0
-        tEc % raCovVel  = 0.d0
-        tEc % rmCovT    = 0.d0
-        tEc % rvVarT    = 0.d0
-        tEc % isPrimed  = .true.
+        tEc % ivNumData   = 0
+        tEc % rmVel       = 0.d0
+        tEc % rvT         = 0.d0
+        tEc % raCovVel    = 0.d0
+        tEc % rmCovT      = 0.d0
+        tEc % rvVarT      = 0.d0
+        tEc % rvScalarVel = 0.d0
+        tEc % isPrimed    = .true.
         if(lIsQ) then
             tEc % rvQ       = 0.d0
             tEc % rmCovQ    = 0.d0
@@ -15648,6 +15652,8 @@ contains
                         real(this % rvV(i), kind=8) * real(this % rvT(i), kind=8)
                     tEc % rmCovT(iIndex, 3)      = tEc % rmCovT(iIndex, 3)      + &
                         real(this % rvW(i), kind=8) * real(this % rvT(i), kind=8)
+                    tEc % rvScalarVel(iIndex)    = tEc % rvScalarVel(iIndex)    + &
+                        sqrt(real(this % rvU(i), kind=8)**2 + real(this % rvV(i), kind=8)**2)
                     if(lIsQ) then
                         tEc % rvQ(iIndex)            = tEc % rvQ(iIndex)            + real(this % rvQ(i), kind=8)
                         tEc % rvVarQ(iIndex)         = tEc % rvVarQ(iIndex)         + real(this % rvQ(i), kind=8) ** 2
@@ -15689,6 +15695,7 @@ contains
                 tEc % rmCovT(i,1)     = tEc % rmCovT(i,1) / tEc % ivNumData(i) - tEc % rmVel(i, 1) * tEc % rvT(i)
                 tEc % rmCovT(i,2)     = tEc % rmCovT(i,2) / tEc % ivNumData(i) - tEc % rmVel(i, 2) * tEc % rvT(i)
                 tEc % rmCovT(i,3)     = tEc % rmCovT(i,3) / tEc % ivNumData(i) - tEc % rmVel(i, 3) * tEc % rvT(i)
+                tEc % rvScalarVel(i)  = tEc % rvScalarVel(i) / tEc % ivNumData(i)
                 if(lIsQ) then
                     tEc % rvQ(i)          = tEc % rvQ(i) / tEc % ivNumData(i)
                     tEc % rvVarQ(i)       = tEc % rvVarQ(i) / tEc % ivNumData(i) - tEc % rvQ(i) ** 2
@@ -15931,6 +15938,7 @@ contains
         if(allocated(this % rvTimeStamp)) deallocate(this % rvTimeStamp)
         if(allocated(this % ivNumData))   deallocate(this % ivNumData)
         if(allocated(this % rmVel))       deallocate(this % rmVel)
+        if(allocated(this % rvScalarVel)) deallocate(this % rvScalarVel)
         if(allocated(this % rvT))         deallocate(this % rvT)
         if(allocated(this % rvQ))         deallocate(this % rvQ)
         if(allocated(this % rvC))         deallocate(this % rvC)
@@ -15967,8 +15975,8 @@ contains
 
         ! Routine arguments
         class(EddyCovData), intent(inout)    :: this
-        integer, intent(in)                    :: iNumdata
-        integer                                :: iRetCode
+        integer, intent(in)                  :: iNumdata
+        integer                              :: iRetCode
 
         ! Locals
         integer    :: iErrCode
@@ -15981,6 +15989,7 @@ contains
             this % rvTimeStamp(iNumData), &
             this % ivNumData(iNumData), &
             this % rmVel(iNumData,3), &
+            this % rvScalarVel(iNumData), &
             this % rvT(iNumData), &
             this % rvQ(iNumData), &
             this % rvC(iNumData), &
@@ -16110,8 +16119,8 @@ contains
     function ec_getAvgTime(this) result(iAveragingTime)
 
         ! Routine arguments
-        class(EddyCovData), intent(in)    :: this
-        integer                            :: iAveragingTime
+        class(EddyCovData), intent(in)  :: this
+        integer                         :: iAveragingTime
 
         ! Locals
         ! --none--
@@ -16125,8 +16134,8 @@ contains
     function ec_getNumValidInput(this) result(iNumValid)
 
         ! Routine arguments
-        class(EddyCovData), intent(in)    :: this
-        integer                            :: iNumValid
+        class(EddyCovData), intent(in)  :: this
+        integer                         :: iNumValid
 
         ! Locals
         ! --none--
@@ -17022,10 +17031,10 @@ contains
     function ec_GetWind(this, rmPolar, iInterpretation) result(iRetCode)
 
         ! Routine arguments
-        class(EddyCovData), intent(in)                        :: this
-        real(4), dimension(:,:), allocatable, intent(out)    :: rmPolar
-        integer, intent(in), optional                        :: iInterpretation
-        integer                                                :: iRetCode
+        class(EddyCovData), intent(in)                      :: this
+        real(4), dimension(:,:), allocatable, intent(out)   :: rmPolar
+        integer, intent(in), optional                       :: iInterpretation
+        integer                                             :: iRetCode
 
         ! Locals
         integer    :: n
@@ -17057,6 +17066,37 @@ contains
         end if
 
     end function ec_GetWind
+
+
+    function ec_GetScalarWind(this, rvScalarVel) result(iRetCode)
+
+        ! Routine arguments
+        class(EddyCovData), intent(in)                      :: this
+        real(4), dimension(:), allocatable, intent(out)     :: rvScalarVel
+        integer                                             :: iRetCode
+
+        ! Locals
+        integer    :: n
+        integer    :: i
+
+        ! Assume success (will falsify on failure)
+        iRetCode = 0
+
+        ! Check something can be made
+        if(.not. this % isFilled) then
+            iRetCode = 1
+            return
+        end if
+
+        ! Reserve workspace
+        n = size(this % rvTimeStamp)
+        if(allocated(rvScalarVel)) deallocate(rvScalarVel)
+        allocate(rvScalarVel(n))
+
+        ! Get the information desired
+        rvScalarVel = this % rvScalarVel
+
+    end function ec_GetScalarWind
 
 
     function ec_GetTemp(this, rvValue) result(iRetCode)
@@ -17476,10 +17516,10 @@ contains
     function ec_Process(this, iNumRot, rZ_in) result(iRetCode)
 
         ! Routine arguments
-        class(EddyCovData), intent(inout)    :: this            ! A multi-hour object
-        integer, intent(in), optional        :: iNumRot        ! Number of reference rotations to make (2 or 3; default: 2)
+        class(EddyCovData), intent(inout)    :: this         ! A multi-hour object
+        integer, intent(in), optional        :: iNumRot      ! Number of reference rotations to make (2 or 3; default: 2)
         real(8), intent(in), optional        :: rZ_in        ! Station altitude above MSL [m]
-        integer                                :: iRetCode
+        integer                              :: iRetCode
 
         ! Locals
         integer                                    :: iRotations
@@ -17514,7 +17554,7 @@ contains
         real(8)                                    :: uc3, vc3, wc3
         real(8)                                    :: su3, sv3, sw3
         real(8)                                    :: uv3, uw3, vw3
-        real(8), dimension(:), allocatable        :: rvTa
+        real(8), dimension(:), allocatable         :: rvTa
         real(8)                                    :: tc
         real(8)                                    :: qd
         real(8)                                    :: qc
@@ -17523,7 +17563,7 @@ contains
         real(8)                                    :: mix_factor
         real(8)                                    :: wt_cor
         real(8)                                    :: lambda
-        real                                    :: rPa
+        real                                       :: rPa
 
         ! Assume success (will falsify on failure)
         iRetCode = 0
@@ -17742,7 +17782,7 @@ contains
 
         end do
 
-        ! Stage 2: Common calculations
+        ! Stage 2: Monin-Obukhov similarity calculations
 
         ! Friction velocity
         do i = 1, n
@@ -17798,7 +17838,7 @@ contains
     ! *********************
 
     ! Transform horizontal wind components wind from polar to cartesian form
-        ! (speed is surely greater than 1.e-6)
+    ! (speed is surely greater than 1.e-6)
     subroutine uvWind(vel, dir, u, v)
 
         ! Routine arguments
@@ -17905,14 +17945,14 @@ contains
     function SensibleHeatFlux(tEc, rvH0) result(iRetCode)
     
         ! Routine arguments
-        type(EddyCovData), intent(in)                    :: tEc
+        type(EddyCovData), intent(in)                      :: tEc
         real(8), dimension(:), allocatable, intent(out)    :: rvH0
         integer                                            :: iRetCode
         
         ! Locals
-        integer                                :: iErrCode
-        integer                                :: i
-        integer                                :: n
+        integer                               :: iErrCode
+        integer                               :: i
+        integer                               :: n
         real(8), dimension(:), allocatable    :: rvWT
         real(8), dimension(:), allocatable    :: rvTemp
         
