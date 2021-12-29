@@ -23,10 +23,14 @@ module multires
         real, dimension(:), allocatable     :: rvResidual
         real, dimension(:,:), allocatable   :: rmData
     contains
-        procedure   :: create        => sg_create
-        procedure   :: approximate   => sg_approximate
-        procedure   :: get_variances => sg_get_variances
-        procedure   :: get_times     => sg_get_times
+        ! Constructors
+        procedure   :: create               => sg_create
+        procedure   :: create_from_series   => sg_create_from_series
+        ! Query status
+        procedure   :: get_times            => sg_get_times
+        ! Extract useful information
+        procedure   :: approximate          => sg_approximate
+        procedure   :: get_variances        => sg_get_variances
     end type signal
     
 contains
@@ -176,6 +180,44 @@ contains
     end function sg_create
     
     
+    function sg_create_from_series(this, tSeries) result(iRetCode)
+
+        ! Routine arguments
+        class(signal), intent(out)          :: this
+        type(TimeSeries), intent(in)        :: tSeries
+        integer                             :: iRetCode
+        
+        ! Locals
+        integer                             :: iErrCode
+        integer                             :: n
+        real(8), dimension(:), allocatable  :: rvTimeStamp
+        real, dimension(:), allocatable     :: rvValue
+        
+        ! Assume success (will falsify on failure)
+        iRetCode = 0
+        
+        ! Check the time series is non-empty
+        n = tSeries % size()
+        if(n <= 0) then
+            iRetCode = 1
+            return
+        end if
+        ! Post-condition: Tiem series is non-empty, it makes sense to proceed
+        
+        ! Get time series data; as 'n' > 0, there is no need to check errors
+        iRetCode = tSeries % getTimeStamp(rvTimeStamp)
+        iRetCode = tSeries % getValues(rvValue)
+        
+        ! Create data set the normal way
+        iErrCode = this % create(rvTimeStamp, rvValue)
+        if(iErrCode /= 0) then
+            iRetCode = 2 + iRetCode
+            return
+        end if
+        
+    end function sg_create_from_series
+    
+    
     function sg_approximate(this, iHalving, rvApproxSignal) result(iRetCode)
     
         ! Routine aguments
@@ -218,11 +260,13 @@ contains
     end function sg_approximate
     
     
-    function sg_get_variances(this, rvVariance) result(iRetCode)
+    function sg_get_variances(this, rOriginalVariance, rvVariance, rResidualVariance) result(iRetCode)
     
         ! Routine arguments
         class(signal), intent(in)                       :: this
-        real, dimension(:), allocatable, intent(out)    :: rvVariance
+        real, intent(out)                               :: rOriginalVariance    ! Total variance of original signal
+        real, dimension(:), allocatable, intent(out)    :: rvVariance           ! Variances of the various halvings
+        real, intent(out)                               :: rResidualVariance    ! Variance of final residual
         integer                                         :: iRetCode
         
         ! Locals
@@ -239,10 +283,13 @@ contains
         
         ! Reserve workspace
         if(allocated(rvVariance)) deallocate(rvVariance)
-        allocate(rvVariance(size(this % rmData, dim=1)))
+        allocate(rvVariance(size(this % rvVariance) - 1))
         
         ! Get the information desired
-        rvVariance = this % rvVariance
+        rvVariance = this % rvVariance(1:size(this % rvVariance) - 1)
+        rOriginalVariance = rvVariance(1)
+        rResidualVariance = this % rvVariance(size(this % rvVariance))
+        rvVariance(1) = 0.
         
     end function sg_get_variances
     
