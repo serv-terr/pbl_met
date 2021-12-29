@@ -40,6 +40,8 @@ program multi_res_test
     integer             :: iU, iV, iW, iT
     real(8)             :: rSecond
     type(signal)        :: tSignal
+    real                :: rOriginalVariance
+    real                :: rResidualVariance
     ! -1- Temporary workspace
     real(8), dimension(:), allocatable  :: rvTimeStamp
     real, dimension(:), allocatable     :: rvU
@@ -195,21 +197,17 @@ program multi_res_test
     end if
     
     ! Get the variances, and print them
-    iRetCode = tSignal % get_variances(rvVariance)  !No check on errors! I'm sure this is useless, in *this* case
+    iRetCode = tSignal % get_variances(rOriginalVariance, rvVariance, rResidualVariance)  !No check on errors! I'm sure this is useless, in *this* case
     
     ! Get time scales associated to variances
     iRetCode = tSignal % get_times(rvTimeScale)
     iNumHalvings = size(rvTimeScale)
-    print *, "Total Variance: ", rvVariance(1)
+    print *, "Total Variance: ", rOriginalVariance
     do iHalving = 1, iNumHalvings
-        if(iHalving <= 1) then
-            print "('H: ',i2,'  T: ',f11.4,'  Var = 0.0000000')", iHalving - 1, rvTimeScale(iHalving)
-        else
-            print "('H: ',i2,'  T: ',f11.4,'  Var = ',f9.7)", iHalving - 1, rvTimeScale(iHalving), rvVariance(iHalving)
-        end if
+        print "('H: ',i2,'  T: ',f11.4,'  Var = ',f9.7)", iHalving - 1, rvTimeScale(iHalving), rvVariance(iHalving)
     end do
-    print *, "Variance of residual: ", rvVariance(iNumHalvings + 1)
-    print *, "Error of variance:    ", rvVariance(1) - sum(rvVariance(2:))
+    print *, "Variance of residual: ", rResidualVariance
+    print *, "Error of variance:    ", rOriginalVariance - (sum(rvVariance) + rResidualVariance)
     
     ! Get some approximations
     iRetCode = tSignal % approximate(iNumHalvings / 4, rvCoarseGrain)
