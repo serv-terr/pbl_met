@@ -15728,6 +15728,7 @@ contains
                 end if
             end if
         end do
+        print *, '-6-'
 
         ! Perfection status
         tEc % averagingTime = iAveragingTime
