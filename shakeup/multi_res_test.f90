@@ -42,6 +42,8 @@ program multi_res_test
     type(signal)        :: tSignal
     real                :: rOriginalVariance
     real                :: rResidualVariance
+    real                :: rOriginalTotalVar
+    real                :: rResidualTotalVar
     ! -1- Temporary workspace
     real(8), dimension(:), allocatable  :: rvTimeStamp
     real, dimension(:), allocatable     :: rvU
@@ -49,6 +51,8 @@ program multi_res_test
     real, dimension(:), allocatable     :: rvW
     real, dimension(:), allocatable     :: rvT
     real, dimension(:), allocatable     :: rvVariance
+    real, dimension(:), allocatable     :: rvTotalVar
+    real, dimension(:), allocatable     :: rvPartialVar
     real(8), dimension(:), allocatable  :: rvTimeScale
     real, dimension(:), allocatable     :: rvCoarseGrain
     real, dimension(:), allocatable     :: rvFineGrain
@@ -196,17 +200,22 @@ program multi_res_test
         stop
     end if
     
-    ! Get the variances, and print them
+    ! Get the variances and total variations, and print them
     iRetCode = tSignal % get_variances(rOriginalVariance, rvVariance, rResidualVariance)  !No check on errors! I'm sure this is useless, in *this* case
+    iRetCode = tSignal % get_total_variation(rOriginalTotalVar, rvTotalVar, rResidualTotalVar)  !No check on errors! I'm sure this is useless, in *this* case
+    iRetCode = tSignal % get_partial_variation(rvPartialVar)  !No check on errors! I'm sure this is useless, in *this* case
     
     ! Get time scales associated to variances
     iRetCode = tSignal % get_times(rvTimeScale)
     iNumHalvings = size(rvTimeScale)
-    print *, "Total Variance: ", rOriginalVariance
+    print *, "Total Variance:  ", rOriginalVariance
+    print *, "Total Variation: ", rOriginalTotalVar
     do iHalving = 1, iNumHalvings
-        print "('H: ',i2,'  T: ',f11.4,'  Var = ',f9.7)", iHalving - 1, rvTimeScale(iHalving), rvVariance(iHalving)
+        print "('H: ',i2,'  T: ',f11.4,'  Var = ',f9.7,'  TotalVar = ',e15.7,'  PartialVar = ',e15.7)", &
+            iHalving - 1, rvTimeScale(iHalving), rvVariance(iHalving), rvTotalVar(iHalving), rvPartialVar(iHalving)
     end do
     print *, "Variance of residual: ", rResidualVariance
+    print *, "Total variation of residual: ", rResidualTotalVar
     print *, "Error of variance:    ", rOriginalVariance - (sum(rvVariance) + rResidualVariance)
     
     ! Get some approximations

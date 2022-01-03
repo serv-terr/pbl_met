@@ -24,13 +24,15 @@ module multires
         real, dimension(:,:), allocatable   :: rmData
     contains
         ! Constructors
-        procedure   :: create               => sg_create
-        procedure   :: create_from_series   => sg_create_from_series
+        procedure   :: create                => sg_create
+        procedure   :: create_from_series    => sg_create_from_series
         ! Query status
-        procedure   :: get_times            => sg_get_times
+        procedure   :: get_times             => sg_get_times
         ! Extract useful information
-        procedure   :: approximate          => sg_approximate
-        procedure   :: get_variances        => sg_get_variances
+        procedure   :: approximate           => sg_approximate
+        procedure   :: get_variances         => sg_get_variances
+        procedure   :: get_total_variation   => sg_get_total_variation
+        procedure   :: get_partial_variation => sg_get_partial_variation
     end type signal
     
 contains
@@ -258,42 +260,8 @@ contains
         end do
         
     end function sg_approximate
-    
-    
-    function sg_get_variances(this, rOriginalVariance, rvVariance, rResidualVariance) result(iRetCode)
-    
-        ! Routine arguments
-        class(signal), intent(in)                       :: this
-        real, intent(out)                               :: rOriginalVariance    ! Total variance of original signal
-        real, dimension(:), allocatable, intent(out)    :: rvVariance           ! Variances of the various halvings
-        real, intent(out)                               :: rResidualVariance    ! Variance of final residual
-        integer                                         :: iRetCode
-        
-        ! Locals
-        ! --none--
-        
-        ! Assume success (will falsify on failure)
-        iRetCode = 0
-        
-        ! Check something can be done
-        if(.not. this % lIsComplete) then
-            iRetCode = 1
-            return
-        end if
-        
-        ! Reserve workspace
-        if(allocated(rvVariance)) deallocate(rvVariance)
-        allocate(rvVariance(size(this % rvVariance) - 1))
-        
-        ! Get the information desired
-        rvVariance = this % rvVariance(1:size(this % rvVariance) - 1)
-        rOriginalVariance = rvVariance(1)
-        rResidualVariance = this % rvVariance(size(this % rvVariance))
-        rvVariance(1) = 0.
-        
-    end function sg_get_variances
-    
-    
+
+
     function sg_get_times(this, rvDeltaTime) result(iRetCode)
         
         ! Routine arguments
@@ -330,6 +298,132 @@ contains
         end do
     
     end function sg_get_times
+    
+    
+    function sg_get_variances(this, rOriginalVariance, rvVariance, rResidualVariance) result(iRetCode)
+    
+        ! Routine arguments
+        class(signal), intent(in)                       :: this
+        real, intent(out)                               :: rOriginalVariance    ! Total variance of original signal
+        real, dimension(:), allocatable, intent(out)    :: rvVariance           ! Variances of the various halvings
+        real, intent(out)                               :: rResidualVariance    ! Variance of final residual
+        integer                                         :: iRetCode
+        
+        ! Locals
+        ! --none--
+        
+        ! Assume success (will falsify on failure)
+        iRetCode = 0
+        
+        ! Check something can be done
+        if(.not. this % lIsComplete) then
+            iRetCode = 1
+            return
+        end if
+        
+        ! Reserve workspace
+        if(allocated(rvVariance)) deallocate(rvVariance)
+        allocate(rvVariance(size(this % rvVariance) - 1))
+        
+        ! Get the information desired
+        rvVariance = this % rvVariance(1:size(this % rvVariance) - 1)
+        rOriginalVariance = rvVariance(1)
+        rResidualVariance = this % rvVariance(size(this % rvVariance))
+        rvVariance(1) = 0.
+        
+    end function sg_get_variances
+    
+    
+    function sg_get_total_variation(this, rOriginalTotVar, rvTotVar, rResidualTotVar) result(iRetCode)
+    
+        ! Routine arguments
+        class(signal), intent(in)                       :: this
+        real, intent(out)                               :: rOriginalTotVar      ! Total variation of original signal
+        real, dimension(:), allocatable, intent(out)    :: rvTotVar             ! Total variation of the various halvings
+        real, intent(out)                               :: rResidualTotVar      ! Total variation of final residual
+        integer                                         :: iRetCode
+        
+        ! Locals
+        integer :: m
+        integer :: n
+        integer :: i
+        integer :: iHalving
+        
+        ! Assume success (will falsify on failure)
+        iRetCode = 0
+        
+        ! Check something can be done
+        if(.not. this % lIsComplete) then
+            iRetCode = 1
+            return
+        end if
+        
+        ! Reserve workspace
+        m = size(this % rmData, dim=1)
+        n = size(this % rvVariance) - 1
+        if(allocated(rvTotVar)) deallocate(rvTotVar)
+        allocate(rvTotVar(n))
+        
+        ! Get the information desired
+        rOriginalTotVar = 0.0
+        do i = 1, m - 1
+            rOriginalTotVar = rOriginalTotVar + abs(this % rvData(i+1) - this % rvData(i))
+        end do
+        rvTotVar(1) = 0.
+        do iHalving = 2, n
+            rvTotVar(iHalving) = 0.
+            do i = 1, m
+                rvTotVar(iHalving) = rvTotVar(iHalving) + abs(this % rmData(i+1, iHalving) - this % rmData(i, iHalving))
+            end do
+        end do
+        rResidualTotVar = 0.0
+        do i = 1, m - 1
+            rResidualTotVar = rResidualTotVar + abs(this % rvResidual(i+1) - this % rvResidual(i))
+        end do
+        
+    end function sg_get_total_variation
+    
+    
+    function sg_get_partial_variation(this, rvPartVar) result(iRetCode)
+    
+        ! Routine arguments
+        class(signal), intent(in)                       :: this
+        real, dimension(:), allocatable, intent(out)    :: rvPartVar             ! Partial variation of the various halvings
+        integer                                         :: iRetCode
+        
+        ! Locals
+        integer :: m
+        integer :: n
+        integer :: i
+        integer :: iHalving
+        
+        ! Assume success (will falsify on failure)
+        iRetCode = 0
+        
+        ! Check something can be done
+        if(.not. this % lIsComplete) then
+            iRetCode = 1
+            return
+        end if
+        
+        ! Reserve workspace
+        m = size(this % rmData, dim=1)
+        n = size(this % rmData, dim=2)
+        if(allocated(rvPartVar)) deallocate(rvPartVar)
+        allocate(rvPartVar(n))
+        
+        ! Get the information desired
+        rvPartVar(1) = 0.
+        do iHalving = 2, n
+            rvPartVar(iHalving) = 0.
+            do i = 1, m
+                if(this % rmData(i+1, iHalving) /= this % rmData(i, iHalving)) then
+                    rvPartVar(iHalving) = max(rvPartVar(iHalving), abs(this % rmData(i+1, iHalving) - this % rmData(i, iHalving)))
+                end if
+            end do
+        end do
+        
+    end function sg_get_partial_variation
     
 end module multires
 
