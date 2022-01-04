@@ -116,22 +116,22 @@ program multires_stat
         end if
         
         ! Create multi-resolution objects
-        iRetCode = tSignalU % create(rvTimeStamp, rvU)
+        iRetCode = tSignalU % create(rvTimeStamp, rvU, iNumHalvingsIn=9)
         if(iRetCode /= 0) then
             print *, "Signal for U not created, with return code = ", iRetCode
             cycle
         end if
-        iRetCode = tSignalV % create(rvTimeStamp, rvV)
+        iRetCode = tSignalV % create(rvTimeStamp, rvV, iNumHalvingsIn=9)
         if(iRetCode /= 0) then
             print *, "Signal for V not created, with return code = ", iRetCode
             cycle
         end if
-        iRetCode = tSignalW % create(rvTimeStamp, rvW)
+        iRetCode = tSignalW % create(rvTimeStamp, rvW, iNumHalvingsIn=9)
         if(iRetCode /= 0) then
             print *, "Signal for W not created, with return code = ", iRetCode
             cycle
         end if
-        iRetCode = tSignalT % create(rvTimeStamp, rvT)
+        iRetCode = tSignalT % create(rvTimeStamp, rvT, iNumHalvingsIn=9)
         if(iRetCode /= 0) then
             print *, "Signal for T not created, with return code = ", iRetCode
             cycle
@@ -166,10 +166,10 @@ program multires_stat
             svFile(iFile)(iFileNameLen-10:iFileNameLen-9), &
             svFile(iFile)(iFileNameLen-8:iFileNameLen-7), &
             svFile(iFile)(iFileNameLen-5:iFileNameLen-4), &
-            rOriginalVarU, maxval(rvVarU), rResidualVarU, &
-            rOriginalVarV, maxval(rvVarV), rResidualVarV, &
-            rOriginalVarW, maxval(rvVarW), rResidualVarW, &
-            rOriginalVarT, maxval(rvVarT), rResidualVarT
+            rOriginalVarU, sum(rvVarU), rResidualVarU, &
+            rOriginalVarV, sum(rvVarV), rResidualVarV, &
+            rOriginalVarW, sum(rvVarW), rResidualVarW, &
+            rOriginalVarT, sum(rvVarT), rResidualVarT
         
         ! Inform user
         print *, "Processed: ", trim(svFile(iFile))
