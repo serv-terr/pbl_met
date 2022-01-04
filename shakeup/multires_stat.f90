@@ -37,6 +37,14 @@ program multires_stat
     real                                            :: rOriginalVarT
     real, dimension(:), allocatable                 :: rvVarT
     real                                            :: rResidualVarT
+    real(8)                                         :: rMultiplierU
+    real(8)                                         :: rMultiplierV
+    real(8)                                         :: rMultiplierW
+    real(8)                                         :: rMultiplierT
+    real(8)                                         :: rOffsetU
+    real(8)                                         :: rOffsetV
+    real(8)                                         :: rOffsetW
+    real(8)                                         :: rOffsetT
     integer                                         :: iLUN
     integer                                         :: iFileNameLen
     
@@ -82,6 +90,28 @@ program multires_stat
         iRetCode = tShk % access_data(rvTimeStamp, rvU, rvV, rvW, rvT)
         if(iRetCode /= 0) then
             print *, "Error extracting valid data - Return code = ", iRetCode
+            cycle
+        end if
+        
+        ! Remove trend
+        iRetCode = RemoveLinearTrend(rvTimeStamp, rvU, rMultiplierU, rOffsetU)
+        if(iRetCode /= 0) then
+            print *, "Error removing trend on U - Return code = ", iRetCode
+            cycle
+        end if
+        iRetCode = RemoveLinearTrend(rvTimeStamp, rvV, rMultiplierV, rOffsetV)
+        if(iRetCode /= 0) then
+            print *, "Error removing trend on V - Return code = ", iRetCode
+            cycle
+        end if
+        iRetCode = RemoveLinearTrend(rvTimeStamp, rvW, rMultiplierW, rOffsetW)
+        if(iRetCode /= 0) then
+            print *, "Error removing trend on W - Return code = ", iRetCode
+            cycle
+        end if
+        iRetCode = RemoveLinearTrend(rvTimeStamp, rvT, rMultiplierT, rOffsetT)
+        if(iRetCode /= 0) then
+            print *, "Error removing trend on T - Return code = ", iRetCode
             cycle
         end if
         
