@@ -37,12 +37,13 @@ module multires
     
 contains
 
-    function sg_create(this, rvTimeStamp, rvData) result(iRetCode)
+    function sg_create(this, rvTimeStamp, rvData, iNumHalvingsIn) result(iRetCode)
     
         ! Routine arguments
         class(signal), intent(out)          :: this
         real(8), dimension(:), intent(in)   :: rvTimeStamp
         real, dimension(:), intent(in)      :: rvData
+        integer, intent(in), optional       :: iNumHalvingsIn
         integer                             :: iRetCode
         
         ! Locals
@@ -99,7 +100,11 @@ contains
             iRetCode = 3
             return
         end if
-        iNumHalvings  = floor(log(rMaxTimeStamp - rMinTimeStamp)/log(2.d0))
+        if(present(iNumHalvingsIn)) then
+            iNumHalvings = min(max(2, iNumHalvingsIn), floor(log(rMaxTimeStamp - rMinTimeStamp)/log(2.d0)))
+        else
+            iNumHalvings  = floor(log(rMaxTimeStamp - rMinTimeStamp)/log(2.d0))
+        end if
         iMaxBlocks    = 2**iNumHalvings
         allocate(ivBeginBlock(iMaxBlocks))
         allocate(ivEndBlock(iMaxBlocks))
