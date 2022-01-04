@@ -28,17 +28,20 @@ module shakeup_data
     contains
         procedure   :: read_mfc2_file   => shrd_read_mfc2_file
         procedure   :: write_qs_file    => shrd_write_qs_file
+        procedure   :: read_qs_file     => shrd_read_qs_file
+        procedure   :: access_data      => shrd_access_data
         procedure   :: get_size         => shrd_get_size
     end type shakeup_raw_data
     
 contains
 
-    function meteoflux_map_dir(sPathName, iYear, svFile) result(iRetCode)
+    function meteoflux_map_dir(sPathName, iYear, svFile, iFileTypeIn) result(iRetCode)
         
         ! Routine arguments
         character(len=*), intent(in)                                :: sPathName
         integer, intent(in)                                         :: iYear
         character(len=256), dimension(:), allocatable, intent(out)  :: svFile
+        integer, intent(in), optional                               :: iFileTypeIn  ! 1: MeteoFlux Core V2, 2: Fast Sonic
         integer                                                     :: iRetCode
         
         ! Locals
@@ -49,10 +52,18 @@ contains
         integer             :: iMonth
         integer             :: iDay
         integer             :: iHour
+        integer             :: iFileType
         logical             :: lFileExists
         
         ! Assume success (will falsify on failure)
         iRetCode = 0
+        
+        ! Set file type
+        if(present(iFileTypeIn)) then
+            iFileType = max(1, min(2, iFileTypeIn))
+        else
+            iFileType = 1
+        end if
         
         ! First pass: count all files in Metek-style sub-directories within path;
         ! the count will be used to reserve file name space
@@ -67,9 +78,15 @@ contains
                 do iHour = 0, 23
                     
                     ! Form file name (with full path, according to "Metek" convention
-                    write(sFileName, "(a,'/',i4.4,i2.2,'/',i4.4,i2.2,i2.2,'.',i2.2,'R')") &
-                        trim(sPathName), iYear, iMonth, &
-                        iYear, iMonth, iDay, iHour
+                    if(iFileType == 1) then
+                        write(sFileName, "(a,'/',i4.4,i2.2,'/',i4.4,i2.2,i2.2,'.',i2.2,'R')") &
+                            trim(sPathName), iYear, iMonth, &
+                            iYear, iMonth, iDay, iHour
+                    elseif(iFileType == 2) then
+                        write(sFileName, "(a,'/',i4.4,i2.2,'/',i4.4,i2.2,i2.2,'.',i2.2,'R.qs')") &
+                            trim(sPathName), iYear, iMonth, &
+                            iYear, iMonth, iDay, iHour
+                    end if
                         
                     ! Check file exists, and increment file counter if so
                     inquire(file=sFileName, exist=lFileExists)
@@ -102,9 +119,15 @@ contains
                 do iHour = 0, 23
                     
                     ! Form file name (with full path, according to "Metek" convention
-                    write(sMetekName, "(i4.4,i2.2,'/',i4.4,i2.2,i2.2,'.',i2.2,'R')") &
-                        iYear, iMonth, &
-                        iYear, iMonth, iDay, iHour
+                    if(iFileType == 1) then
+                        write(sMetekName, "(i4.4,i2.2,'/',i4.4,i2.2,i2.2,'.',i2.2,'R')") &
+                            iYear, iMonth, &
+                            iYear, iMonth, iDay, iHour
+                    elseif(iFileType == 2) then
+                        write(sMetekName, "(i4.4,i2.2,'/',i4.4,i2.2,i2.2,'.',i2.2,'R.qs')") &
+                            iYear, iMonth, &
+                            iYear, iMonth, iDay, iHour
+                    end if
                     write(sFileName, "(a,'/',a)") &
                         trim(sPathName), trim(sMetekName)
                         
@@ -257,6 +280,150 @@ contains
         close(iLUN)
 
     end function shrd_write_qs_file
+    
+    
+    function shrd_read_qs_file(this, sDataPath, sFile) result(iRetCode)
+        
+        ! Routine arguments
+        class(shakeup_raw_data), intent(out)    :: this
+        character(len=*), intent(in)            :: sDataPath
+        character(len=*), intent(in)            :: sFile
+        integer                                 :: iRetCode
+        
+        ! Locals
+        integer             :: iErrCode
+        character(len=256)  :: sFileName
+        integer             :: iLUN
+        integer             :: iNumData
+        character(len=256)  :: sErrMsg
+        
+        ! Assume success (will falsify on failure)
+        iRetCode = 0
+        
+        ! Form file name, and use it to get header data; this latter is used to
+        ! reserve data space
+        write(sFileName, "(a,'/',a)") trim(sDataPath), trim(sFile)
+        open(newunit=iLUN, file=sFileName, status='old', action='read', access='stream', iostat=iErrCode, iomsg=sErrMsg)
+        if(iErrCode /= 0) then
+            print *, trim(sErrMsg)
+            iRetCode = 1
+            return
+        end if
+        read(iLUN, iostat=iErrCode, iomsg=sErrMsg) iNumData
+        if(iErrCode /= 0) then
+            print *, trim(sErrMsg)
+            iRetCode = 2
+            close(iLUN)
+            return
+        end if
+        if(allocated(this % ivTimeStamp)) deallocate(this % ivTimeStamp)
+        if(allocated(this % rvU))         deallocate(this % rvU)
+        if(allocated(this % rvV))         deallocate(this % rvV)
+        if(allocated(this % rvW))         deallocate(this % rvW)
+        if(allocated(this % rvT))         deallocate(this % rvT)
+        allocate(this % ivTimeStamp(iNumData))
+        allocate(this % rvU(iNumData))
+        allocate(this % rvV(iNumData))
+        allocate(this % rvW(iNumData))
+        allocate(this % rvT(iNumData))
+        
+        ! Get actual data
+        read(iLUN, iostat=iErrCode, iomsg=sErrMsg) &
+            this % ivTimeStamp, &
+            this % rvU, &
+            this % rvV, &
+            this % rvW, &
+            this % rvT
+        if(iErrCode /= 0) then
+            print *, trim(sErrMsg)
+            iRetCode = 3
+            close(iLUN)
+            return
+        end if
+            
+        ! Leave
+        close(iLUN)
+        
+        ! Inform users all was right
+        this % lIsComplete = .true.
+        
+    end function shrd_read_qs_file
+    
+    
+    function shrd_access_data(this, rvTimeStamp, rvU, rvV, rvW, rvT) result(iRetCode)
+        
+        ! Routine arguments
+        class(shakeup_raw_data), intent(in)                 :: this
+        real(8), dimension(:), allocatable, intent(out)     :: rvTimeStamp
+        real, dimension(:), allocatable, intent(out)        :: rvU
+        real, dimension(:), allocatable, intent(out)        :: rvV
+        real, dimension(:), allocatable, intent(out)        :: rvW
+        real, dimension(:), allocatable, intent(out)        :: rvT
+        integer                                             :: iRetCode
+        
+        ! Locals
+        integer :: iValidData
+        integer :: iData
+        
+        ! Assume success (will falsify on failure)
+        iRetCode = 0
+        
+        ! Check something can be made
+        if(.not.this % lIsComplete) then
+            iRetCode = 1
+            return
+        end if
+        
+        ! Count valid data
+        iValidData = 0
+        do iData = 1, size(this % ivTimeStamp)
+            if( &
+                this % rvU(iData) > -99. .and. &
+                this % rvV(iData) > -99. .and. &
+                this % rvT(iData) > -99. .and. &
+                this % rvT(iData) > -99. &
+            ) then
+                iValidData = iValidData + 1
+            end if
+        end do
+        
+        ! Check some data is valid
+        if(iValidData <= 0) then
+            iRetCode = 2
+            return
+        end if
+        
+        ! Retrieve data
+        if(allocated(rvTimeStamp)) deallocate(rvTimeStamp)
+        if(allocated(rvU))         deallocate(rvU)
+        if(allocated(rvV))         deallocate(rvV)
+        if(allocated(rvW))         deallocate(rvW)
+        if(allocated(rvT))         deallocate(rvT)
+        allocate(rvTimeStamp(iValidData))
+        allocate(rvU(iValidData))
+        allocate(rvV(iValidData))
+        allocate(rvW(iValidData))
+        allocate(rvT(iValidData))
+        
+        ! Transfer valid data only
+        iValidData = 0
+        do iData = 1, size(this % ivTimeStamp)
+            if( &
+                this % rvU(iData) > -99. .and. &
+                this % rvV(iData) > -99. .and. &
+                this % rvT(iData) > -99. .and. &
+                this % rvT(iData) > -99. &
+            ) then
+                iValidData = iValidData + 1
+                rvTimeStamp(iValidData) = this % ivTimeStamp(iData)
+                rvU(iValidData)         = this % rvU(iData)
+                rvV(iValidData)         = this % rvV(iData)
+                rvW(iValidData)         = this % rvW(iData)
+                rvT(iValidData)         = this % rvT(iData)
+            end if
+        end do
+        
+    end function shrd_access_data
     
     
     function shrd_get_size(this) result(iSize)
