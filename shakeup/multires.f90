@@ -95,6 +95,10 @@ contains
         ! used in halving
         rMinTimeStamp = minval(rvTimeStamp)
         rMaxTimeStamp = maxval(rvTimeStamp) + 0.001d0   ! The added millisecond is to ensure time conditions like Ta <= T < Tb
+        if(rMaxTimeStamp - rMinTimeStamp < 0.1d0) then
+            iRetCode = 3
+            return
+        end if
         iNumHalvings  = floor(log(rMaxTimeStamp - rMinTimeStamp)/log(2.d0))
         iMaxBlocks    = 2**iNumHalvings
         allocate(ivBeginBlock(iMaxBlocks))
@@ -136,7 +140,7 @@ contains
                     ivEndBlock(iBlock)   = i - 1
                     iBlock               = iBlock + 1
                     if(iBlock > iNumBlocks) then
-                        iRetCode = 3
+                        iRetCode = 4
                         return
                     end if
                     ivBeginBlock(iBlock) = i
@@ -144,7 +148,7 @@ contains
             end do
             ivEndBlock(iBlock) = n
             if(iBlock /= iNumBlocks) then
-                iRetCode = 4
+                iRetCode = 5
                 return
             end if
             ! Post-condition: all expected blocks obtained their bounding indices
