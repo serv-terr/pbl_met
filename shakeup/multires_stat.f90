@@ -166,10 +166,10 @@ program multires_stat
             svFile(iFile)(iFileNameLen-10:iFileNameLen-9), &
             svFile(iFile)(iFileNameLen-8:iFileNameLen-7), &
             svFile(iFile)(iFileNameLen-5:iFileNameLen-4), &
-            rOriginalVarU, maxval(rvVarU), rResidualVarU, &
-            rOriginalVarV, maxval(rvVarV), rResidualVarV, &
-            rOriginalVarW, maxval(rvVarW), rResidualVarW, &
-            rOriginalVarT, maxval(rvVarT), rResidualVarT
+            rOriginalVarU, sum(rvVarU), rResidualVarU, &
+            rOriginalVarV, sum(rvVarV), rResidualVarV, &
+            rOriginalVarW, sum(rvVarW), rResidualVarW, &
+            rOriginalVarT, sum(rvVarT), rResidualVarT
         
         ! Inform user
         print *, "Processed: ", trim(svFile(iFile))
